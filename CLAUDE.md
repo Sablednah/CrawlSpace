@@ -27,24 +27,36 @@ entities, so an unmodded client can play: `displayTest="IGNORE_ALL_VERSION"`.
 
 ## Where it stands (2026-10-06)
 
-**The planner works; nothing is built in a world yet.** `./gradlew test` plans
-1000s of dungeons, checks every one, and draws sheets to
+**The planner works, and `/crawlspace build` builds a whole dungeon in a
+world.** It was seen on the Vivo rig on 2026-10-06: the tower, spiral stairs,
+the crypt, pillared halls, mine tunnels. `./gradlew test` plans thousands of
+dungeons, checks every one, proves the blueprint is sealed, and draws sheets to
 `build/plan-renders/*.png`. **Look at the sheets after any planner change.**
 That is the only way to judge "does this look like a good dungeon", and the
 reason the planner has no Minecraft in it.
 
-Next, in order: the builder (`/crawlspace build`, one dungeon at the player,
-plain palette), then worldgen (a structure set; **store the plan in the
-structure start's NBT, not just the seed**, or a generator change between
-versions splits half-built dungeons), then palettes and dressers, then
-population, then the seams.
+Not yet:
+- **Worldgen.** Dungeons only come from the command. Use a structure set, and
+  **store the plan in the structure start's NBT, not just the seed**, or a
+  generator change between versions splits half-built dungeons.
+  **Prefer flat sites:** `requiredTop` sinks levels under the lowest ground
+  over the footprint, and on a mountainside the first level went 56 down.
+- **Locked doors do not open.** They are iron doors and the lever does not
+  exist yet. A level is still finishable, because the lock is always on the
+  loop. Plan: a lever in the KEY room that the mod watches, so no redstone
+  wiring is needed and it works on vanilla clients.
+- Mobs, spawners, loot, traps, room dressing (beyond pillars and pools), and
+  themes as data.
+- The LegendQuest/StoryTeller seams.
 
 ## Layout
 
 | Package | What | Minecraft imports? |
 |---|---|---|
 | `plan` | the planner: topology, layout, routing, cells, heights, checks | **no** |
+| `build` | `Blueprinter`: a plan as blocks by role (`Part`), not block states | **no** |
 | `debug` | `PlanRenderer`, PNG sheets (AWT, headless: never call from a client) | **no** |
+| `neoforge` | `Palettes` (role to block, per theme), `Builds` (tick-budgeted placement, undo), commands, `Tour` | yes |
 | (root) | `CrawlSpace`, the mod class | yes |
 
 Keep `plan` free of Minecraft. That is what lets the tests run thousands of
@@ -80,6 +92,45 @@ Every level shares one square, ±`LevelPlan.RADIUS` (120) around the tower.
 That keeps a whole dungeon within vanilla's structure reach (pieces have to
 stay within about 8 chunks of the start chunk; **re-verify against 1.21.11
 source when building the worldgen**).
+
+## How it is built (`build` + `neoforge`)
+
+Level `i`'s floor is at `-top - i * 12` relative to the ground at the tower.
+`top` starts at 14 and `Blueprinter.requiredTop` deepens it until every
+ceiling has `COVER` (3) blocks of ground over it. The command measures the
+ground as the **lower** of `OCEAN_FLOOR` (which counts treetops) and
+`MOTION_BLOCKING_NO_LEAVES` (which counts the sea's surface).
+
+The vertical band of a level is floor block −3 to ceiling +8 (heights ±2,
+clear height up to 6). That is why the spacing is 12: two levels can never
+share a block. Each open cell gets floor, air and ceiling. Each wall cell is
+solid from the lowest floor beside it to the highest ceiling. `BlueprintTest`
+proves **no air the dungeon makes touches the world**, and that the proof can
+fail.
+
+The spiral stair is a 3×3 well: newel in the centre, one step per block
+climbed round the 8 ring cells, lined in rock between levels. A pit is a 3×3
+shaft into a one-deep pool, which breaks the fall.
+
+Blocks are set with client updates and no neighbour updates, 20,000 a tick,
+as in WadCraft.
+
+## Testing on Vivo
+
+The rig is `~/rig/crawlspace` on Vivo: display `:6`, game 25587, RCON 25597
+(password `csdev`), a normal-terrain world (`level-seed=crawlspace`).
+`restart.sh` stops and restarts both server and client. Refresh it with a tar
+of `git ls-files -co --exclude-standard` over `~/rig/crawlspace/CrawlSpace`.
+
+Drive it over RCON:
+- `execute as TestBuddy at TestBuddy run crawlspace build 6 42`
+- `execute as TestBuddy run crawlspace goto 4 hall`: a corridor style or room
+  role, facing along or across it, which is how screenshots get aimed.
+- Give TestBuddy night vision: the dungeon is meant to be dark.
+
+Builds are remembered in memory only, so after a restart, rebuild the same
+seed in the same place to use `goto`. The same seed means the same blueprint,
+which sets 0 blocks.
 
 ## Decisions worth not relitigating
 

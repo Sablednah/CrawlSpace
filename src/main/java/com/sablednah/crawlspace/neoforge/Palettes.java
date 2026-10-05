@@ -1,0 +1,152 @@
+package com.sablednah.crawlspace.neoforge;
+
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.Map;
+
+import com.sablednah.crawlspace.build.Part;
+import com.sablednah.crawlspace.plan.Dice;
+
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.LanternBlock;
+import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+
+/**
+ * Which blocks each theme is built from: CityWorld's idea of a palette, a
+ * weighted list of blocks per role, so a wall is mostly stone brick with the
+ * odd mossy or cracked one. The choice per position comes from a hash of it,
+ * so a rebuild of the same seed in the same place is identical.
+ *
+ * <p>Hard-coded while the look is being judged. These are meant to become
+ * datapack JSON so a pack can add a theme.</p>
+ */
+final class Palettes {
+
+    /** A weighted choice of blocks for one role. */
+    private record Mix(Block[] blocks, int[] weights, int total) {
+        static Mix of(Object... pairs) {
+            Block[] b = new Block[pairs.length / 2];
+            int[] w = new int[pairs.length / 2];
+            int total = 0;
+            for (int i = 0; i < pairs.length; i += 2) {
+                b[i / 2] = (Block) pairs[i];
+                w[i / 2] = (Integer) pairs[i + 1];
+                total += w[i / 2];
+            }
+            return new Mix(b, w, total);
+        }
+
+        Block pick(long hash) {
+            int r = (int) Math.floorMod(hash, (long) total);
+            for (int i = 0; i < blocks.length; i++) {
+                r -= weights[i];
+                if (r < 0) {
+                    return blocks[i];
+                }
+            }
+            return blocks[blocks.length - 1];
+        }
+    }
+
+    private static final Map<String, Map<Part, Mix>> THEMES = new HashMap<>();
+
+    static {
+        Mix crypt = Mix.of(Blocks.STONE_BRICKS, 70, Blocks.MOSSY_STONE_BRICKS, 15, Blocks.CRACKED_STONE_BRICKS, 15);
+        theme("Crypt",
+                crypt,
+                Mix.of(Blocks.STONE_BRICKS, 60, Blocks.CRACKED_STONE_BRICKS, 25, Blocks.MOSSY_STONE_BRICKS, 15),
+                Mix.of(Blocks.COBBLESTONE, 60, Blocks.MOSSY_COBBLESTONE, 25, Blocks.COARSE_DIRT, 15),
+                crypt,
+                Mix.of(Blocks.CHISELED_STONE_BRICKS, 1),
+                Blocks.STONE_BRICK_STAIRS, Blocks.CHISELED_STONE_BRICKS, Blocks.CRACKED_STONE_BRICKS,
+                Blocks.LANTERN, Blocks.SPRUCE_DOOR);
+        theme("Sunken Halls",
+                Mix.of(Blocks.MOSSY_STONE_BRICKS, 50, Blocks.STONE_BRICKS, 30, Blocks.MOSSY_COBBLESTONE, 20),
+                Mix.of(Blocks.POLISHED_ANDESITE, 70, Blocks.ANDESITE, 20, Blocks.MOSS_BLOCK, 10),
+                Mix.of(Blocks.MOSSY_COBBLESTONE, 60, Blocks.MOSS_BLOCK, 20, Blocks.COBBLESTONE, 20),
+                Mix.of(Blocks.MOSSY_STONE_BRICKS, 60, Blocks.STONE_BRICKS, 40),
+                Mix.of(Blocks.DARK_PRISMARINE, 1),
+                Blocks.MOSSY_STONE_BRICK_STAIRS, Blocks.DARK_PRISMARINE, Blocks.MOSSY_COBBLESTONE,
+                Blocks.LANTERN, Blocks.SPRUCE_DOOR);
+        theme("Old Mines",
+                Mix.of(Blocks.STONE, 50, Blocks.ANDESITE, 20, Blocks.COBBLESTONE, 20, Blocks.TUFF, 10),
+                Mix.of(Blocks.COARSE_DIRT, 50, Blocks.PACKED_MUD, 30, Blocks.STONE, 20),
+                Mix.of(Blocks.COARSE_DIRT, 60, Blocks.ROOTED_DIRT, 15, Blocks.COBBLESTONE, 25),
+                Mix.of(Blocks.STONE, 60, Blocks.OAK_PLANKS, 25, Blocks.ANDESITE, 15),
+                Mix.of(Blocks.OAK_LOG, 1),
+                Blocks.OAK_STAIRS, Blocks.OAK_LOG, Blocks.COBBLESTONE,
+                Blocks.LANTERN, Blocks.OAK_DOOR);
+        theme("Caverns",
+                Mix.of(Blocks.DEEPSLATE, 50, Blocks.TUFF, 25, Blocks.COBBLED_DEEPSLATE, 25),
+                Mix.of(Blocks.DEEPSLATE, 50, Blocks.MOSS_BLOCK, 20, Blocks.TUFF, 30),
+                Mix.of(Blocks.COBBLED_DEEPSLATE, 70, Blocks.DEEPSLATE, 30),
+                Mix.of(Blocks.DEEPSLATE, 60, Blocks.TUFF, 25, Blocks.DRIPSTONE_BLOCK, 15),
+                Mix.of(Blocks.DRIPSTONE_BLOCK, 1),
+                Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.POLISHED_DEEPSLATE, Blocks.COBBLED_DEEPSLATE,
+                Blocks.SOUL_LANTERN, Blocks.SPRUCE_DOOR);
+        theme("Deep Halls",
+                Mix.of(Blocks.DEEPSLATE_BRICKS, 60, Blocks.CRACKED_DEEPSLATE_BRICKS, 20, Blocks.DEEPSLATE_TILES, 20),
+                Mix.of(Blocks.POLISHED_DEEPSLATE, 60, Blocks.DEEPSLATE_TILES, 40),
+                Mix.of(Blocks.DEEPSLATE_TILES, 70, Blocks.CRACKED_DEEPSLATE_TILES, 30),
+                Mix.of(Blocks.DEEPSLATE_BRICKS, 1),
+                Mix.of(Blocks.CHISELED_DEEPSLATE, 50, Blocks.POLISHED_BLACKSTONE, 50),
+                Blocks.DEEPSLATE_BRICK_STAIRS, Blocks.CHISELED_DEEPSLATE, Blocks.CRACKED_DEEPSLATE_BRICKS,
+                Blocks.SOUL_LANTERN, Blocks.DARK_OAK_DOOR);
+    }
+
+    private static void theme(String name, Mix wall, Mix floor, Mix corridorFloor, Mix ceiling, Mix pillar,
+            Block step, Block newel, Block secret, Block light, Block door) {
+        Map<Part, Mix> m = new EnumMap<>(Part.class);
+        m.put(Part.WALL, wall);
+        m.put(Part.FLOOR, floor);
+        m.put(Part.CORRIDOR_FLOOR, corridorFloor);
+        m.put(Part.CEILING, ceiling);
+        m.put(Part.PILLAR, pillar);
+        m.put(Part.STEP, Mix.of(step, 1));
+        m.put(Part.NEWEL, Mix.of(newel, 1));
+        m.put(Part.SECRET_WALL, Mix.of(secret, 1));
+        m.put(Part.LIGHT, Mix.of(light, 1));
+        m.put(Part.DOOR_LOWER, Mix.of(door, 1));
+        m.put(Part.DOOR_UPPER, Mix.of(door, 1));
+        THEMES.put(name, m);
+    }
+
+    private static final Mix TOWER = Mix.of(Blocks.STONE_BRICKS, 65, Blocks.MOSSY_STONE_BRICKS, 20,
+            Blocks.CRACKED_STONE_BRICKS, 15);
+
+    private Palettes() {
+    }
+
+    /** The block for a part, dressed in {@code theme}, at a position. */
+    static BlockState state(String theme, Part part, int facing, int x, int y, int z) {
+        Direction dir = switch (facing) {
+            case 1 -> Direction.EAST;
+            case 2 -> Direction.SOUTH;
+            case 3 -> Direction.WEST;
+            default -> Direction.NORTH;
+        };
+        long hash = Dice.mix(Dice.mix(Dice.mix(x * 0x9E3779B1L) ^ y * 0x85EBCA77L) ^ z * 0xC2B2AE3DL);
+        Map<Part, Mix> palette = THEMES.getOrDefault(theme, THEMES.get("Crypt"));
+        return switch (part) {
+            case AIR -> Blocks.AIR.defaultBlockState();
+            case WATER -> Blocks.WATER.defaultBlockState();
+            case TOWER, TOWER_FLOOR -> TOWER.pick(hash).defaultBlockState();
+            case LOCKED_LOWER, LOCKED_UPPER -> door(Blocks.IRON_DOOR, dir, part == Part.LOCKED_UPPER);
+            case DOOR_LOWER, DOOR_UPPER -> door(palette.get(part).pick(hash), dir, part == Part.DOOR_UPPER);
+            case STEP -> palette.get(Part.STEP).pick(hash).defaultBlockState().setValue(StairBlock.FACING, dir);
+            case LIGHT -> palette.get(Part.LIGHT).pick(hash).defaultBlockState().setValue(LanternBlock.HANGING, true);
+            default -> palette.get(part).pick(hash).defaultBlockState();
+        };
+    }
+
+    private static BlockState door(Block block, Direction facing, boolean upper) {
+        return block.defaultBlockState()
+                .setValue(DoorBlock.FACING, facing)
+                .setValue(DoorBlock.HALF, upper ? DoubleBlockHalf.UPPER : DoubleBlockHalf.LOWER);
+    }
+}

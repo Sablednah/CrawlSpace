@@ -21,7 +21,7 @@ class RejectedTest {
                 for (Link l : bad.links) {
                     System.out.println("  " + l + (l.spur ? " spur" : ""));
                 }
-                PlanRenderer.write(new DungeonPlan(seed, 10, List.of(bad)), 6, 1,
+                PlanRenderer.write(new DungeonPlan(seed, 12, DungeonPlan.MIN_TOP, List.of(bad)), 6, 1,
                         new File(System.getProperty("crawlspace.renderDir", "build/plan-renders"), "rejected.png"));
                 return;
             }

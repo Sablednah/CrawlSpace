@@ -15,7 +15,7 @@ import java.util.List;
 public final class Planner {
 
     /** Floor to floor, in blocks. */
-    public static final int LEVEL_SPACING = 10;
+    public static final int LEVEL_SPACING = 12;
 
     private Planner() {
     }
@@ -37,7 +37,7 @@ public final class Planner {
                 arrival = level.stairsDown.get(0);
             }
         }
-        return new DungeonPlan(seed, LEVEL_SPACING, out);
+        return new DungeonPlan(seed, LEVEL_SPACING, DungeonPlan.MIN_TOP, out);
     }
 
     /**
