@@ -15,6 +15,15 @@ public final class CrawlConfig {
     private static final ModConfigSpec.IntValue SEPARATION;
     private static final ModConfigSpec.IntValue MAX_LEVELS;
     private static final ModConfigSpec.IntValue MIN_LEVELS;
+    private static final ModConfigSpec.EnumValue<Hints> HINTS;
+
+    /** Whether secret walls look different and traps and treasure give off particles. */
+    public enum Hints {
+        /** On, unless LegendQuest is installed: then its perception checks do the finding. */
+        AUTO,
+        ALWAYS,
+        NEVER
+    }
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -33,6 +42,13 @@ public final class CrawlConfig {
                 .defineInRange("maxLevels", 6, 1, 9);
         MIN_LEVELS = b.comment("Skip a site where fewer than this many levels fit above the bottom of the world.")
                 .defineInRange("minLevels", 2, 1, 9);
+        b.pop();
+        b.push("play");
+        HINTS = b.comment(
+                "Tells for players without a perception skill: secret walls built from a related but different block,",
+                "and faint particles near you, red for an unsprung trap, green for a secret door or treasure.",
+                "AUTO is on unless LegendQuest is installed.")
+                .defineEnum("hints", Hints.AUTO);
         b.pop();
         SPEC = b.build();
     }
@@ -59,6 +75,14 @@ public final class CrawlConfig {
 
     public static int minLevels() {
         return Math.min(get(MIN_LEVELS, 2), maxLevels());
+    }
+
+    public static boolean hints() {
+        return switch (get(HINTS, Hints.AUTO)) {
+            case ALWAYS -> true;
+            case NEVER -> false;
+            case AUTO -> !net.neoforged.fml.ModList.get().isLoaded("legendquest");
+        };
     }
 
     /** Before the world's config is loaded, the defaults. */

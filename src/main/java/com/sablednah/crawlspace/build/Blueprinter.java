@@ -236,6 +236,14 @@ public final class Blueprinter {
                 bp.addTrigger(new Trigger(Trigger.Kind.LEVER, spot[0], f, spot[1], i, locked.toArray(new int[0][])));
             }
         }
+        for (Room r : level.rooms) {
+            if (r.role == Role.TREASURE) {
+                int[] spot = clearFloorNear(level, r);
+                if (spot != null) {
+                    bp.addTrigger(new Trigger(Trigger.Kind.TREASURE, spot[0], floorAt(plan, i, spot[0], spot[1]), spot[1], i, new int[0][]));
+                }
+            }
+        }
         for (int[] t : level.traps) {
             Cell c = level.cell(t[0], t[1]);
             if (c != Cell.FLOOR && c != Cell.CORRIDOR) {

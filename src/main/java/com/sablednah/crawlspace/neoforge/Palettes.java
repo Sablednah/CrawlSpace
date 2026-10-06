@@ -63,7 +63,7 @@ final class Palettes {
                 Mix.of(Blocks.COBBLESTONE, 60, Blocks.MOSSY_COBBLESTONE, 25, Blocks.COARSE_DIRT, 15),
                 crypt,
                 Mix.of(Blocks.CHISELED_STONE_BRICKS, 1),
-                Blocks.STONE_BRICK_STAIRS, Blocks.CHISELED_STONE_BRICKS, Blocks.CRACKED_STONE_BRICKS,
+                Blocks.STONE_BRICK_STAIRS, Blocks.CHISELED_STONE_BRICKS, Blocks.CHISELED_STONE_BRICKS,
                 Blocks.LANTERN, Blocks.SPRUCE_DOOR);
         theme("Sunken Halls",
                 Mix.of(Blocks.MOSSY_STONE_BRICKS, 50, Blocks.STONE_BRICKS, 30, Blocks.MOSSY_COBBLESTONE, 20),
@@ -71,7 +71,7 @@ final class Palettes {
                 Mix.of(Blocks.MOSSY_COBBLESTONE, 60, Blocks.MOSS_BLOCK, 20, Blocks.COBBLESTONE, 20),
                 Mix.of(Blocks.MOSSY_STONE_BRICKS, 60, Blocks.STONE_BRICKS, 40),
                 Mix.of(Blocks.DARK_PRISMARINE, 1),
-                Blocks.MOSSY_STONE_BRICK_STAIRS, Blocks.DARK_PRISMARINE, Blocks.MOSSY_COBBLESTONE,
+                Blocks.MOSSY_STONE_BRICK_STAIRS, Blocks.DARK_PRISMARINE, Blocks.CRACKED_STONE_BRICKS,
                 Blocks.LANTERN, Blocks.SPRUCE_DOOR);
         theme("Old Mines",
                 Mix.of(Blocks.STONE, 50, Blocks.ANDESITE, 20, Blocks.COBBLESTONE, 20, Blocks.TUFF, 10),
@@ -79,7 +79,7 @@ final class Palettes {
                 Mix.of(Blocks.COARSE_DIRT, 60, Blocks.ROOTED_DIRT, 15, Blocks.COBBLESTONE, 25),
                 Mix.of(Blocks.STONE, 60, Blocks.OAK_PLANKS, 25, Blocks.ANDESITE, 15),
                 Mix.of(Blocks.OAK_LOG, 1),
-                Blocks.OAK_STAIRS, Blocks.OAK_LOG, Blocks.COBBLESTONE,
+                Blocks.OAK_STAIRS, Blocks.OAK_LOG, Blocks.MOSSY_COBBLESTONE,
                 Blocks.LANTERN, Blocks.OAK_DOOR);
         theme("Caverns",
                 Mix.of(Blocks.DEEPSLATE, 50, Blocks.TUFF, 25, Blocks.COBBLED_DEEPSLATE, 25),
@@ -87,7 +87,7 @@ final class Palettes {
                 Mix.of(Blocks.COBBLED_DEEPSLATE, 70, Blocks.DEEPSLATE, 30),
                 Mix.of(Blocks.DEEPSLATE, 60, Blocks.TUFF, 25, Blocks.DRIPSTONE_BLOCK, 15),
                 Mix.of(Blocks.DRIPSTONE_BLOCK, 1),
-                Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.POLISHED_DEEPSLATE, Blocks.COBBLED_DEEPSLATE,
+                Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.POLISHED_DEEPSLATE, Blocks.CHISELED_TUFF,
                 Blocks.SOUL_LANTERN, Blocks.SPRUCE_DOOR);
         theme("Deep Halls",
                 Mix.of(Blocks.DEEPSLATE_BRICKS, 60, Blocks.CRACKED_DEEPSLATE_BRICKS, 20, Blocks.DEEPSLATE_TILES, 20),
@@ -95,7 +95,7 @@ final class Palettes {
                 Mix.of(Blocks.DEEPSLATE_TILES, 70, Blocks.CRACKED_DEEPSLATE_TILES, 30),
                 Mix.of(Blocks.DEEPSLATE_BRICKS, 1),
                 Mix.of(Blocks.CHISELED_DEEPSLATE, 50, Blocks.POLISHED_BLACKSTONE, 50),
-                Blocks.DEEPSLATE_BRICK_STAIRS, Blocks.CHISELED_DEEPSLATE, Blocks.CRACKED_DEEPSLATE_BRICKS,
+                Blocks.DEEPSLATE_BRICK_STAIRS, Blocks.CHISELED_DEEPSLATE, Blocks.CRACKED_DEEPSLATE_TILES,
                 Blocks.SOUL_LANTERN, Blocks.DARK_OAK_DOOR);
     }
 
@@ -187,6 +187,9 @@ final class Palettes {
             case LEVER -> Blocks.LEVER.defaultBlockState()
                     .setValue(net.minecraft.world.level.block.LeverBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR)
                     .setValue(net.minecraft.world.level.block.LeverBlock.FACING, dir);
+            // With hints on, a related block that is not in the wall's mix; otherwise the wall itself.
+            case SECRET_WALL -> (CrawlConfig.hints() ? palette.get(Part.SECRET_WALL) : palette.get(Part.WALL))
+                    .pick(hash).defaultBlockState();
             default -> palette.get(part).pick(hash).defaultBlockState();
         };
     }

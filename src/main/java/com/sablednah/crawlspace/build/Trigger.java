@@ -17,7 +17,9 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         /** A hidden floor tile: darts from the nearest wall. */
         DARTS,
         /** A hidden floor tile: a cloud of poison. */
-        GAS;
+        GAS,
+        /** Not a trigger: where a treasure room's hoard is, for hints. */
+        TREASURE;
 
         public boolean isTrap() {
             return this == DARTS || this == GAS;

@@ -9,6 +9,7 @@ import com.sablednah.crawlspace.build.Trigger;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -103,8 +104,7 @@ public final class Triggers {
     }
 
     public static void onTick(PlayerTickEvent.Post e) {
-        if (!(e.getEntity() instanceof ServerPlayer player) || player.isSpectator()
-                || player.tickCount % 2 != 0 || !player.onGround()) {
+        if (!(e.getEntity() instanceof ServerPlayer player) || player.isSpectator() || player.tickCount % 2 != 0) {
             return;
         }
         ServerLevel level = (ServerLevel) player.level();
@@ -116,6 +116,13 @@ public final class Triggers {
             HERE.put(player.getUUID(), here);
         }
         if (here.site() == null) {
+            return;
+        }
+        if (player.tickCount % 20 == 0 && CrawlConfig.hints()) {
+            hints(level, player, here.site());
+        }
+        // Hints show however you move; traps want a foot on the tile.
+        if (!player.onGround()) {
             return;
         }
         Trigger t = triggerAt(here.site(), feet);
@@ -131,6 +138,44 @@ public final class Triggers {
             darts(level, player, feet);
         } else {
             gas(level, player, feet);
+        }
+    }
+
+    private static final DustParticleOptions RED = new DustParticleOptions(0xD8322A, 0.9f);
+    private static final DustParticleOptions GREEN = new DustParticleOptions(0x3FD24A, 0.9f);
+    /** How near a hint has to be before it shows, in blocks. */
+    private static final int HINT_RANGE = 9;
+
+    /**
+     * Faint dust, sent to this player only, near the things a perception skill
+     * would find: red over an unsprung trap, green at a secret wall not yet
+     * opened and over a treasure room's hoard.
+     */
+    private static void hints(ServerLevel level, ServerPlayer player, Site site) {
+        CrawlState state = CrawlState.of(level);
+        BlockPos o = site.origin();
+        for (Trigger t : site.built().blueprint().triggers()) {
+            BlockPos p = o.offset(t.x(), t.y(), t.z());
+            if (Math.abs(p.getX() - player.getX()) > HINT_RANGE || Math.abs(p.getZ() - player.getZ()) > HINT_RANGE
+                    || Math.abs(p.getY() - player.getY()) > 4) {
+                continue;
+            }
+            switch (t.kind()) {
+                case DARTS, GAS -> {
+                    if (!state.hasFired(p)) {
+                        level.sendParticles(player, RED, false, false, p.getX() + 0.5, p.getY() + 0.1, p.getZ() + 0.5, 3, 0.3, 0.02, 0.3, 0);
+                    }
+                }
+                case SECRET -> {
+                    // One puff per doorway, from its lower block, spilling out of the wall's faces.
+                    if (t.targets().length > 0 && t.targets()[0][1] == t.y() && !state.hasFired(p)) {
+                        level.sendParticles(player, GREEN, false, false, p.getX() + 0.5, p.getY() + 1.0, p.getZ() + 0.5, 4, 0.6, 0.6, 0.6, 0);
+                    }
+                }
+                case TREASURE -> level.sendParticles(player, GREEN, false, false, p.getX() + 0.5, p.getY() + 0.6, p.getZ() + 0.5, 3, 0.4, 0.3, 0.4, 0);
+                default -> {
+                }
+            }
         }
     }
 
