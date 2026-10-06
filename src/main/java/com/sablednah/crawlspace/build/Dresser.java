@@ -219,6 +219,7 @@ final class Dresser {
     /** A table with a chair on each side, backs turned away from it. */
     private static void tableSet(int[] c, int f, Dice dice, List<Prop> props) {
         props.add(new Prop(c[0], f, c[1], Part.TABLE, 0, true));
+        props.add(new Prop(c[0], f + 1, c[1], Part.TABLE_TOP, 0, false));
         for (int d = 0; d < 4; d++) {
             if (dice.chance(0.75)) {
                 props.add(new Prop(c[0] + DIRS[d][0], f, c[1] + DIRS[d][1], Part.CHAIR, d, true));

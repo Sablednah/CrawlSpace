@@ -206,10 +206,40 @@ public final class Blueprinter {
                 }
             }
         }
+        steps(bp, plan, i);
         triggers(bp, plan, i);
         java.util.Set<Integer> dark = Dresser.dress(bp, plan, i);
         lights(bp, plan, i, dark);
         encounters(bp, plan, i);
+    }
+
+    /**
+     * A stair block wherever a corridor floor steps up one block, facing up
+     * the step, so nobody has to jump anywhere in a dungeon.
+     */
+    private static void steps(Blueprint bp, DungeonPlan plan, int i) {
+        LevelPlan level = plan.levels().get(i);
+        int lim = LevelPlan.RADIUS - 1;
+        int[][] dirs = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+        for (int x = -lim; x <= lim; x++) {
+            for (int z = -lim; z <= lim; z++) {
+                if (level.cell(x, z) != Cell.CORRIDOR) {
+                    continue;
+                }
+                int h = level.height(x, z);
+                for (int d = 0; d < 4; d++) {
+                    Cell n = level.cell(x + dirs[d][0], z + dirs[d][1]);
+                    if (n.isWalkable() && level.height(x + dirs[d][0], z + dirs[d][1]) == h + 1) {
+                        int f = floorAt(plan, i, x, z);
+                        int code = bp.get(x, f, z);
+                        if (code != 0 && Blueprint.part(code) == Part.AIR) {
+                            bp.set(x, f, z, Part.STEP, d, i);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     /**

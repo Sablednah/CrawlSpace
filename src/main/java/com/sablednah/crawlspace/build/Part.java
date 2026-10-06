@@ -92,8 +92,9 @@ public enum Part {
     PANEL,
     /** A wall block swapped for the rail along the top of the panelling. */
     DADO,
-    /** A table: a slab in the top half of its block. */
+    /** A table: a fence post, with {@link #TABLE_TOP} (a pressure plate) on it. */
     TABLE,
+    TABLE_TOP,
     /** A chair: a stair with its back to the table; facing is the way its back faces. */
     CHAIR,
     /** A decorated pot. */

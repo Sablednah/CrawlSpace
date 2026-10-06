@@ -724,6 +724,11 @@ public final class LevelPlanner {
                 int reg = level.region(x, z);
                 if (reg >= 0) {
                     level.setHeight(x, z, level.room(reg).floor);
+                } else if (level.cell(x, z).isDoor()) {
+                    // A doorway sits level with its room. Solved like corridor, it could come out a block
+                    // higher, and a step up into a two-high doorway cannot be jumped: your head hits the
+                    // lintel (Sable, at an open door he could not walk through).
+                    level.setHeight(x, z, doorRoomFloor(level, x, z));
                 } else if (reg == LevelPlan.CORRIDOR) {
                     free.add(new int[] {x, z});
                     level.setHeight(x, z, 0);
@@ -753,6 +758,9 @@ public final class LevelPlanner {
                     int reg = level.region(x, z);
                     if (reg >= 0) {
                         fixedSum[i] += level.room(reg).floor;
+                        count[i]++;
+                    } else if (level.cell(x, z).isDoor()) {
+                        fixedSum[i] += level.height(x, z);
                         count[i]++;
                     } else if (reg == LevelPlan.CORRIDOR) {
                         ns.add(slot.get(key(x, z)));
@@ -786,6 +794,17 @@ public final class LevelPlanner {
             }
         }
         return PlanCheck.maxStep(level) <= 1;
+    }
+
+    /** The floor of the room a doorway opens into. */
+    private static int doorRoomFloor(LevelPlan level, int x, int z) {
+        for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+            int reg = level.region(x + d[0], z + d[1]);
+            if (reg >= 0) {
+                return level.room(reg).floor;
+            }
+        }
+        return 0;
     }
 
     private static long key(int x, int z) {

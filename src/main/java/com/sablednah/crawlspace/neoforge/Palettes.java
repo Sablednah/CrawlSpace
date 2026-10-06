@@ -150,22 +150,22 @@ public final class Palettes {
     }
 
     /** A theme's interior finish: coving, panelling, the rail above it, tables, chairs and rugs. */
-    private record Finish(Block cove, Block panel, Block dado, Block table, Block chair, Block rug) {
+    private record Finish(Block cove, Block panel, Block dado, Block table, Block chair, Block rug, Block plate) {
     }
 
     private static final Map<String, Finish> FINISHES = new HashMap<>();
 
     static {
         FINISHES.put("Crypt", new Finish(Blocks.STONE_BRICK_STAIRS, Blocks.SPRUCE_PLANKS, Blocks.POLISHED_ANDESITE,
-                Blocks.SPRUCE_SLAB, Blocks.SPRUCE_STAIRS, Blocks.RED_CARPET));
+                Blocks.SPRUCE_FENCE, Blocks.SPRUCE_STAIRS, Blocks.RED_CARPET, Blocks.SPRUCE_PRESSURE_PLATE));
         FINISHES.put("Sunken Halls", new Finish(Blocks.MOSSY_STONE_BRICK_STAIRS, Blocks.PRISMARINE_BRICKS, Blocks.DARK_PRISMARINE,
-                Blocks.SPRUCE_SLAB, Blocks.SPRUCE_STAIRS, Blocks.CYAN_CARPET));
+                Blocks.SPRUCE_FENCE, Blocks.SPRUCE_STAIRS, Blocks.CYAN_CARPET, Blocks.SPRUCE_PRESSURE_PLATE));
         FINISHES.put("Old Mines", new Finish(Blocks.OAK_STAIRS, Blocks.OAK_PLANKS, Blocks.STRIPPED_OAK_LOG,
-                Blocks.OAK_SLAB, Blocks.OAK_STAIRS, Blocks.BROWN_CARPET));
+                Blocks.OAK_FENCE, Blocks.OAK_STAIRS, Blocks.BROWN_CARPET, Blocks.OAK_PRESSURE_PLATE));
         FINISHES.put("Caverns", new Finish(Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.POLISHED_TUFF, Blocks.TUFF_BRICKS,
-                Blocks.SPRUCE_SLAB, Blocks.SPRUCE_STAIRS, Blocks.MOSS_CARPET));
+                Blocks.SPRUCE_FENCE, Blocks.SPRUCE_STAIRS, Blocks.MOSS_CARPET, Blocks.SPRUCE_PRESSURE_PLATE));
         FINISHES.put("Deep Halls", new Finish(Blocks.DEEPSLATE_BRICK_STAIRS, Blocks.DARK_OAK_PLANKS, Blocks.POLISHED_BLACKSTONE_BRICKS,
-                Blocks.DARK_OAK_SLAB, Blocks.DARK_OAK_STAIRS, Blocks.PURPLE_CARPET));
+                Blocks.DARK_OAK_FENCE, Blocks.DARK_OAK_STAIRS, Blocks.PURPLE_CARPET, Blocks.DARK_OAK_PRESSURE_PLATE));
     }
 
     /** Parts whose look depends on their neighbours: set again once the chunk around them is in. */
@@ -304,8 +304,8 @@ public final class Palettes {
                     .setValue(StairBlock.HALF, net.minecraft.world.level.block.state.properties.Half.TOP);
             case PANEL -> fin.panel().defaultBlockState();
             case DADO -> fin.dado().defaultBlockState();
-            case TABLE -> fin.table().defaultBlockState().setValue(net.minecraft.world.level.block.SlabBlock.TYPE,
-                    net.minecraft.world.level.block.state.properties.SlabType.TOP);
+            case TABLE -> fin.table().defaultBlockState();
+            case TABLE_TOP -> fin.plate().defaultBlockState();
             case CHAIR -> fin.chair().defaultBlockState().setValue(StairBlock.FACING, dir);
             case POT -> Blocks.DECORATED_POT.defaultBlockState();
             case RUG -> fin.rug().defaultBlockState();

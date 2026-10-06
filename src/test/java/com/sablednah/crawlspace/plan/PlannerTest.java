@@ -132,4 +132,31 @@ class PlannerTest {
         plan.levels().get(1).set(s[0], s[1], Cell.FLOOR);
         assertFalse(PlanCheck.dungeon(plan).isEmpty());
     }
+
+    /**
+     * Every doorway is level with the room it opens into. A doorway is two
+     * blocks high, so a step up into one cannot be jumped: Sable met an open
+     * door he could not walk through.
+     */
+    @Test
+    void doorwaysAreLevelWithTheirRooms() {
+        for (long seed = 0; seed < 60; seed++) {
+            for (LevelPlan l : Planner.plan(seed, 6).levels()) {
+                for (int x = -LevelPlan.RADIUS; x <= LevelPlan.RADIUS; x++) {
+                    for (int z = -LevelPlan.RADIUS; z <= LevelPlan.RADIUS; z++) {
+                        if (!l.cell(x, z).isDoor()) {
+                            continue;
+                        }
+                        for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                            int reg = l.region(x + d[0], z + d[1]);
+                            if (reg >= 0) {
+                                assertEquals(l.room(reg).floor, l.height(x, z),
+                                        "seed " + seed + " level " + l.index + " doorway " + x + "," + z);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
