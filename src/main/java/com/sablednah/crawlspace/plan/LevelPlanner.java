@@ -34,10 +34,10 @@ public final class LevelPlanner {
     /** Cells of rock kept between room rectangles: room clearance either side plus a 3-wide corridor. */
     private static final int GAP = 6;
 
-    /** Why attempts were thrown away, counted for the tests' report. Not thread-safe; diagnostics only. */
     /** The last attempt that failed its check, for a test to draw. Diagnostics only. */
-    static LevelPlan lastRejected;
-    static final java.util.Map<String, Integer> FAILURES = new java.util.TreeMap<>();
+    static volatile LevelPlan lastRejected;
+    /** Why attempts were thrown away, for the tests' report. Concurrent: worldgen plans on several threads. */
+    static final java.util.Map<String, Integer> FAILURES = new java.util.concurrent.ConcurrentSkipListMap<>();
 
     private LevelPlanner() {
     }

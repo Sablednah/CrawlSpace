@@ -116,14 +116,54 @@ final class Palettes {
         THEMES.put(name, m);
     }
 
-    private static final Mix TOWER = Mix.of(Blocks.STONE_BRICKS, 65, Blocks.MOSSY_STONE_BRICKS, 20,
-            Blocks.CRACKED_STONE_BRICKS, 15);
+    /** How the entrance tower looks: chosen from the biome it stands in. */
+    private record Style(Mix wall, Mix floor, Block top, Block door) {
+    }
+
+    private static final Map<String, Style> STYLES = new HashMap<>();
+
+    static {
+        STYLES.put("stone", new Style(
+                Mix.of(Blocks.STONE_BRICKS, 65, Blocks.MOSSY_STONE_BRICKS, 20, Blocks.CRACKED_STONE_BRICKS, 15),
+                Mix.of(Blocks.STONE_BRICKS, 1), Blocks.STONE_BRICKS, Blocks.SPRUCE_DOOR));
+        STYLES.put("sandstone", new Style(
+                Mix.of(Blocks.SANDSTONE, 55, Blocks.CUT_SANDSTONE, 25, Blocks.SMOOTH_SANDSTONE, 20),
+                Mix.of(Blocks.SMOOTH_SANDSTONE, 1), Blocks.CHISELED_SANDSTONE, Blocks.BIRCH_DOOR));
+        STYLES.put("terracotta", new Style(
+                Mix.of(Blocks.TERRACOTTA, 40, Blocks.ORANGE_TERRACOTTA, 25, Blocks.RED_SANDSTONE, 20, Blocks.BROWN_TERRACOTTA, 15),
+                Mix.of(Blocks.CUT_RED_SANDSTONE, 1), Blocks.CHISELED_RED_SANDSTONE, Blocks.ACACIA_DOOR));
+        STYLES.put("mossy", new Style(
+                Mix.of(Blocks.MOSSY_COBBLESTONE, 45, Blocks.MOSSY_STONE_BRICKS, 35, Blocks.COBBLESTONE, 20),
+                Mix.of(Blocks.MOSSY_STONE_BRICKS, 1), Blocks.MOSS_BLOCK, Blocks.JUNGLE_DOOR));
+        STYLES.put("mangrove", new Style(
+                Mix.of(Blocks.MUD_BRICKS, 70, Blocks.PACKED_MUD, 30),
+                Mix.of(Blocks.MANGROVE_PLANKS, 1), Blocks.MANGROVE_PLANKS, Blocks.MANGROVE_DOOR));
+        STYLES.put("snowy", new Style(
+                Mix.of(Blocks.STONE_BRICKS, 55, Blocks.POLISHED_DIORITE, 25, Blocks.CRACKED_STONE_BRICKS, 20),
+                Mix.of(Blocks.SPRUCE_PLANKS, 1), Blocks.SNOW_BLOCK, Blocks.SPRUCE_DOOR));
+        STYLES.put("woodland", new Style(
+                Mix.of(Blocks.COBBLESTONE, 50, Blocks.MOSSY_COBBLESTONE, 25, Blocks.STRIPPED_SPRUCE_LOG, 25),
+                Mix.of(Blocks.SPRUCE_PLANKS, 1), Blocks.SPRUCE_PLANKS, Blocks.DARK_OAK_DOOR));
+        STYLES.put("mushroom", new Style(
+                Mix.of(Blocks.MUSHROOM_STEM, 70, Blocks.BROWN_MUSHROOM_BLOCK, 30),
+                Mix.of(Blocks.MYCELIUM, 1), Blocks.RED_MUSHROOM_BLOCK, Blocks.OAK_DOOR));
+        STYLES.put("cherry", new Style(
+                Mix.of(Blocks.CALCITE, 50, Blocks.STONE_BRICKS, 30, Blocks.CHERRY_PLANKS, 20),
+                Mix.of(Blocks.CHERRY_PLANKS, 1), Blocks.CHERRY_PLANKS, Blocks.CHERRY_DOOR));
+        STYLES.put("pale", new Style(
+                Mix.of(Blocks.STONE_BRICKS, 50, Blocks.PALE_OAK_PLANKS, 25, Blocks.CRACKED_STONE_BRICKS, 25),
+                Mix.of(Blocks.PALE_OAK_PLANKS, 1), Blocks.PALE_MOSS_BLOCK, Blocks.PALE_OAK_DOOR));
+    }
+
+    static java.util.Set<String> styles() {
+        return STYLES.keySet();
+    }
 
     private Palettes() {
     }
 
-    /** The block for a part, dressed in {@code theme}, at a position. */
-    static BlockState state(String theme, Part part, int facing, int x, int y, int z) {
+    /** The block for a part, dressed in {@code theme} (the tower in {@code style}), at a position. */
+    static BlockState state(String theme, String style, Part part, int facing, int x, int y, int z) {
         Direction dir = switch (facing) {
             case 1 -> Direction.EAST;
             case 2 -> Direction.SOUTH;
@@ -132,10 +172,14 @@ final class Palettes {
         };
         long hash = Dice.mix(Dice.mix(Dice.mix(x * 0x9E3779B1L) ^ y * 0x85EBCA77L) ^ z * 0xC2B2AE3DL);
         Map<Part, Mix> palette = THEMES.getOrDefault(theme, THEMES.get("Crypt"));
+        Style tower = STYLES.getOrDefault(style, STYLES.get("stone"));
         return switch (part) {
             case AIR -> Blocks.AIR.defaultBlockState();
             case WATER -> Blocks.WATER.defaultBlockState();
-            case TOWER, TOWER_FLOOR -> TOWER.pick(hash).defaultBlockState();
+            case TOWER -> tower.wall().pick(hash).defaultBlockState();
+            case TOWER_FLOOR -> tower.floor().pick(hash).defaultBlockState();
+            case TOWER_TOP -> tower.top().defaultBlockState();
+            case TOWER_DOOR_LOWER, TOWER_DOOR_UPPER -> door(tower.door(), dir, part == Part.TOWER_DOOR_UPPER);
             case LOCKED_LOWER, LOCKED_UPPER -> door(Blocks.IRON_DOOR, dir, part == Part.LOCKED_UPPER);
             case DOOR_LOWER, DOOR_UPPER -> door(palette.get(part).pick(hash), dir, part == Part.DOOR_UPPER);
             case STEP -> palette.get(Part.STEP).pick(hash).defaultBlockState().setValue(StairBlock.FACING, dir);

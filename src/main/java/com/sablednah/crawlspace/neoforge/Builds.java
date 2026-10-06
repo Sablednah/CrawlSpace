@@ -10,7 +10,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 import com.sablednah.crawlspace.build.Blueprint;
-import com.sablednah.crawlspace.build.Part;
 import com.sablednah.crawlspace.plan.DungeonPlan;
 
 import it.unimi.dsi.fastutil.longs.LongArrayList;
@@ -32,8 +31,15 @@ public final class Builds {
     private static final int UNDO_LIMIT = 8_000_000;
     private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 
-    /** A finished or running build: what was planned, and where. */
-    record Placed(ServerLevel level, BlockPos origin, DungeonPlan plan) {
+    /** A finished or running build: which dungeon, and in which world. */
+    record Placed(ServerLevel level, Site site, Site.Built built) {
+        BlockPos origin() {
+            return site.origin();
+        }
+
+        DungeonPlan plan() {
+            return built.plan();
+        }
     }
 
     interface Job {
@@ -98,7 +104,7 @@ public final class Builds {
         private final UUID who;
         private final Placed placed;
         private final Blueprint bp;
-        private final List<Object[]> columns = new ArrayList<>();
+        private final List<Blueprint.Column> columns = new ArrayList<>();
         private final Consumer<String> progress;
         private final Consumer<Long> done;
         private int column;
@@ -117,17 +123,17 @@ public final class Builds {
             bp.forEachColumn(columns::add);
             // Top-down by column is fine; sort so neighbouring columns land together, chunk by chunk.
             columns.sort((a, b) -> {
-                int ax = (int) a[0] >> 4;
-                int bx = (int) b[0] >> 4;
+                int ax = a.x() >> 4;
+                int bx = b.x() >> 4;
                 if (ax != bx) {
                     return Integer.compare(ax, bx);
                 }
-                int az = (int) a[1] >> 4;
-                int bz = (int) b[1] >> 4;
+                int az = a.z() >> 4;
+                int bz = b.z() >> 4;
                 if (az != bz) {
                     return Integer.compare(az, bz);
                 }
-                return Integer.compare((int) a[0] * 31 + (int) a[1], (int) b[0] * 31 + (int) b[1]);
+                return Integer.compare(a.x() * 31 + a.z(), b.x() * 31 + b.z());
             });
         }
 
@@ -137,13 +143,13 @@ public final class Builds {
             BlockPos origin = placed.origin();
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
             while (budget > 0 && column < columns.size()) {
-                Object[] col = columns.get(column);
-                int x = (int) col[0];
-                int z = (int) col[1];
-                int[] codes = (int[]) col[2];
+                Blueprint.Column col = columns.get(column);
+                int x = col.x();
+                int z = col.z();
+                int[] codes = col.codes();
                 while (y < codes.length && budget > 0) {
                     int code = codes[y];
-                    int by = bp.minY + y;
+                    int by = col.y0() + y;
                     y++;
                     if (code == 0) {
                         continue;
@@ -153,10 +159,7 @@ public final class Builds {
                     if (level.isOutsideBuildHeight(pos.getY())) {
                         continue;
                     }
-                    Part part = Blueprint.part(code);
-                    int li = Blueprint.level(code);
-                    String theme = placed.plan().levels().get(Math.max(0, li)).theme.name();
-                    BlockState state = Palettes.state(theme, part, Blueprint.facing(code), pos.getX(), pos.getY(), pos.getZ());
+                    BlockState state = placed.site().state(placed.built(), code, pos);
                     BlockState before = level.getBlockState(pos);
                     if (before == state) {
                         continue;

@@ -29,7 +29,7 @@ public final class Blueprinter {
     /** Blocks of ground kept over every ceiling, so no level breaks the surface. */
     public static final int COVER = 3;
     /** Inside the tower, floor to roof. */
-    static final int TOWER_HEIGHT = 7;
+    public static final int TOWER_HEIGHT = 7;
     /** Cells round a spiral stair, clockwise from north, and the way each step faces (0 N, 1 E, 2 S, 3 W). */
     private static final int[][] RING = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}};
     private static final int[] RING_FACING = {1, 2, 2, 3, 3, 0, 0, 1};
@@ -290,7 +290,7 @@ public final class Blueprinter {
                 if (ring == 3) {
                     bp.fill(x, z, -4, TOWER_HEIGHT, Part.TOWER, 0);
                     if ((dx + dz) % 2 == 0) {
-                        bp.set(x, TOWER_HEIGHT + 1, z, Part.TOWER, 0, 0);
+                        bp.set(x, TOWER_HEIGHT + 1, z, Part.TOWER_TOP, 0, 0);
                     }
                 } else {
                     if (ring == 2) {
@@ -303,8 +303,8 @@ public final class Blueprinter {
                 }
             }
         }
-        bp.set(s[0], 0, s[1] - 3, Part.DOOR_LOWER, 0, 0);
-        bp.set(s[0], 1, s[1] - 3, Part.DOOR_UPPER, 0, 0);
+        bp.set(s[0], 0, s[1] - 3, Part.TOWER_DOOR_LOWER, 0, 0);
+        bp.set(s[0], 1, s[1] - 3, Part.TOWER_DOOR_UPPER, 0, 0);
         for (int[] d : new int[][] {{-2, -2}, {2, -2}, {-2, 2}, {2, 2}}) {
             bp.set(s[0] + d[0], TOWER_HEIGHT - 1, s[1] + d[1], Part.LIGHT, 0, 0);
         }

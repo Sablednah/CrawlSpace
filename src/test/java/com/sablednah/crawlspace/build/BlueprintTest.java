@@ -20,7 +20,7 @@ class BlueprintTest {
     /** Parts a player, water or a mob could pass through. */
     private static boolean open(Part p) {
         return switch (p) {
-            case AIR, WATER, DOOR_LOWER, DOOR_UPPER, LOCKED_LOWER, LOCKED_UPPER, STEP, LIGHT -> true;
+            case AIR, WATER, DOOR_LOWER, DOOR_UPPER, LOCKED_LOWER, LOCKED_UPPER, TOWER_DOOR_LOWER, TOWER_DOOR_UPPER, STEP, LIGHT -> true;
             default -> false;
         };
     }
@@ -33,11 +33,11 @@ class BlueprintTest {
     static List<String> leaks(Blueprint bp) {
         List<String> out = new ArrayList<>();
         bp.forEachColumn(col -> {
-            int x = (int) col[0];
-            int z = (int) col[1];
-            int[] codes = (int[]) col[2];
+            int x = col.x();
+            int z = col.z();
+            int[] codes = col.codes();
             for (int i = 0; i < codes.length; i++) {
-                int y = bp.minY + i;
+                int y = col.y0() + i;
                 if (codes[i] == 0 || !open(Blueprint.part(codes[i])) || y >= 0) {
                     continue;
                 }
@@ -56,7 +56,7 @@ class BlueprintTest {
         for (long seed = 0; seed < 40; seed++) {
             DungeonPlan plan = Planner.plan(seed, 6);
             Blueprint bp = Blueprinter.blueprint(plan);
-            List<String> leaks = leaks(bp);
+            List<String> leaks = leaks(bp.compact());
             assertTrue(leaks.isEmpty(), "seed " + seed + ": " + leaks);
         }
     }
@@ -74,11 +74,11 @@ class BlueprintTest {
             if (done[0]) {
                 return;
             }
-            int x = (int) col[0];
-            int z = (int) col[1];
-            int[] codes = (int[]) col[2];
+            int x = col.x();
+            int z = col.z();
+            int[] codes = col.codes();
             for (int i = 0; i < codes.length; i++) {
-                int y = bp.minY + i;
+                int y = col.y0() + i;
                 if (y < -20 && codes[i] != 0 && Blueprint.part(codes[i]) == Part.AIR
                         && bp.get(x + 1, y, z) != 0 && Blueprint.part(bp.get(x + 1, y, z)) == Part.WALL
                         && bp.get(x + 2, y, z) == 0) {
@@ -130,14 +130,14 @@ class BlueprintTest {
         // Every ceiling under the valley must now keep COVER blocks of ground over it.
         Blueprint bp = Blueprinter.blueprint(plan.withTop(valley));
         bp.forEachColumn(col -> {
-            int x = (int) col[0];
-            int[] codes = (int[]) col[2];
+            int x = col.x();
+            int[] codes = col.codes();
             if (x >= -10 || Math.abs(x) > LevelPlan.RADIUS - 8) {
                 return;
             }
             for (int i = codes.length - 1; i >= 0; i--) {
                 if (codes[i] != 0) {
-                    int y = bp.minY + i;
+                    int y = col.y0() + i;
                     assertTrue(y <= -20 - Blueprinter.COVER, "a block at y " + y + " under a valley floor at -20");
                     break;
                 }

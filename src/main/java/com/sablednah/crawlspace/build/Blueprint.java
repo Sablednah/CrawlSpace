@@ -11,12 +11,20 @@ import java.util.function.Consumer;
  *
  * <p>Each entry packs the {@link Part}, a facing (0 = north, 1 = east,
  * 2 = south, 3 = west) and the level whose theme dresses it.</p>
+ *
+ * <p>Worldgen keeps a few of these in memory, so {@link #compact()} trims each
+ * column to the heights it actually uses once building is done.</p>
  */
 public final class Blueprint {
 
+    /** One column: codes from {@code y0} upwards, 0 where the world is left alone. */
+    public record Column(int x, int z, int y0, int[] codes) {
+    }
+
     public final int minY;
     public final int maxY;
-    private final Map<Long, int[]> columns = new HashMap<>();
+    private final Map<Long, Column> columns = new HashMap<>();
+    private boolean compact;
 
     public Blueprint(int minY, int maxY) {
         this.minY = minY;
@@ -44,10 +52,14 @@ public final class Blueprint {
     }
 
     public void set(int x, int y, int z, Part part, int facing, int level) {
+        if (compact) {
+            throw new IllegalStateException("blueprint already compacted");
+        }
         if (y < minY || y > maxY) {
             throw new IllegalArgumentException("y " + y + " outside " + minY + ".." + maxY);
         }
-        columns.computeIfAbsent(key(x, z), k -> new int[maxY - minY + 1])[y - minY] = code(part, facing, level);
+        columns.computeIfAbsent(key(x, z), k -> new Column(x, z, minY, new int[maxY - minY + 1]))
+                .codes()[y - minY] = code(part, facing, level);
     }
 
     public void fill(int x, int z, int y0, int y1, Part part, int level) {
@@ -56,33 +68,55 @@ public final class Blueprint {
         }
     }
 
+    /** Trims every column to its lowest and highest set position. */
+    public Blueprint compact() {
+        if (compact) {
+            return this;
+        }
+        for (Map.Entry<Long, Column> e : columns.entrySet()) {
+            Column c = e.getValue();
+            int lo = 0;
+            int hi = c.codes().length - 1;
+            while (lo < hi && c.codes()[lo] == 0) {
+                lo++;
+            }
+            while (hi > lo && c.codes()[hi] == 0) {
+                hi--;
+            }
+            e.setValue(new Column(c.x(), c.z(), c.y0() + lo, java.util.Arrays.copyOfRange(c.codes(), lo, hi + 1)));
+        }
+        compact = true;
+        return this;
+    }
+
     /** The code at a position, or 0 where the blueprint leaves the world alone. */
     public int get(int x, int y, int z) {
-        if (y < minY || y > maxY) {
+        Column c = columns.get(key(x, z));
+        if (c == null) {
             return 0;
         }
-        int[] col = columns.get(key(x, z));
-        return col == null ? 0 : col[y - minY];
+        int i = y - c.y0();
+        return i < 0 || i >= c.codes().length ? 0 : c.codes()[i];
+    }
+
+    public Column column(int x, int z) {
+        return columns.get(key(x, z));
     }
 
     public int columnCount() {
         return columns.size();
     }
 
-    /** Visits every column as {x, z, codes}, codes indexed from {@link #minY}. */
-    public void forEachColumn(Consumer<Object[]> visitor) {
-        for (Map.Entry<Long, int[]> e : columns.entrySet()) {
-            long k = e.getKey();
-            visitor.accept(new Object[] {(int) (k >> 32), (int) k, e.getValue()});
-        }
+    public void forEachColumn(Consumer<Column> visitor) {
+        columns.values().forEach(visitor);
     }
 
     /** Positions set, by any part including air. */
     public long blockCount() {
         long n = 0;
-        for (int[] col : columns.values()) {
-            for (int c : col) {
-                if (c != 0) {
+        for (Column c : columns.values()) {
+            for (int code : c.codes()) {
+                if (code != 0) {
                     n++;
                 }
             }

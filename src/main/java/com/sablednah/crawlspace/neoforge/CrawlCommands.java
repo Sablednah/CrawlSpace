@@ -21,7 +21,6 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -83,34 +82,34 @@ public final class CrawlCommands {
             return 0;
         }
         int wanted = levels == 0 ? Math.min(6, room) : levels;
-        if (wanted > room) {
-            say(src, "Only room for " + room + " level(s) below here; building " + room + ".");
-            wanted = room;
-        }
+        wanted = Math.min(wanted, room);
         long seed = seedArg != null ? seedArg : level.getRandom().nextLong();
         long t0 = System.nanoTime();
-        DungeonPlan planned;
+        // Plan, then sink the levels until the land over every part of them is deep enough;
+        // fewer levels if that would reach the bottom of the world.
+        Site site;
         try {
-            planned = Planner.plan(seed, wanted);
+            site = Site.fit(seed, wanted, 1, origin, (x, z) -> ground(level, origin.getX() + x, origin.getZ() + z) - origin.getY(),
+                    level.getMinY(), EntranceStyle.of(level.getBiome(origin)));
         } catch (IllegalStateException e) {
             fail(src, "Could not plan seed " + seed + ": " + e.getMessage());
             return 0;
         }
-        // Sink the levels until the land over every part of them is deep enough.
-        int top = Blueprinter.requiredTop(planned, (x, z) -> ground(level, origin.getX() + x, origin.getZ() + z) - origin.getY());
-        int deepest = origin.getY() - top - (wanted - 1) * Planner.LEVEL_SPACING - 6;
-        if (deepest <= level.getMinY()) {
-            fail(src, "The ground dips too low near here for " + wanted + " level(s) (they would need to start "
-                    + top + " blocks down). Try fewer levels, or somewhere flatter.");
+        if (site == null) {
+            fail(src, "The ground dips too low near here for even one level above the bottom of the world.");
             return 0;
         }
-        DungeonPlan plan = planned.withTop(top);
-        Blueprint bp = Blueprinter.blueprint(plan);
+        Site.Built built = site.built();
+        Blueprint bp = built.blueprint();
         long ms = (System.nanoTime() - t0) / 1_000_000;
-        say(src, "Planned seed " + seed + ", " + wanted + " level(s), in " + ms + " ms. Building "
-                + bp.blockCount() + " blocks, the first level " + top + " down; the tower is 6 blocks south of you.");
-        MinecraftServer server = src.getServer();
-        Builds.Placed placed = new Builds.Placed(level, origin, plan);
+        if (site.levels() < wanted) {
+            say(src, "Only room for " + site.levels() + " of " + wanted + " level(s) above the bottom of the world here.");
+        }
+        say(src, "Planned seed " + seed + ", " + site.levels() + " level(s), in " + ms + " ms. Building "
+                + bp.blockCount() + " blocks, the first level " + site.top() + " down, a " + site.style()
+                + " tower 6 blocks south of you.");
+        DungeonPlan plan = built.plan();
+        Builds.Placed placed = new Builds.Placed(level, site, built);
         long started = System.currentTimeMillis();
         Builds.build(player.getUUID(), placed, bp,
                 pct -> say(src, "Building... " + pct),
@@ -121,8 +120,8 @@ public final class CrawlCommands {
                         say(src, "Built: " + count + " blocks changed in "
                                 + (System.currentTimeMillis() - started) / 1000 + " s. "
                                 + "/crawlspace goto 1 visits the first level.");
-                        CrawlSpace.LOGGER.info("CrawlSpace built seed {} at {} ({} levels, first {} down, {} blocks)",
-                                seed, origin, plan.levels().size(), plan.top(), count);
+                        CrawlSpace.LOGGER.info("CrawlSpace built seed {} at {} ({} levels, first {} down, {} tower, {} blocks)",
+                                seed, origin, plan.levels().size(), plan.top(), site.style(), count);
                     }
                 });
         return 1;
@@ -141,9 +140,10 @@ public final class CrawlCommands {
     private static int go(CommandContext<CommandSourceStack> ctx, int index) throws CommandSyntaxException {
         CommandSourceStack src = ctx.getSource();
         ServerPlayer player = src.getPlayerOrException();
-        Builds.Placed last = Builds.last(player.getUUID());
+        Builds.Placed last = current(player);
         if (last == null) {
-            fail(src, "You have not built a dungeon since the server started. /crawlspace build makes one.");
+            fail(src, "You are not in a dungeon, and have not built one since the server started. "
+                    + "/locate structure crawlspace:dungeon finds one; /crawlspace build makes one.");
             return 0;
         }
         DungeonPlan plan = last.plan();
@@ -171,10 +171,18 @@ public final class CrawlCommands {
         return 1;
     }
 
+    /** The dungeon you are standing in (generated or built), else the last one you built. */
+    private static Builds.Placed current(ServerPlayer player) {
+        ServerLevel level = (ServerLevel) player.level();
+        return Dungeons.generatedAt(level, player.blockPosition())
+                .map(site -> new Builds.Placed(level, site, site.built()))
+                .orElse(Builds.last(player.getUUID()));
+    }
+
     private static int tour(CommandContext<CommandSourceStack> ctx, int index, String what) throws CommandSyntaxException {
         CommandSourceStack src = ctx.getSource();
         ServerPlayer player = src.getPlayerOrException();
-        Builds.Placed last = Builds.last(player.getUUID());
+        Builds.Placed last = current(player);
         if (last == null || index < 1 || index > last.plan().levels().size()) {
             fail(src, last == null ? "No build yet this session." : "That dungeon has levels 1 to " + last.plan().levels().size() + ".");
             return 0;
@@ -196,7 +204,7 @@ public final class CrawlCommands {
 
     private static int info(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
         CommandSourceStack src = ctx.getSource();
-        Builds.Placed last = Builds.last(src.getPlayerOrException().getUUID());
+        Builds.Placed last = current(src.getPlayerOrException());
         if (last == null) {
             say(src, "No build yet this session.");
             return 0;

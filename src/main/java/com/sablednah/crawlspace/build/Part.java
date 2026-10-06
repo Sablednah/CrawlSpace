@@ -28,7 +28,11 @@ public enum Part {
     NEWEL,
     /** A lantern hanging from the block above. */
     LIGHT,
-    /** The entrance tower's walls, floor and roof. */
+    /** The entrance tower's walls, floor and roof, dressed for the biome it stands in. */
     TOWER,
-    TOWER_FLOOR
+    TOWER_FLOOR,
+    /** The tower's battlements. */
+    TOWER_TOP,
+    TOWER_DOOR_LOWER,
+    TOWER_DOOR_UPPER
 }

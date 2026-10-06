@@ -1,0 +1,9 @@
+{
+  "structures": [
+    { "structure": "crawlspace:dungeon", "weight": 1 }
+  ],
+  "placement": {
+    "type": "crawlspace:configured_spread",
+    "salt": 20261006
+  }
+}

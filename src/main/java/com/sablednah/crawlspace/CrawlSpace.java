@@ -5,10 +5,14 @@ import org.slf4j.Logger;
 import com.mojang.logging.LogUtils;
 
 import com.sablednah.crawlspace.neoforge.Builds;
+import com.sablednah.crawlspace.neoforge.CrawlConfig;
+import com.sablednah.crawlspace.neoforge.worldgen.CrawlWorldgen;
 import com.sablednah.crawlspace.neoforge.CrawlCommands;
 
 import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.server.ServerStoppingEvent;
@@ -27,7 +31,9 @@ public final class CrawlSpace {
     public static final String MODID = "crawlspace";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public CrawlSpace(IEventBus modBus) {
+    public CrawlSpace(IEventBus modBus, ModContainer container) {
+        CrawlWorldgen.register(modBus);
+        container.registerConfig(ModConfig.Type.SERVER, CrawlConfig.SPEC);
         NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent e) -> CrawlCommands.register(e.getDispatcher()));
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post e) -> Builds.tick());
         NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e) -> Builds.clear());
