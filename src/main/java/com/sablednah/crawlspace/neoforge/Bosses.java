@@ -12,16 +12,23 @@ import net.minecraft.world.BossEvent;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 
 /**
  * Boss bars for lair bosses: vanilla's own, so every client shows them. A bar
  * is shown to players within range and follows the boss's health until it
- * dies. Kept in memory: after a restart a living boss carries on without its
- * bar.
+ * dies. The bars are kept in memory, but a boss carries its tags, so after a
+ * restart or a chunk reload it picks its bar up again when it rejoins the
+ * level.
  */
 public final class Bosses {
 
     private static final double RANGE = 40;
+
+    /** Every lair boss carries this tag. */
+    static final String TAG = "crawlspace_boss";
+    /** ...and this one, followed by its bar's colour, so the bar comes back the same. */
+    static final String COLOUR_TAG = "crawlspace_bar_";
 
     private record Tracked(ServerLevel level, UUID mob, ServerBossEvent bar) {
     }
@@ -34,6 +41,23 @@ public final class Bosses {
     static void track(ServerLevel level, Mob mob, BossEvent.BossBarColor colour) {
         ServerBossEvent bar = new ServerBossEvent(mob.getDisplayName(), colour, BossEvent.BossBarOverlay.NOTCHED_10);
         TRACKED.put(mob.getUUID(), new Tracked(level, mob.getUUID(), bar));
+    }
+
+    /** A boss coming back from disk takes its bar again. A new boss is already tracked by the time it joins. */
+    public static void onJoin(EntityJoinLevelEvent e) {
+        if (!(e.getLevel() instanceof ServerLevel level) || !(e.getEntity() instanceof Mob mob)
+                || !mob.getTags().contains(TAG) || TRACKED.containsKey(mob.getUUID())) {
+            return;
+        }
+        BossEvent.BossBarColor colour = BossEvent.BossBarColor.PURPLE;
+        for (String tag : mob.getTags()) {
+            for (BossEvent.BossBarColor c : BossEvent.BossBarColor.values()) {
+                if (tag.equals(COLOUR_TAG + c.getName())) {
+                    colour = c;
+                }
+            }
+        }
+        track(level, mob, colour);
     }
 
     public static void tick(long gameTime) {
