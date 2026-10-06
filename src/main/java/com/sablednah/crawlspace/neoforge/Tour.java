@@ -21,9 +21,48 @@ final class Tour {
 
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
-            "treasure", "secret", "key", "room");
+            "treasure", "secret", "key", "room", "lever", "trap", "secretdoor", "locked");
 
     private Tour() {
+    }
+
+    /**
+     * Next to one of the level's triggers, facing it: two blocks off a lever or
+     * secret wall, and two short of a trap tile so a step forward springs it.
+     * {x, z, yaw} in dungeon coordinates, or null.
+     */
+    static double[] findTrigger(LevelPlan level, com.sablednah.crawlspace.build.Blueprint bp, String what) {
+        com.sablednah.crawlspace.build.Trigger.Kind kind = switch (what.toLowerCase(Locale.ROOT)) {
+            case "lever", "locked" -> com.sablednah.crawlspace.build.Trigger.Kind.LEVER;
+            case "secretdoor" -> com.sablednah.crawlspace.build.Trigger.Kind.SECRET;
+            case "trap" -> null;
+            default -> throw new IllegalArgumentException(what);
+        };
+        for (com.sablednah.crawlspace.build.Trigger t : bp.triggers()) {
+            boolean match = kind == null ? t.kind().isTrap() : t.kind() == kind;
+            if (!match || t.level() != level.index) {
+                continue;
+            }
+            if (what.equalsIgnoreCase("locked") && t.targets().length > 0) {
+                // In front of the first door the lever works: the door cell's open neighbour.
+                int[] door = t.targets()[0];
+                for (int[] d : new int[][] {{2, 0}, {-2, 0}, {0, 2}, {0, -2}}) {
+                    if (level.cell(door[0] + d[0], door[2] + d[1]).isWalkable()
+                            && level.cell(door[0] + d[0] / 2, door[2] + d[1] / 2).isWalkable()) {
+                        return new double[] {door[0] + d[0] + 0.5, door[2] + d[1] + 0.5, yaw(-d[0], -d[1])};
+                    }
+                }
+                continue;
+            }
+            for (int[] d : new int[][] {{2, 0}, {-2, 0}, {0, 2}, {0, -2}}) {
+                Cell c = level.cell(t.x() + d[0], t.z() + d[1]);
+                Cell mid = level.cell(t.x() + d[0] / 2, t.z() + d[1] / 2);
+                if (c.isWalkable() && mid.isWalkable() && !c.isDoor()) {
+                    return new double[] {t.x() + d[0] + 0.5, t.z() + d[1] + 0.5, yaw(-d[0], -d[1])};
+                }
+            }
+        }
+        return null;
     }
 
     /** {x, z, yaw} in dungeon coordinates (block centres), or null. */

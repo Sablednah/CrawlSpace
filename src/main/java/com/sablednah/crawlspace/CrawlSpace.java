@@ -6,6 +6,7 @@ import com.mojang.logging.LogUtils;
 
 import com.sablednah.crawlspace.neoforge.Builds;
 import com.sablednah.crawlspace.neoforge.CrawlConfig;
+import com.sablednah.crawlspace.neoforge.Triggers;
 import com.sablednah.crawlspace.neoforge.worldgen.CrawlWorldgen;
 import com.sablednah.crawlspace.neoforge.CrawlCommands;
 
@@ -37,5 +38,8 @@ public final class CrawlSpace {
         NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent e) -> CrawlCommands.register(e.getDispatcher()));
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post e) -> Builds.tick());
         NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e) -> Builds.clear());
+        NeoForge.EVENT_BUS.addListener(Triggers::onUse);
+        NeoForge.EVENT_BUS.addListener(Triggers::onTick);
+        NeoForge.EVENT_BUS.addListener(Triggers::onLogout);
     }
 }

@@ -34,5 +34,7 @@ public enum Part {
     /** The tower's battlements. */
     TOWER_TOP,
     TOWER_DOOR_LOWER,
-    TOWER_DOOR_UPPER
+    TOWER_DOOR_UPPER,
+    /** A lever on the floor: the mod watches it (see {@link Trigger}). */
+    LEVER
 }

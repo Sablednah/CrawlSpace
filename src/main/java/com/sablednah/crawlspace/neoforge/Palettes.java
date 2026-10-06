@@ -184,6 +184,9 @@ final class Palettes {
             case DOOR_LOWER, DOOR_UPPER -> door(palette.get(part).pick(hash), dir, part == Part.DOOR_UPPER);
             case STEP -> palette.get(Part.STEP).pick(hash).defaultBlockState().setValue(StairBlock.FACING, dir);
             case LIGHT -> palette.get(Part.LIGHT).pick(hash).defaultBlockState().setValue(LanternBlock.HANGING, true);
+            case LEVER -> Blocks.LEVER.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.LeverBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR)
+                    .setValue(net.minecraft.world.level.block.LeverBlock.FACING, dir);
             default -> palette.get(part).pick(hash).defaultBlockState();
         };
     }

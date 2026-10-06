@@ -20,7 +20,7 @@ class BlueprintTest {
     /** Parts a player, water or a mob could pass through. */
     private static boolean open(Part p) {
         return switch (p) {
-            case AIR, WATER, DOOR_LOWER, DOOR_UPPER, LOCKED_LOWER, LOCKED_UPPER, TOWER_DOOR_LOWER, TOWER_DOOR_UPPER, STEP, LIGHT -> true;
+            case AIR, WATER, DOOR_LOWER, DOOR_UPPER, LOCKED_LOWER, LOCKED_UPPER, TOWER_DOOR_LOWER, TOWER_DOOR_UPPER, STEP, LIGHT, LEVER -> true;
             default -> false;
         };
     }
@@ -143,5 +143,74 @@ class BlueprintTest {
                 }
             }
         });
+    }
+
+    /** Every locked door has a lever aimed at it, every secret wall block is a trigger, every trap is on floor. */
+    static List<String> triggerProblems(DungeonPlan plan, Blueprint bp) {
+        List<String> out = new ArrayList<>();
+        java.util.Set<String> aimed = new java.util.HashSet<>();
+        for (Trigger t : bp.triggers()) {
+            if (t.kind() == Trigger.Kind.LEVER) {
+                for (int[] d : t.targets()) {
+                    aimed.add(d[0] + "," + d[1] + "," + d[2]);
+                }
+                if (Blueprint.part(bp.get(t.x(), t.y(), t.z())) != Part.LEVER) {
+                    out.add("lever trigger with no lever at " + t.x() + "," + t.y() + "," + t.z());
+                }
+            }
+            if (t.kind().isTrap()) {
+                int below = bp.get(t.x(), t.y() - 1, t.z());
+                Part p = below == 0 ? null : Blueprint.part(below);
+                if (p != Part.FLOOR && p != Part.CORRIDOR_FLOOR) {
+                    out.add("trap at " + t.x() + "," + t.y() + "," + t.z() + " is not on a floor");
+                }
+            }
+            if (t.kind() == Trigger.Kind.SECRET && Blueprint.part(bp.get(t.x(), t.y(), t.z())) != Part.SECRET_WALL) {
+                out.add("secret trigger on something that is not a secret wall");
+            }
+        }
+        bp.forEachColumn(col -> {
+            for (int i = 0; i < col.codes().length; i++) {
+                if (col.codes()[i] != 0 && Blueprint.part(col.codes()[i]) == Part.LOCKED_LOWER
+                        && !aimed.contains(col.x() + "," + (col.y0() + i) + "," + col.z())) {
+                    out.add("locked door at " + col.x() + "," + (col.y0() + i) + "," + col.z() + " has no lever");
+                }
+            }
+        });
+        return out;
+    }
+
+    @Test
+    void triggersAreWired() {
+        int levers = 0;
+        int traps = 0;
+        for (long seed = 0; seed < 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 6);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            List<String> problems = triggerProblems(plan, bp);
+            assertTrue(problems.isEmpty(), "seed " + seed + ": " + problems);
+            for (Trigger t : bp.triggers()) {
+                levers += t.kind() == Trigger.Kind.LEVER ? 1 : 0;
+                traps += t.kind().isTrap() ? 1 : 0;
+            }
+        }
+        assertTrue(levers > 10 && traps > 100, "levers " + levers + ", traps " + traps);
+    }
+
+    /** ...and that check notices a locked door nobody can open. */
+    @Test
+    void noticesAnUnwiredLock() {
+        for (long seed = 0; seed < 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 4);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            Trigger lever = bp.triggers().stream().filter(t -> t.kind() == Trigger.Kind.LEVER).findFirst().orElse(null);
+            if (lever == null) {
+                continue;
+            }
+            bp.addTrigger(new Trigger(Trigger.Kind.LEVER, lever.x(), lever.y(), lever.z(), lever.level(), new int[0][]));
+            assertFalse(triggerProblems(plan, bp).isEmpty());
+            return;
+        }
+        throw new AssertionError("no seed had a locked door to test with");
     }
 }

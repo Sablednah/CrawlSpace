@@ -120,6 +120,7 @@ public final class CrawlCommands {
                         say(src, "Built: " + count + " blocks changed in "
                                 + (System.currentTimeMillis() - started) / 1000 + " s. "
                                 + "/crawlspace goto 1 visits the first level.");
+                        CrawlState.of(level).addBuilt(site); // so its triggers are found after a restart
                         CrawlSpace.LOGGER.info("CrawlSpace built seed {} at {} ({} levels, first {} down, {} tower, {} blocks)",
                                 seed, origin, plan.levels().size(), plan.top(), site.style(), count);
                     }
@@ -131,8 +132,14 @@ public final class CrawlCommands {
      * Where the ground is: the lower of two heightmaps, because OCEAN_FLOOR
      * counts treetops as ground and MOTION_BLOCKING_NO_LEAVES counts the top of
      * the sea.
+     *
+     * <p>The chunk is loaded first. {@code Level.getHeight} answers the world's
+     * minimum Y for a chunk that is not loaded, and a footprint read that way
+     * looks bottomless: a build just after a teleport was refused on a coast
+     * because most of it was still loading.</p>
      */
     static int ground(ServerLevel level, int x, int z) {
+        level.getChunk(x >> 4, z >> 4);
         return Math.min(level.getHeight(Heightmap.Types.OCEAN_FLOOR, x, z),
                 level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z));
     }
@@ -171,10 +178,10 @@ public final class CrawlCommands {
         return 1;
     }
 
-    /** The dungeon you are standing in (generated or built), else the last one you built. */
+    /** The dungeon you are standing in (generated, or built by anybody, even before a restart), else the last one you built. */
     private static Builds.Placed current(ServerPlayer player) {
         ServerLevel level = (ServerLevel) player.level();
-        return Dungeons.generatedAt(level, player.blockPosition())
+        return Dungeons.at(level, player.blockPosition())
                 .map(site -> new Builds.Placed(level, site, site.built()))
                 .orElse(Builds.last(player.getUUID()));
     }
@@ -188,7 +195,10 @@ public final class CrawlCommands {
             return 0;
         }
         LevelPlan level = last.plan().levels().get(index - 1);
-        double[] spot = Tour.find(level, what, level.index * 31L + System.nanoTime() % 7);
+        double[] spot = switch (what) {
+            case "lever", "trap", "secretdoor", "locked" -> Tour.findTrigger(level, last.built().blueprint(), what);
+            default -> Tour.find(level, what, level.index * 31L + System.nanoTime() % 7);
+        };
         if (spot == null) {
             fail(src, "No " + what + " on level " + index + ". Try one of: " + String.join(", ", Tour.KINDS));
             return 0;

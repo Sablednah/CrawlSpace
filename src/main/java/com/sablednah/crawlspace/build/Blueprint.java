@@ -24,6 +24,7 @@ public final class Blueprint {
     public final int minY;
     public final int maxY;
     private final Map<Long, Column> columns = new HashMap<>();
+    private final Map<Long, Trigger> triggers = new HashMap<>();
     private boolean compact;
 
     public Blueprint(int minY, int maxY) {
@@ -109,6 +110,19 @@ public final class Blueprint {
 
     public void forEachColumn(Consumer<Column> visitor) {
         columns.values().forEach(visitor);
+    }
+
+    public void addTrigger(Trigger t) {
+        triggers.put(Trigger.key(t.x(), t.y(), t.z()), t);
+    }
+
+    /** The trigger at a blueprint position, or null. */
+    public Trigger triggerAt(int x, int y, int z) {
+        return triggers.get(Trigger.key(x, y, z));
+    }
+
+    public java.util.Collection<Trigger> triggers() {
+        return triggers.values();
     }
 
     /** Positions set, by any part including air. */

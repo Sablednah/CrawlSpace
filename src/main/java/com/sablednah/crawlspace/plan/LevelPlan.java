@@ -37,6 +37,8 @@ public final class LevelPlan {
     public final List<int[]> stairsDown = new ArrayList<>();
     /** Centres of every pit down. */
     public final List<int[]> pits = new ArrayList<>();
+    /** Hidden trap tiles, as {x, z, TrapKind ordinal}. */
+    public final List<int[]> traps = new ArrayList<>();
     /** How many tries the planner needed. 1 is the healthy figure. */
     public int attempts;
 

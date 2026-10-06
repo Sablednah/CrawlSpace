@@ -66,6 +66,8 @@ public final class LevelPlanner {
             }
             if (lastProblems.isEmpty()) {
                 level.attempts = attempt;
+                // Traps last, from their own dice: adding or tuning them never moves a wall.
+                traps(level, Dice.of(seed, index, 0x7EA95L));
                 return level;
             }
         }
@@ -534,6 +536,54 @@ public final class LevelPlanner {
             }
         }
         return out;
+    }
+
+    /**
+     * Hidden trap tiles, more of them deeper down: corridor floor and the floor of
+     * guard and treasure rooms, never within three cells of a doorway, stair or pit,
+     * so a trap is met in passing rather than stood on arriving.
+     */
+    static void traps(LevelPlan level, Dice dice) {
+        int want = Math.min(12, 2 + level.index + dice.between(0, 2));
+        List<int[]> spots = new ArrayList<>();
+        int lim = LevelPlan.RADIUS - 1;
+        for (int x = -lim; x <= lim; x++) {
+            for (int z = -lim; z <= lim; z++) {
+                Cell c = level.cell(x, z);
+                int reg = level.region(x, z);
+                boolean candidate = c == Cell.CORRIDOR
+                        || (c == Cell.FLOOR && reg >= 0
+                            && (level.room(reg).role == Role.GUARD || level.room(reg).role == Role.TREASURE));
+                if (candidate && clearOf(level, x, z, 3)) {
+                    spots.add(new int[] {x, z});
+                }
+            }
+        }
+        for (int i = 0; i < want && !spots.isEmpty(); i++) {
+            int[] s = spots.remove(dice.nextInt(spots.size()));
+            boolean spaced = true;
+            for (int[] t : level.traps) {
+                spaced &= Math.max(Math.abs(t[0] - s[0]), Math.abs(t[1] - s[1])) >= 6;
+            }
+            if (!spaced) {
+                i--;
+                continue;
+            }
+            TrapKind kind = level.index >= 2 && dice.chance(0.35) ? TrapKind.GAS : TrapKind.DARTS;
+            level.traps.add(new int[] {s[0], s[1], kind.ordinal()});
+        }
+    }
+
+    private static boolean clearOf(LevelPlan level, int x, int z, int r) {
+        for (int dx = -r; dx <= r; dx++) {
+            for (int dz = -r; dz <= r; dz++) {
+                Cell c = level.cell(x + dx, z + dz);
+                if (c.isDoor() || c == Cell.STAIR_UP || c == Cell.STAIR_DOWN || c == Cell.PIT || c == Cell.POOL) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /** Stairwells, pillars and pools. */

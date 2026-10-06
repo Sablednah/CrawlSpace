@@ -94,6 +94,13 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
         return Palettes.state(theme, style, part, Blueprint.facing(code), pos.getX(), pos.getY(), pos.getZ());
     }
 
+    /** Whether a world position is inside this dungeon's footprint, tower included. */
+    public boolean contains(BlockPos pos) {
+        int r = com.sablednah.crawlspace.plan.LevelPlan.RADIUS;
+        return Math.abs(pos.getX() - origin.getX()) <= r && Math.abs(pos.getZ() - origin.getZ()) <= r
+                && pos.getY() >= bottomY() && pos.getY() <= origin.getY() + Blueprinter.TOWER_HEIGHT + 3;
+    }
+
     /** The lowest block the dungeon sets, in world y. */
     public int bottomY() {
         return origin.getY() - top - (levels - 1) * Planner.LEVEL_SPACING - 4;

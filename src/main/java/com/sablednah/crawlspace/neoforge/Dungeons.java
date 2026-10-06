@@ -19,6 +19,20 @@ public final class Dungeons {
     private Dungeons() {
     }
 
+    /** The dungeon whose footprint holds {@code pos}: generated first, then those built by command. */
+    public static Optional<Site> at(ServerLevel level, BlockPos pos) {
+        Optional<Site> generated = generatedAt(level, pos);
+        if (generated.isPresent()) {
+            return generated;
+        }
+        for (Site s : CrawlState.of(level).built()) {
+            if (s.contains(pos)) {
+                return Optional.of(s);
+            }
+        }
+        return Optional.empty();
+    }
+
     /** The generated dungeon whose footprint holds {@code pos}, if any. */
     public static Optional<Site> generatedAt(ServerLevel level, BlockPos pos) {
         Structure structure = level.registryAccess().lookupOrThrow(Registries.STRUCTURE)

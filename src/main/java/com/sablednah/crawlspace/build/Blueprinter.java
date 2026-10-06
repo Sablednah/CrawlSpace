@@ -202,6 +202,67 @@ public final class Blueprinter {
             }
         }
         lights(bp, plan, i);
+        triggers(bp, plan, i);
+    }
+
+    /**
+     * The lever for the level's locked doors, triggers on secret walls, and the
+     * hidden trap tiles. The lever goes in the KEY room, as near its middle as
+     * there is clear floor.
+     */
+    private static void triggers(Blueprint bp, DungeonPlan plan, int i) {
+        LevelPlan level = plan.levels().get(i);
+        java.util.List<int[]> locked = new java.util.ArrayList<>();
+        int lim = LevelPlan.RADIUS;
+        for (int x = -lim; x <= lim; x++) {
+            for (int z = -lim; z <= lim; z++) {
+                Cell c = level.cell(x, z);
+                if (c == Cell.DOOR_LOCKED) {
+                    locked.add(new int[] {x, floorAt(plan, i, x, z), z});
+                } else if (c == Cell.DOOR_SECRET) {
+                    int f = floorAt(plan, i, x, z);
+                    int[][] both = {{x, f, z}, {x, f + 1, z}};
+                    bp.addTrigger(new Trigger(Trigger.Kind.SECRET, x, f, z, i, both));
+                    bp.addTrigger(new Trigger(Trigger.Kind.SECRET, x, f + 1, z, i, both));
+                }
+            }
+        }
+        Room key = level.roomWith(Role.KEY);
+        if (key != null && !locked.isEmpty()) {
+            int[] spot = clearFloorNear(level, key);
+            if (spot != null) {
+                int f = floorAt(plan, i, spot[0], spot[1]);
+                bp.set(spot[0], f, spot[1], Part.LEVER, 0, i);
+                bp.addTrigger(new Trigger(Trigger.Kind.LEVER, spot[0], f, spot[1], i, locked.toArray(new int[0][])));
+            }
+        }
+        for (int[] t : level.traps) {
+            Cell c = level.cell(t[0], t[1]);
+            if (c != Cell.FLOOR && c != Cell.CORRIDOR) {
+                continue; // a pit or stair arrived on it afterwards
+            }
+            Trigger.Kind kind = t[2] == com.sablednah.crawlspace.plan.TrapKind.GAS.ordinal() ? Trigger.Kind.GAS : Trigger.Kind.DARTS;
+            bp.addTrigger(new Trigger(kind, t[0], floorAt(plan, i, t[0], t[1]), t[1], i, new int[0][]));
+        }
+    }
+
+    /** The floor cell nearest a room's centre, searching outward. */
+    private static int[] clearFloorNear(LevelPlan level, Room r) {
+        for (int d = 0; d <= Math.max(r.w, r.h); d++) {
+            for (int dx = -d; dx <= d; dx++) {
+                for (int dz = -d; dz <= d; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != d) {
+                        continue;
+                    }
+                    int x = r.centerX() + dx;
+                    int z = r.centerZ() + dz;
+                    if (level.cell(x, z) == Cell.FLOOR && level.region(x, z) == r.id) {
+                        return new int[] {x, z};
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /** Lanterns: round the stairs always, in other rooms less often the deeper it gets. */

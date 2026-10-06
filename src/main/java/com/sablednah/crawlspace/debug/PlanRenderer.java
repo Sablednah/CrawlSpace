@@ -133,6 +133,14 @@ public final class PlanRenderer {
         for (int[] p : level.pits) {
             outline(g, p, crop, s, ox, oy, LOCKED);
         }
+        // Hidden traps: a small cross, red for darts, green for gas.
+        for (int[] t : level.traps) {
+            g.setColor(t[2] == 0 ? LOCKED : new Color(0x4c, 0xb0, 0x3a));
+            int px = ox + (t[0] - crop[0]) * s;
+            int pz = oy + (t[1] - crop[1]) * s;
+            g.drawLine(px - s / 2, pz - s / 2, px + s + s / 2, pz + s + s / 2);
+            g.drawLine(px + s + s / 2, pz - s / 2, px - s / 2, pz + s + s / 2);
+        }
         g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, Math.max(9, s * 3)));
         FontMetrics fm = g.getFontMetrics();
         for (Room r : level.rooms) {
@@ -214,6 +222,7 @@ public final class PlanRenderer {
                 {STAIR_UP, "stair up"}, {STAIR_DOWN, "stair down"}, {PIT, "pit (lands in a pool)"},
                 {POOL, "pool"}, {DOOR, "door"}, {CORRIDOR.darker(), "arch"}, {LOCKED, "locked (lever in K)"}, {SECRET, "secret"},
                 {CORRIDOR, "corridor (lighter = higher)"}, {PILLAR, "pillar"},
+                {LOCKED.darker(), "x dart trap"}, {new Color(0x4c, 0xb0, 0x3a), "x gas trap"},
         };
         g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
         FontMetrics fm = g.getFontMetrics();
