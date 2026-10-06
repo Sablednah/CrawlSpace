@@ -74,15 +74,15 @@ public final class Bestiary {
      * between two of them is cancelled, so is turning on one another.
      */
     public static void onHurt(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) {
-        if (e.getEntity().getTags().contains(KIN) && e.getSource().getEntity() instanceof Mob attacker
-                && attacker.getTags().contains(KIN)) {
+        if (e.getEntity().entityTags().contains(KIN) && e.getSource().getEntity() instanceof Mob attacker
+                && attacker.entityTags().contains(KIN)) {
             e.setCanceled(true);
         }
     }
 
     public static void onTarget(net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent e) {
-        if (e.getEntity().getTags().contains(KIN) && e.getNewAboutToBeSetTarget() != null
-                && e.getNewAboutToBeSetTarget().getTags().contains(KIN)) {
+        if (e.getEntity().entityTags().contains(KIN) && e.getNewAboutToBeSetTarget() != null
+                && e.getNewAboutToBeSetTarget().entityTags().contains(KIN)) {
             e.setCanceled(true);
         }
     }
