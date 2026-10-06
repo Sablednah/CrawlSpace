@@ -181,6 +181,7 @@ public final class Towers {
         for (int[] c : new int[][] {{2, 2}, {-2, -2}, {2, -2}, {-2, 2}}) {
             set(bp, c[0], 6, c[1], Part.LIGHT);
         }
+        upstairs(bp, h, true);
     }
 
     // ---- ROUND ----
@@ -244,6 +245,29 @@ public final class Towers {
         for (int[] c : new int[][] {{2, 2}, {-2, -2}, {2, -2}, {-2, 2}}) {
             set(bp, c[0], 6, c[1], Part.LIGHT);
         }
+        upstairs(bp, h, !cone);
+    }
+
+    /**
+     * A ladder up the east wall to the storey above (and, under battlements,
+     * on through a hatch to the roof), and that storey furnished as a guard
+     * room: a chest, barrels, a table and chairs, a lantern. The ladder hangs
+     * one cell off the window line, so it is always on solid wall.
+     */
+    private static void upstairs(Blueprint bp, int h, boolean roofHatch) {
+        int top = roofHatch ? h : 7;
+        for (int y = 0; y <= top; y++) {
+            set(bp, 3, y, 1, Part.LADDER, 3);
+        }
+        set(bp, -3, 8, 0, Part.CHEST, 1);
+        set(bp, -2, 8, 2, Part.BARREL);
+        set(bp, -2, 8, -2, Part.BARREL);
+        set(bp, -2, 9, -2, Part.BARREL);
+        set(bp, 0, 8, -1, Part.TABLE);
+        set(bp, 0, 9, -1, Part.TABLE_TOP);
+        set(bp, 1, 8, -1, Part.CHAIR, 1);
+        set(bp, -1, 8, -1, Part.CHAIR, 3);
+        set(bp, 0, h - 1, 0, Part.LIGHT);
     }
 
     // ---- PYRAMID ----

@@ -129,5 +129,9 @@ public enum Part {
     /** An azalea bush, which never decays. */
     LEAVES,
     /** Roots hanging from the ceiling. */
-    ROOTS
+    ROOTS,
+    /** A ladder; facing is away from the wall it hangs on. */
+    LADDER,
+    /** A statue's body: a wall post. */
+    STATUE
 }

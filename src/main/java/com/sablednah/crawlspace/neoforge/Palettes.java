@@ -170,7 +170,7 @@ public final class Palettes {
 
     /** Parts whose look depends on their neighbours: set again once the chunk around them is in. */
     public static boolean connects(Part part) {
-        return part == Part.RAILING || part == Part.SUPPORT || part == Part.COVE
+        return part == Part.RAILING || part == Part.SUPPORT || part == Part.COVE || part == Part.STATUE
                 || part == Part.TOWER_STAIR || part == Part.TOWER_CORBEL || part == Part.TOWER_WINDOW;
     }
 
@@ -341,6 +341,8 @@ public final class Palettes {
             case LEAVES -> (facing == 0 ? Blocks.AZALEA_LEAVES : Blocks.FLOWERING_AZALEA_LEAVES).defaultBlockState()
                     .setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, true);
             case ROOTS -> Blocks.HANGING_ROOTS.defaultBlockState();
+            case LADDER -> Blocks.LADDER.defaultBlockState().setValue(net.minecraft.world.level.block.LadderBlock.FACING, dir);
+            case STATUE -> fit.railing().defaultBlockState();
             default -> palette.get(part).pick(hash).defaultBlockState();
         };
     }

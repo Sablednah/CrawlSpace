@@ -153,6 +153,9 @@ final class Dresser {
             if (r.role == Role.ROOM && theme.equals("Crypt") && dice.chance(0.25)) {
                 shelves(bp, level, r, plan, i, reserved);
             }
+            if (!theme.equals("Caverns")) {
+                arches(bp, level, r, plan, i);
+            }
             if (built) {
                 doorFrames(bp, level, r, plan, i);
                 if (columns || dice.chance(0.3)) {
@@ -410,6 +413,62 @@ final class Dresser {
         }
     }
 
+    /**
+     * Arches: where two solid columns stand in a row with a gap of two or three
+     * between them (a hall's pillars, or columns along a wall), a lintel
+     * spans the gap under the ceiling, with an upside-down stair either side
+     * of it curving down onto each column.
+     */
+    private static void arches(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i) {
+        int f = Blueprinter.floorAt(plan, i, r.centerX(), r.centerZ());
+        int h = Blueprinter.clearHeight(level, r.centerX(), r.centerZ());
+        if (h < 5) {
+            return; // too low for an arch to clear your head
+        }
+        int top = f + h - 1;
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (!columnAt(bp, r, x, f + 1, z)) {
+                    continue;
+                }
+                for (int d : new int[] {1, 2}) { // east and south: each pair once
+                    int dx = DIRS[d][0];
+                    int dz = DIRS[d][1];
+                    for (int gap = 2; gap <= 3; gap++) {
+                        int ex = x + dx * (gap + 1);
+                        int ez = z + dz * (gap + 1);
+                        if (!columnAt(bp, r, ex, f + 1, ez)) {
+                            continue;
+                        }
+                        boolean clear = true;
+                        for (int k = 1; k <= gap; k++) {
+                            int code = bp.get(x + dx * k, top, z + dz * k);
+                            clear &= code == 0 || Blueprint.part(code) == Part.AIR || Blueprint.part(code) == Part.COVE;
+                        }
+                        if (!clear) {
+                            continue;
+                        }
+                        for (int k = 1; k <= gap; k++) {
+                            bp.set(x + dx * k, top, z + dz * k, Part.DADO, 0, i);
+                        }
+                        bp.set(x + dx, top - 1, z + dz, Part.COVE, (d + 2) % 4, i);
+                        bp.set(ex - dx, top - 1, ez - dz, Part.COVE, d, i);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    /** Whether a solid column (a pillar or an engaged column) stands at (x, y, z) in the room. */
+    private static boolean columnAt(Blueprint bp, Room r, int x, int y, int z) {
+        if (!r.contains(x, z)) {
+            return false;
+        }
+        int code = bp.get(x, y, z);
+        return code != 0 && (Blueprint.part(code) == Part.PILLAR);
+    }
+
     /** A frame round each doorway on the room side: the walls either side and the lintel, in the pilaster stone. */
     private static void doorFrames(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i) {
         for (int x = r.minX() - 1; x <= r.maxX() + 1; x++) {
@@ -462,9 +521,13 @@ final class Dresser {
      */
     private static void niches(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i, boolean[][] reserved, Dice dice) {
         int made = 0;
-        for (int x = r.minX() - 1; x <= r.maxX() + 1 && made < 4; x++) {
-            for (int z = r.minZ() - 1; z <= r.maxZ() + 1 && made < 4; z++) {
-                if (level.cell(x, z) != Cell.WALL || Math.floorMod(x + z, 4) != 2 || !dice.chance(0.5)) {
+        // Crypts, lairs and shrines line their niches with statues, as a row (Sable's reference: a lair's wall of skeletons).
+        boolean statues = r.role == Role.LAIR || r.role == Role.SHRINE
+                || (level.theme.name().equals("Crypt") && dice.chance(0.5));
+        int most = statues ? 8 : 4;
+        for (int x = r.minX() - 1; x <= r.maxX() + 1 && made < most; x++) {
+            for (int z = r.minZ() - 1; z <= r.maxZ() + 1 && made < most; z++) {
+                if (level.cell(x, z) != Cell.WALL || Math.floorMod(x + z, statues ? 2 : 4) != (statues ? 0 : 2) || !dice.chance(statues ? 0.8 : 0.5)) {
                     continue;
                 }
                 for (int d = 0; d < 4; d++) {
@@ -487,8 +550,15 @@ final class Dresser {
                     for (int y = f; y <= f + 3; y++) {
                         bp.set(bx, y, bz, Part.WALL, 0, i); // back the niche with wall
                     }
-                    bp.set(x, f + 1, z, pick(dice, Part.SKULL, Part.CANDLES, Part.POT, Part.FLOOR_LANTERN), (d + 2) % 4, i);
-                    bp.set(x, f + 2, z, Part.AIR, 0, i);
+                    if (statues) {
+                        // A statue at floor level: a wall-post body under a skull, three high.
+                        bp.set(x, f, z, Part.STATUE, 0, i);
+                        bp.set(x, f + 1, z, Part.STATUE, 0, i);
+                        bp.set(x, f + 2, z, Part.SKULL, (d + 2) % 4, i);
+                    } else {
+                        bp.set(x, f + 1, z, pick(dice, Part.SKULL, Part.CANDLES, Part.POT, Part.FLOOR_LANTERN), (d + 2) % 4, i);
+                        bp.set(x, f + 2, z, Part.AIR, 0, i);
+                    }
                     made++;
                     break;
                 }
