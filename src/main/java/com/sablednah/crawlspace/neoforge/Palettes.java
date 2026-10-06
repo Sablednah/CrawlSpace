@@ -149,9 +149,28 @@ public final class Palettes {
                 Blocks.POLISHED_BLACKSTONE_BRICKS, Blocks.GILDED_BLACKSTONE, Blocks.POLISHED_BLACKSTONE_BRICKS));
     }
 
+    /** A theme's interior finish: coving, panelling, the rail above it, tables, chairs and rugs. */
+    private record Finish(Block cove, Block panel, Block dado, Block table, Block chair, Block rug) {
+    }
+
+    private static final Map<String, Finish> FINISHES = new HashMap<>();
+
+    static {
+        FINISHES.put("Crypt", new Finish(Blocks.STONE_BRICK_STAIRS, Blocks.SPRUCE_PLANKS, Blocks.POLISHED_ANDESITE,
+                Blocks.SPRUCE_SLAB, Blocks.SPRUCE_STAIRS, Blocks.RED_CARPET));
+        FINISHES.put("Sunken Halls", new Finish(Blocks.MOSSY_STONE_BRICK_STAIRS, Blocks.PRISMARINE_BRICKS, Blocks.DARK_PRISMARINE,
+                Blocks.SPRUCE_SLAB, Blocks.SPRUCE_STAIRS, Blocks.CYAN_CARPET));
+        FINISHES.put("Old Mines", new Finish(Blocks.OAK_STAIRS, Blocks.OAK_PLANKS, Blocks.STRIPPED_OAK_LOG,
+                Blocks.OAK_SLAB, Blocks.OAK_STAIRS, Blocks.BROWN_CARPET));
+        FINISHES.put("Caverns", new Finish(Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.POLISHED_TUFF, Blocks.TUFF_BRICKS,
+                Blocks.SPRUCE_SLAB, Blocks.SPRUCE_STAIRS, Blocks.MOSS_CARPET));
+        FINISHES.put("Deep Halls", new Finish(Blocks.DEEPSLATE_BRICK_STAIRS, Blocks.DARK_OAK_PLANKS, Blocks.POLISHED_BLACKSTONE_BRICKS,
+                Blocks.DARK_OAK_SLAB, Blocks.DARK_OAK_STAIRS, Blocks.PURPLE_CARPET));
+    }
+
     /** Parts whose look depends on their neighbours: set again once the chunk around them is in. */
     public static boolean connects(Part part) {
-        return part == Part.RAILING || part == Part.SUPPORT;
+        return part == Part.RAILING || part == Part.SUPPORT || part == Part.COVE;
     }
 
         /** The full block a stair is cut from, for the spiral's corner landings. */
@@ -229,6 +248,7 @@ public final class Palettes {
         Map<Part, Mix> palette = THEMES.getOrDefault(theme, THEMES.get("Crypt"));
         Style tower = STYLES.getOrDefault(style, STYLES.get("stone"));
         Fittings fit = FITTINGS.getOrDefault(theme, FITTINGS.get("Crypt"));
+        Finish fin = FINISHES.getOrDefault(theme, FINISHES.get("Crypt"));
         return switch (part) {
             case AIR -> Blocks.AIR.defaultBlockState();
             case WATER -> Blocks.WATER.defaultBlockState();
@@ -280,6 +300,15 @@ public final class Palettes {
             case FLOOR_ACCENT -> fit.floorAccent().defaultBlockState();
             case FLOOR_INLAY -> fit.floorInlay().defaultBlockState();
             case PILASTER -> fit.pilaster().defaultBlockState();
+            case COVE -> fin.cove().defaultBlockState().setValue(StairBlock.FACING, dir)
+                    .setValue(StairBlock.HALF, net.minecraft.world.level.block.state.properties.Half.TOP);
+            case PANEL -> fin.panel().defaultBlockState();
+            case DADO -> fin.dado().defaultBlockState();
+            case TABLE -> fin.table().defaultBlockState().setValue(net.minecraft.world.level.block.SlabBlock.TYPE,
+                    net.minecraft.world.level.block.state.properties.SlabType.TOP);
+            case CHAIR -> fin.chair().defaultBlockState().setValue(StairBlock.FACING, dir);
+            case POT -> Blocks.DECORATED_POT.defaultBlockState();
+            case RUG -> fin.rug().defaultBlockState();
             default -> palette.get(part).pick(hash).defaultBlockState();
         };
     }

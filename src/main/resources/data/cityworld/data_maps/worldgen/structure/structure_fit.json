@@ -1,0 +1,6 @@
+{
+  "replace": false,
+  "values": {
+    "crawlspace:dungeon": { "value": { "reserve": true } }
+  }
+}

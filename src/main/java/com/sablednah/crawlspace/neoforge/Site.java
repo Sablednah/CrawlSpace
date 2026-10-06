@@ -34,8 +34,38 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
     /** Bump whenever a planner or blueprint change would alter an existing seed's dungeon. */
     public static final int PLANNER_VERSION = 3; // 2: stairs with landings; 3: dressing, encounters, loot
 
-    /** A plan and its blueprint, built once and shared by every chunk that asks. */
-    public record Built(DungeonPlan plan, Blueprint blueprint) {
+    /**
+     * A plan and its blueprint, built once and shared by every chunk that asks.
+     *
+     * @param buriedTop the highest block, relative to the origin, outside the tower's columns
+     */
+    public record Built(DungeonPlan plan, Blueprint blueprint, int buriedTop) {
+        Built(DungeonPlan plan, Blueprint blueprint) {
+            this(plan, blueprint, buriedTop(blueprint));
+        }
+
+        private static int buriedTop(Blueprint bp) {
+            int[] top = {Integer.MIN_VALUE};
+            bp.forEachColumn(c -> {
+                if (!towerColumn(c.x(), c.z())) {
+                    for (int i = c.codes().length - 1; i >= 0; i--) {
+                        if (c.codes()[i] != 0) {
+                            top[0] = Math.max(top[0], c.y0() + i);
+                            break;
+                        }
+                    }
+                }
+            });
+            return top[0];
+        }
+    }
+
+    /** Half the tower's width: columns this close to the origin belong to the tower's piece. */
+    public static final int TOWER_REACH = 3;
+
+    /** Whether a blueprint column belongs to the tower (and the stair under it) rather than the buried levels. */
+    public static boolean towerColumn(int x, int z) {
+        return Math.abs(x) <= TOWER_REACH && Math.abs(z) <= TOWER_REACH;
     }
 
     private static final Map<String, Built> CACHE = new LinkedHashMap<>(8, 0.75f, true) {

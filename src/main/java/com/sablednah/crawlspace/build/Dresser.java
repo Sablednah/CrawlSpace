@@ -66,6 +66,7 @@ final class Dresser {
                     }
                 }
                 case TREASURE -> {
+                    take(perim, 2, p -> props.add(floor(p, f, Part.POT, 0, true)));
                     Trigger hoard = find(bp, Trigger.Kind.TREASURE, i, r);
                     if (hoard != null) {
                         props.add(new Prop(hoard.x(), hoard.y(), hoard.z(), Part.HOARD_CHEST, dice.nextInt(4), true));
@@ -87,6 +88,7 @@ final class Dresser {
                     take(perim, 2, p -> props.add(banner(p, f)));
                 }
                 case SHRINE -> {
+                    take(perim, 2, p -> props.add(floor(p, f, Part.POT, 0, true)));
                     if (!r.pool && centreFree) {
                         props.add(new Prop(centre[0], f, centre[1], Part.ALTAR, 0, true));
                         props.add(new Prop(centre[0], f + 1, centre[1], Part.CANDLES, 2 + dice.nextInt(2), false));
@@ -99,6 +101,8 @@ final class Dresser {
                     if (i >= 1 && centreFree && dice.chance(0.3 + 0.05 * i)) {
                         props.add(new Prop(centre[0], f, centre[1], Part.SPAWNER, 0, true));
                         spawner = true;
+                    } else if (centreFree) {
+                        tableSet(centre, f, dice, props); // the guards' mess table
                     }
                     take(perim, 1, p -> props.add(banner(p, f)));
                 }
@@ -134,6 +138,10 @@ final class Dresser {
             }
             if (!theme.equals("Caverns")) {
                 finish(bp, level, r, plan, i, theme, reserved);
+                cove(bp, level, r, plan, i);
+                if (panelled(r.role, theme, dice)) {
+                    panel(bp, level, r, plan, i);
+                }
             }
             if (r.role == Role.ROOM && theme.equals("Crypt") && dice.chance(0.25)) {
                 shelves(bp, level, r, plan, i, reserved);
@@ -148,7 +156,7 @@ final class Dresser {
             boolean[][] reserved, boolean centreFree, int[] centre, Dice dice, List<Prop> props) {
         switch (theme) {
             case "Crypt" -> {
-                if (centreFree && Math.min(r.w, r.h) >= 9) {
+                if (centreFree && Math.min(r.w, r.h) >= 9 && dice.chance(0.6)) {
                     // Two sarcophagi side by side, each two long, with a candle at the head.
                     boolean alongX = r.w >= r.h;
                     for (int side : new int[] {-1, 1}) {
@@ -162,15 +170,25 @@ final class Dresser {
                             props.add(new Prop(x0, f + 1, z0, Part.CANDLES, 0, false));
                         }
                     }
+                } else if (centreFree && dice.chance(0.5)) {
+                    rug(level, r, f, reserved, props);
                 }
                 take(perim, 2, p -> props.add(floor(p, f, Part.SKULL, dice.nextInt(4), true)));
                 take(perim, 2, p -> props.add(floor(p, f, Part.CANDLES, dice.nextInt(3), true)));
+                take(perim, 1, p -> props.add(floor(p, f, Part.POT, 0, true)));
             }
             case "Sunken Halls" -> {
+                if (centreFree && dice.chance(0.5)) {
+                    tableSet(centre, f, dice, props);
+                }
                 scatter(level, r, reserved, dice, 0.2, (x, z) -> props.add(new Prop(x, f, z, Part.MOSS, 0, false)));
                 take(perim, 2, p -> props.add(floor(p, f, Part.CANDLES, dice.nextInt(3), true)));
+                take(perim, 2, p -> props.add(floor(p, f, Part.POT, 0, true)));
             }
             case "Old Mines" -> {
+                if (centreFree && dice.chance(0.6)) {
+                    tableSet(centre, f, dice, props);
+                }
                 take(perim, 2 + dice.nextInt(3), p -> props.add(floor(p, f, Part.BARREL, 0, true)));
             }
             case "Caverns" -> {
@@ -178,8 +196,10 @@ final class Dresser {
                 scatter(level, r, reserved, dice, 0.15, (x, z) -> props.add(new Prop(x, f, z, Part.MOSS, 0, false)));
             }
             case "Deep Halls" -> {
-                if (centreFree) {
+                if (centreFree && dice.chance(0.5)) {
                     props.add(new Prop(centre[0], f, centre[1], Part.BRAZIER, 0, true));
+                } else if (centreFree) {
+                    rug(level, r, f, reserved, props);
                 }
                 for (int k = 0; k < 3; k++) {
                     int x = r.minX() + 1 + dice.nextInt(Math.max(1, r.w - 2));
@@ -192,6 +212,31 @@ final class Dresser {
                 take(perim, 2, p -> props.add(floor(p, f, Part.SKULL, dice.nextInt(4), true)));
             }
             default -> {
+            }
+        }
+    }
+
+    /** A table with a chair on each side, backs turned away from it. */
+    private static void tableSet(int[] c, int f, Dice dice, List<Prop> props) {
+        props.add(new Prop(c[0], f, c[1], Part.TABLE, 0, true));
+        for (int d = 0; d < 4; d++) {
+            if (dice.chance(0.75)) {
+                props.add(new Prop(c[0] + DIRS[d][0], f, c[1] + DIRS[d][1], Part.CHAIR, d, true));
+            }
+        }
+    }
+
+    /** A rug over the middle of the room: three by three, or three by five in a long room. */
+    private static void rug(LevelPlan level, Room r, int f, boolean[][] reserved, List<Prop> props) {
+        boolean alongX = r.w > r.h + 2;
+        boolean alongZ = r.h > r.w + 2;
+        for (int dx = alongX ? -2 : -1; dx <= (alongX ? 2 : 1); dx++) {
+            for (int dz = alongZ ? -2 : -1; dz <= (alongZ ? 2 : 1); dz++) {
+                int x = r.centerX() + dx;
+                int z = r.centerZ() + dz;
+                if (free(level, reserved, r, x, z)) {
+                    props.add(new Prop(x, f, z, Part.RUG, 0, false));
+                }
             }
         }
     }
@@ -547,6 +592,66 @@ final class Dresser {
             }
         }
         return false;
+    }
+
+    /**
+     * Coving: an upside-down stair against the wall under the ceiling, all the
+     * way round the room. The palette sets it again once its neighbours are in,
+     * so the stairs turn the corners.
+     */
+    private static void cove(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i) {
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (!r.contains(x, z) || !level.cell(x, z).isOpen()) {
+                    continue;
+                }
+                for (int d = 0; d < 4; d++) {
+                    if (level.cell(x + DIRS[d][0], z + DIRS[d][1]) != Cell.WALL) {
+                        continue;
+                    }
+                    int y = Blueprinter.floorAt(plan, i, x, z) + Blueprinter.clearHeight(level, x, z) - 1;
+                    int code = bp.get(x, y, z);
+                    if (code != 0 && Blueprint.part(code) == Part.AIR) {
+                        bp.set(x, y, z, Part.COVE, d, i);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    /** Which rooms are panelled: most built-theme rooms people would live or work in; mine rooms boarded. */
+    private static boolean panelled(Role role, String theme, Dice dice) {
+        return switch (role) {
+            case GUARD, SHRINE, KEY, TREASURE -> true;
+            case ROOM, HALL -> dice.chance(theme.equals("Old Mines") ? 0.6 : 0.5);
+            default -> false;
+        };
+    }
+
+    /** Panelling up the lower two blocks of a room's walls with a dado rail above, round the pilasters. */
+    private static void panel(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i) {
+        for (int x = r.minX() - 1; x <= r.maxX() + 1; x++) {
+            for (int z = r.minZ() - 1; z <= r.maxZ() + 1; z++) {
+                if (level.cell(x, z) != Cell.WALL) {
+                    continue;
+                }
+                for (int[] d : DIRS) {
+                    int nx = x + d[0];
+                    int nz = z + d[1];
+                    if (r.contains(nx, nz) && level.cell(nx, nz) == Cell.FLOOR) {
+                        int f = Blueprinter.floorAt(plan, i, nx, nz);
+                        for (int y = f; y <= f + 2; y++) {
+                            int code = bp.get(x, y, z);
+                            if (code != 0 && (Blueprint.part(code) == Part.WALL || Blueprint.part(code) == Part.WALL_ACCENT)) {
+                                bp.set(x, y, z, y == f + 2 ? Part.DADO : Part.PANEL, 0, i);
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     /** Bookshelves along the walls, two high above the trim: a crypt's library. */

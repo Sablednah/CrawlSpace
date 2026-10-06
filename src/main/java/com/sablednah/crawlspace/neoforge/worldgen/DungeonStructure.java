@@ -75,7 +75,8 @@ public final class DungeonStructure extends Structure {
                 return; // no pieces: the start is invalid and nothing is placed
             }
             CrawlSpace.LOGGER.debug("CrawlSpace dungeon at {}: {} levels, first {} down, {}", origin, site.levels(), site.top(), site.style());
-            builder.addPiece(new DungeonPiece(site));
+            builder.addPiece(new DungeonPiece(site, DungeonPiece.Part.TOWER));
+            builder.addPiece(new DungeonPiece(site, DungeonPiece.Part.BURIED));
         }));
     }
 

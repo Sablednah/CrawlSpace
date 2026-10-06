@@ -365,13 +365,20 @@ public final class Blueprinter {
         }
     }
 
+    /** A lantern from the ceiling; in a tall room, a chandelier: a chain with the lantern below it. */
     private static void hang(Blueprint bp, DungeonPlan plan, int i, int x, int z) {
         LevelPlan level = plan.levels().get(i);
         if (level.cell(x, z) != Cell.FLOOR) {
             return;
         }
         int f = floorAt(plan, i, x, z);
-        bp.set(x, f + clearHeight(level, x, z) - 1, z, Part.LIGHT, 0, i);
+        int h = clearHeight(level, x, z);
+        if (h >= 6) {
+            bp.set(x, f + h - 1, z, Part.CHAIN, 0, i);
+            bp.set(x, f + h - 2, z, Part.LIGHT, 0, i);
+        } else {
+            bp.set(x, f + h - 1, z, Part.LIGHT, 0, i);
+        }
     }
 
     /** A spiral stair from level {@code i}'s stair up to the floor above it (or the tower). */

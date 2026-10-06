@@ -85,5 +85,19 @@ public enum Part {
     /** The centre of a floor medallion. */
     FLOOR_INLAY,
     /** A wall column swapped for the theme's pilaster, to break up a flat wall. */
-    PILASTER
+    PILASTER,
+    /** Coving: an upside-down stair under the ceiling against a wall; facing is toward the wall. */
+    COVE,
+    /** A wall block swapped for panelling, the lower part of a wall. */
+    PANEL,
+    /** A wall block swapped for the rail along the top of the panelling. */
+    DADO,
+    /** A table: a slab in the top half of its block. */
+    TABLE,
+    /** A chair: a stair with its back to the table; facing is the way its back faces. */
+    CHAIR,
+    /** A decorated pot. */
+    POT,
+    /** A rug: carpet in the theme's second colour. */
+    RUG
 }
