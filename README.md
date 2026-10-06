@@ -3,22 +3,34 @@
 **Procedural roguelike dungeons for NeoForge — for everyone who misses
 Roguelike Dungeons and Dungeon Crawl.**
 
-A tower pokes out of the ground, and a spiral stair leads down. Each level
-below is a planned dungeon: rooms of every shape (crypts, pillared halls,
-rotundas, caves) joined by corridors that run straight, at angles, in curves
-and down winding tunnels, with T and cross junctions where they meet. Every
-level loops, so there is always more than one way through. Locked doors have
-their levers somewhere else, secret rooms hide behind false walls, and pits
-drop you into the level below. Themes change with depth: crypts, sunken halls,
-old mines, caverns, deep halls. It gets harder the further you crawl.
+A building stands on the surface: a castle keep, a round tower, a stepped
+pyramid or a temple, dressed for its biome. Inside, a spiral stair leads down
+to levels of rooms and corridors planned fresh for every dungeon. Each level
+is themed, and harder the deeper you crawl: crypts, sunken halls, old mines,
+caverns, deep halls.
 
-Server-side only: vanilla clients can join and play.
+- **Levels that do not feel like a grid.** Every level loops, with rooms in
+  the middle of the loop and paths across it. Corridors run straight, at
+  angles, in curves and as winding tunnels, with T and cross junctions where
+  they meet, and they ramp between rooms at different heights.
+- **Rooms that look lived in.** Crypts have sarcophagi, mines have timber
+  frames, shrines have altars, guard rooms have mess tables, and halls have
+  pillars and arches. Rooms also get panelling, coving, statue niches,
+  overgrowth and clutter.
+- **Danger that scales with depth.** Rooms wake their monsters as you
+  approach, spawners turn up from the first level, and each lair has a named
+  boss with a boss bar.
+- **Traps and secrets.** Hidden dart and gas traps can be disarmed if you
+  spot them. Secret walls open onto treasure, and levers open locked iron
+  doors. Pits drop you to the level below.
+- **Loot worth the trip.** Five tiers by depth, with Mending, rare books,
+  armour trim templates and trimmed, enchanted armour.
 
-**Status:** early. The planner is done and tested; building dungeons in the
-world comes next.
+**Server-side only.** Vanilla clients can join and play everything.
+Configurable spacing, depth and hints are in `config/crawlspace-server.toml`.
+In a CityWorld world, cities keep clear of the entrance.
 
-Works on its own. With [LegendQuest](https://github.com/Sablednah/LegendQuest-ReForged)
-installed it will gain perception and disarm rolls with shown dice; with
-LegendQuest StoryTeller, a games master.
+Works on its own. Other RPG mods can plug their own perception and disarm
+checks into `CrawlSpaceApi`.
 
-MIT licensed.
+Minecraft 1.21.11, 26.1.2, 26.2 and 26.3 (NeoForge). MIT licensed.

@@ -415,8 +415,38 @@ copied**, and none may be, or the licence would have to change.
 
 ## Versions and dev ports
 
-`main` = 1.21.11 only for now. Version branches follow LegendQuest's rule
-(`docs/VERSIONS.md` there) once there is something to port.
+Branch per version, ported forwards (`main` → `mc26.1` → `mc26.2` → `mc26.3`),
+as in LegendQuest (its `docs/VERSIONS.md`). **Docs live on `main` only.**
+
+| Branch | Minecraft | NeoForge | Java | ModDevGradle |
+|---|---|---|---|---|
+| `main` | 1.21.11 | 21.11.42 | 21 | 2.0.141 |
+| `mc26.1` | 26.1.2 | 26.1.2.95 | 25 | 2.0.141 |
+| `mc26.2` | 26.2 | 26.2.0.59 | 25 | 2.0.144 |
+| `mc26.3` | 26.3 | 26.3.0.33-beta (capped below .37) | 25 | 2.0.147 |
+
+What each drop cost, so the next port knows where to look:
+- **26.1:** four renames. `ServerBossEvent` takes a UUID, `SavedDataType` an
+  `Identifier`, `displayClientMessage` became `sendOverlayMessage`, and
+  `ChunkPos.toLong` became `pack`, with the same encoding, so seeds keep
+  their dungeons.
+- **26.2:** entity constants moved to `EntityTypes`. Dyed blocks are
+  `ColorCollection`s (`Blocks.CARPET.pick(DyeColor.RED)`), and
+  `DripstoneThickness` became `SpeleothemThickness`.
+- **26.3:** structure placement was reworked. `StructurePlacement` is an
+  interface, and the registry holds `MapCodec`s with no placement type.
+  `ConfiguredSpread` returns its codec typed as vanilla's random spread.
+  Structures sample biomes through the context's `biomeResolver`, and
+  `getStructureWithPieceAt` takes coordinates.
+
+`~/rig/verify-version.sh <branch>` on Vivo (fed `git archive <branch>` on
+stdin) boots a server-only dev server for a branch on ports 25588/25598. It
+checks `/locate`, `/place structure`, the loot tables and the log for
+errors, then stops. Run it after every port.
+
+`gradlew` lost its executable bit coming in from the Windows drive. That is
+fixed on every branch; if a new script arrives the same way, use
+`git update-index --chmod=+x`.
 
 The dev server's ports are **25587 (game) / 25597 (RCON)**, the next free pair
 after WadCraft's 25586/25596. Check `~/dev/README.md` on Vivo before claiming
