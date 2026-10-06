@@ -207,6 +207,29 @@ creative tester saw nothing.
   tier richer. `Site.afterPlace` sets a chest's table, and a spawner's mob,
   as the block is placed, for both worldgen and command builds.
 
+## CityWorld
+
+CityWorld (`../CityWorld-ReForged`, its own session's repo: **read it, never
+edit it**) only builds structure sets on `#cityworld:allowed`. It keeps its
+city off any chunk near a structure **piece** whose box reaches the natural
+ground, if the structure is a surface one or declares `reserve` in its
+`structure_fit` data map. CrawlSpace ships both declarations in its own jar:
+- `data/cityworld/tags/worldgen/structure_set/allowed.json`, with ours as an
+  optional entry, so new CityWorld worlds have dungeons with no ticking. An
+  existing world keeps its own saved choice.
+- `data/cityworld/data_maps/worldgen/structure/structure_fit.json`:
+  `crawlspace:dungeon` with `reserve: true`.
+
+Without CityWorld neither file is read. The tag names an optional entry, and
+the data map type is never registered.
+
+**The dungeon is two pieces for this** (`DungeonPiece.Part`): TOWER is the
+7×7 columns round the origin, all the way down; BURIED is every other
+column, with a box that tops out at the highest buried block, at least
+three below the ground. Only the tower surfaces, so the city leaves a small
+plaza rather than a fifteen-chunk meadow. A piece saved before the split
+has no part and places everything.
+
 ## Dressing (`Dresser`, pure)
 
 - Props come by role and theme:
@@ -233,7 +256,10 @@ creative tester saw nothing.
   arms cut off from the stair. The tower gets none: its floor is only the
   ring round the hole. Falling into any spiral lands on a step at most four
   blocks down.
-- Railings and fences are set again once their chunk is in
+- The interior finish: coving all round under the ceiling, panelling with a
+  dado rail in lived-in rooms (planks in the mines), table sets, pots, rugs,
+  and chandeliers in rooms six or more tall.
+- Railings, fences and coving are set again once their chunk is in
   (`Block.updateFromNeighbourShapes`), so they join up.
 
 ## Triggers
