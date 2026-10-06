@@ -50,13 +50,9 @@ Not yet:
 - Visible tripwires and pressure plates. The trigger system takes them as
   they are (another `Trigger.Kind` and a block in the blueprint); only the
   invisible tiles exist so far.
-- Secret walls carry no tell: a cracked or mossy block in a wall that already
-  has some. LegendQuest's perception check is the intended way to spot them.
-  Whether to add a visual hint is Sable's call.
-- Vanilla structures can overlap a dungeon: one mineshaft's planks crossed a
-  generated dungeon. **Unverified:** whether water or lava springs can appear
-  in Old Mines and Caverns walls, whose stone and deepslate count as natural
-  rock to the spring feature.
+- LegendQuest's perception check for traps and secret walls. Until it
+  exists, `hints = AUTO` hides every tell in a pack that has LegendQuest, so
+  Sable's MobHealth - Forge instance has `hints = "ALWAYS"` written by hand.
 - The LegendQuest and StoryTeller seams.
 
 ## Layout
@@ -151,11 +147,31 @@ than `minLevels` fit gets no pieces, so nothing is placed there. Each chunk's
   32/12, but a CrawlSpace dungeon is up to 15 chunks across, and below
   separation 16 two can overlap. The config is `config/crawlspace-server.toml`;
   NeoForge 21.x keeps server configs there, not per world.
+- **The structure places in the LAST step (`top_layer_modification`).**
+  Sable's rule: ours is the cutter, never the cut. Mineshafts, ores, springs
+  and other structures are all laid first, and the dungeon carves through
+  them. That also keeps springs out of its walls. Snow settles on the tower
+  afterwards, which is right.
 - Biomes are Dungeon Crawl's list (`#crawlspace:has_structure/dungeon`), plus
   mushroom fields, mangroves, cherry groves and the pale garden. No ocean, river
   or deep lowland.
 - **Planning runs on worldgen threads.** The planner is pure and allocates its
   own state. Its only statics are diagnostics, and those are concurrent.
+
+## Hints (Sable, 2026-10-06)
+
+With LegendQuest, secret walls blend in, because its perception rolls are
+meant to find them. Without it, `play.hints` (AUTO, ALWAYS, NEVER) turns tells
+on:
+- **Secret walls** use a related block that is in the theme's palette but not
+  in its wall mix (chiseled among plain, cracked among mossy).
+- **Dust**, sent only to the player within 9 blocks, about once a second:
+  **red** over an unsprung trap, **green** at an unopened secret wall and over
+  a treasure room's hoard.
+
+Hints show however the player moves. Only traps need a foot on the ground.
+The first version returned early for any airborne player, so a flying
+creative tester saw nothing.
 
 ## Triggers
 
