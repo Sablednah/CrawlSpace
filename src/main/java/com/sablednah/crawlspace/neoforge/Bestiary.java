@@ -31,7 +31,7 @@ import net.minecraft.world.item.Items;
  * each theme's boss. Vanilla mobs only, so a vanilla client sees them all;
  * bosses are made big with vanilla's own scale attribute.
  */
-final class Bestiary {
+public final class Bestiary {
 
     private record Pick(EntityType<?> type, int weight) {
     }
@@ -61,7 +61,30 @@ final class Bestiary {
         BOSSES.put("Deep Halls", new BossSpec(EntityType.VINDICATOR, "the Gaoler", Items.DIAMOND_AXE, BossEvent.BossBarColor.PURPLE, 1.3));
     }
 
+    /** Every monster a room wakes carries this tag. */
+    static final String KIN = "crawlspace_mob";
+
     private Bestiary() {
+    }
+
+    /**
+     * A dungeon's monsters do not fight each other. A skeleton boss's stray
+     * arrows hit the zombies around it, they turned on it, and the Bone Warden
+     * was dead seconds after it woke, before anyone reached the lair. Damage
+     * between two of them is cancelled, so is turning on one another.
+     */
+    public static void onHurt(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) {
+        if (e.getEntity().getTags().contains(KIN) && e.getSource().getEntity() instanceof Mob attacker
+                && attacker.getTags().contains(KIN)) {
+            e.setCanceled(true);
+        }
+    }
+
+    public static void onTarget(net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent e) {
+        if (e.getEntity().getTags().contains(KIN) && e.getNewAboutToBeSetTarget() != null
+                && e.getNewAboutToBeSetTarget().getTags().contains(KIN)) {
+            e.setCanceled(true);
+        }
     }
 
     static EntityType<?> common(String theme, RandomSource random) {
@@ -106,6 +129,7 @@ final class Bestiary {
                 Bosses.track(level, mob, spec.colour());
                 bossName = spec.name();
             }
+            mob.addTag(KIN);
             mob.setPersistenceRequired();
             level.addFreshEntityWithPassengers(mob);
             spawned++;
