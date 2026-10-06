@@ -9,6 +9,7 @@ The first version.
 - **Monsters by theme and depth.** Rooms wake their monsters when you approach, spawners appear from the first level and multiply deeper down, corridors hold ambushes, and lairs have named bosses with boss bars. Natural monster spawning is off inside dungeons.
 - **Traps, secrets and locks.** There are hidden dart and gas traps (sneak-use a spotted one to disarm it), secret walls, and a lever that opens its level's locked iron doors. Pits drop to the level below.
 - **Loot** in five tiers by depth, with a rare pool: Mending, rare books, armour trim templates, the netherite upgrade, and trimmed, enchanted armour.
+- **Boss bars** come back after a restart, and a room's monsters never fight each other, so a lair's boss is waiting for you rather than killed by its own minions.
 - **Hints** for players without a perception skill: secret walls in a tell-tale block, and faint particles near traps, secret doors and treasure. `play.hints` sets this to AUTO, ALWAYS or NEVER.
 - **`CrawlSpaceApi`** lets an RPG mod supply its own perception and disarm checks.
 - **CityWorld:** dungeons are allowed by default, and cities keep clear of the entrance.

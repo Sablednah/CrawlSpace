@@ -49,16 +49,22 @@ lairs have bosses with boss bars, chests and barrels roll loot by depth,
 guard rooms may hold a spawner, and every room is dressed by role and theme.
 See "Population" and "Dressing".
 
+**Overnight 2026-10-06/07:** ported to `mc26.1`, `mc26.2` and `mc26.3` (see
+"Versions"). Also: boss bars that survive restarts, monsters that leave each
+other alone, and README, CHANGELOG and CURSEFORGE.md for 0.1.0. Nothing is
+released, and there is no CurseForge project yet.
+
 Not yet:
 - Themes, bestiary, entrance styles and dressing as data. They are
   hard-coded while Sable judges the look.
 - Visible tripwires and pressure plates. The trigger system takes them as
   they are (another `Trigger.Kind` and a block in the blueprint); only the
   invisible tiles exist so far.
-- LegendQuest's perception check for traps and secret walls. Until it
-  exists, `hints = AUTO` hides every tell in a pack that has LegendQuest, so
-  Sable's MobHealth - Forge instance has `hints = "ALWAYS"` written by hand.
-- The LegendQuest and StoryTeller seams.
+- LegendQuest's perception check is written, on LegendQuest's branch
+  `crawlspace-perception`, pushed but **not merged**. WIS notices, DEX
+  disarms, and dwarves get +4. Sable's MobHealth - Forge instance still has
+  `hints = "ALWAYS"` written by hand, from before AUTO changed meaning.
+- The StoryTeller seam.
 
 ## Layout
 
@@ -194,8 +200,16 @@ creative tester saw nothing.
   - **Bosses:** a named mob per theme, with much more health, a harder hit,
     and vanilla's SCALE attribute. Clients see it big with nothing
     installed.
-  - `Bosses` keeps a vanilla `ServerBossEvent` per boss, in memory only. A
-    boss alive across a restart loses its bar.
+  - `Bosses` keeps a vanilla `ServerBossEvent` per boss, in memory. The
+    boss carries `crawlspace_boss` and `crawlspace_bar_<colour>` as entity
+    tags, and takes its bar again on `EntityJoinLevelEvent`, after a restart
+    or a chunk reload. Seen on the rig, 2026-10-07.
+- **A room's monsters never fight each other.** Everything `wake` spawns is
+  tagged `crawlspace_mob`, and damage and retargeting between two tagged mobs
+  are cancelled (`Bestiary.onHurt`, `onTarget`). Without this, the Bone
+  Warden's stray arrows hit its zombies, they turned on it, and it was
+  "slain by Zombie" seconds after waking, before anyone reached the lair.
+  Spawner mobs are untagged and behave as vanilla.
 - **Natural monster spawns are off inside dungeons.** For generated ones this
   is the structure's `spawn_overrides`; for command builds,
   `Triggers.onSpawnCheck`, which refuses only NATURAL spawns, so spawners
@@ -353,6 +367,14 @@ Drive it over RCON:
   trigger, facing it. Step onto a trap with `tp TestBuddy ^ ^ ^2`. For the lever
   or wall, aim with `tp ~ ~ ~ ~ 38` and click with
   `xdotool mousemove --window $W 640 360 click --window $W 3`.
+- **`goto trap` assumes a straight line, and dressing can block it.** On
+  2026-10-07 it stood the player facing a polished andesite pilaster, with
+  the trap behind it and every walkable neighbour of the trap filled. Check
+  the cells with `execute if block` before blaming input.
+- **The rig is peaceful in `server.properties`.** A restart re-applies it and
+  vanilla discards every hostile mob as it loads, so a "does X survive a
+  restart" test needs `difficulty=normal` in the file, not just the command.
+  Put it back afterwards.
 - Give TestBuddy night vision: the dungeon is meant to be dark.
 - **`Level.getHeight` answers the world's minimum Y for an unloaded chunk.** A
   build just after a teleport was refused on a coast because most of its
@@ -442,7 +464,13 @@ What each drop cost, so the next port knows where to look:
 `~/rig/verify-version.sh <branch>` on Vivo (fed `git archive <branch>` on
 stdin) boots a server-only dev server for a branch on ports 25588/25598. It
 checks `/locate`, `/place structure`, the loot tables and the log for
-errors, then stops. Run it after every port.
+errors, then stops. Run it after every port. `/place` needs every chunk
+under the buried piece loaded, which is ±120 blocks (`LevelPlan.RADIUS`),
+exactly the 256-chunk force-load limit. A smaller force-load just answers
+"That position is not loaded". The script writes `~/rig/cs-verify/<branch>.result`.
+
+- **26.x renamed `Entity.getTags()` to `entityTags()`.** Main-branch code that
+  touches tags needs that edit when it is carried forward.
 
 `gradlew` lost its executable bit coming in from the Windows drive. That is
 fixed on every branch; if a new script arrives the same way, use
