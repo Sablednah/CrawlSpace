@@ -10,10 +10,9 @@ import net.minecraft.core.Vec3i;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
 import net.minecraft.world.level.levelgen.WorldgenRandom;
+import net.minecraft.world.level.levelgen.structure.placement.AbstractSpreadingStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadType;
-import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
-import net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType;
 
 /**
  * Vanilla's random spread, with spacing and separation read from the
@@ -27,11 +26,15 @@ import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
  */
 public final class ConfiguredSpread extends RandomSpreadStructurePlacement {
 
-    public static final MapCodec<ConfiguredSpread> CODEC = RecordCodecBuilder.mapCodec(
+    /**
+     * Typed as vanilla's random spread: on 26.3 a placement's {@code codec()} is
+     * its identity in the registry, and the parent's return type is fixed.
+     */
+    public static final MapCodec<RandomSpreadStructurePlacement> CODEC = RecordCodecBuilder.<RandomSpreadStructurePlacement>mapCodec(
             i -> placementCodec(i).apply(i, ConfiguredSpread::new));
 
-    private ConfiguredSpread(Vec3i locateOffset, StructurePlacement.FrequencyReductionMethod method, float frequency,
-            int salt, Optional<StructurePlacement.ExclusionZone> exclusion) {
+    private ConfiguredSpread(Vec3i locateOffset, AbstractSpreadingStructurePlacement.FrequencyReductionMethod method, float frequency,
+            int salt, Optional<AbstractSpreadingStructurePlacement.ExclusionZone> exclusion) {
         super(locateOffset, method, frequency, salt, exclusion, 36, 16, RandomSpreadType.LINEAR);
     }
 
@@ -59,7 +62,7 @@ public final class ConfiguredSpread extends RandomSpreadStructurePlacement {
     }
 
     @Override
-    public StructurePlacementType<?> type() {
-        return CrawlWorldgen.CONFIGURED_SPREAD.get();
+    public MapCodec<RandomSpreadStructurePlacement> codec() {
+        return CODEC;
     }
 }

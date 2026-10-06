@@ -69,8 +69,8 @@ public final class DungeonStructure extends Structure {
                     }
                 }
                 return lo - ground;
-            }, minY, EntranceStyle.of(ctx.biomeSource().getNoiseBiome(
-                    QuartPos.fromBlock(x), QuartPos.fromBlock(ground), QuartPos.fromBlock(z), ctx.randomState().sampler())));
+            }, minY, EntranceStyle.of(ctx.biomeResolver().getNoiseBiome(
+                    QuartPos.fromBlock(x), QuartPos.fromBlock(ground), QuartPos.fromBlock(z))));
             if (site == null) {
                 return; // no pieces: the start is invalid and nothing is placed
             }

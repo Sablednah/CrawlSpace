@@ -5,7 +5,8 @@ import com.sablednah.crawlspace.CrawlSpace;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
-import net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType;
+import com.mojang.serialization.MapCodec;
+import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -20,15 +21,16 @@ public final class CrawlWorldgen {
             DeferredRegister.create(Registries.STRUCTURE_TYPE, CrawlSpace.MODID);
     private static final DeferredRegister<StructurePieceType> PIECES =
             DeferredRegister.create(Registries.STRUCTURE_PIECE, CrawlSpace.MODID);
-    private static final DeferredRegister<StructurePlacementType<?>> PLACEMENTS =
+    private static final DeferredRegister<MapCodec<? extends StructurePlacement>> PLACEMENTS =
             DeferredRegister.create(Registries.STRUCTURE_PLACEMENT, CrawlSpace.MODID);
 
     public static final DeferredHolder<StructureType<?>, StructureType<DungeonStructure>> DUNGEON =
             TYPES.register("dungeon", () -> () -> DungeonStructure.CODEC);
     public static final DeferredHolder<StructurePieceType, StructurePieceType> DUNGEON_PIECE =
             PIECES.register("dungeon", () -> (StructurePieceType.ContextlessType) DungeonPiece::new);
-    public static final DeferredHolder<StructurePlacementType<?>, StructurePlacementType<ConfiguredSpread>> CONFIGURED_SPREAD =
-            PLACEMENTS.register("configured_spread", () -> () -> ConfiguredSpread.CODEC);
+    /** On 26.3 the placement registry holds codecs directly; there is no placement type any more. */
+    public static final DeferredHolder<MapCodec<? extends StructurePlacement>, MapCodec<? extends StructurePlacement>> CONFIGURED_SPREAD =
+            PLACEMENTS.register("configured_spread", () -> ConfiguredSpread.CODEC);
 
     private CrawlWorldgen() {
     }

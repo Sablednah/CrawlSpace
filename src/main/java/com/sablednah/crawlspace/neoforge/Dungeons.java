@@ -42,7 +42,7 @@ public final class Dungeons {
         if (structure == null) {
             return Optional.empty();
         }
-        StructureStart start = level.structureManager().getStructureWithPieceAt(pos, structure);
+        StructureStart start = level.structureManager().getStructureWithPieceAt(pos.getX(), pos.getY(), pos.getZ(), structure);
         if (!start.isValid()) {
             return Optional.empty();
         }
