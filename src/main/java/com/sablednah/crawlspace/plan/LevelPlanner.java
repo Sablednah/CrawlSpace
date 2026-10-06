@@ -201,6 +201,32 @@ public final class LevelPlanner {
             child.cx = parent.cx + Math.cos(out) * dist;
             child.cz = parent.cz + Math.sin(out) * dist;
         }
+        // ---- Inner rooms ----
+        // Rooms in the middle of the loop, joined to the loop rooms nearest them. Without these a
+        // level reads as a ring of rooms round an empty middle; with them, paths cut across it.
+        int inner = radius >= 24 ? Math.min(3, 1 + depth / 3 + dice.between(0, 1)) : 0;
+        Room previousInner = null;
+        for (int k = 0; k < inner; k++) {
+            Role role = dice.chance(0.3) ? Role.GUARD : dice.chance(0.3) ? Role.SHRINE
+                    : dice.chance(0.25) ? Role.TREASURE : Role.ROOM;
+            Room room = makeRoom(level.rooms.size(), role, theme, dice, level);
+            double a = dice.range(0, 2 * Math.PI);
+            double r = radius * dice.range(0, 0.35);
+            room.cx = cx + Math.cos(a) * r;
+            room.cz = cz + Math.sin(a) * r;
+            List<Room> near = new ArrayList<>(loop);
+            near.sort(Comparator.comparingDouble(o -> Math.hypot(o.cx - room.cx, o.cz - room.cz)));
+            Room anchor = near.get(0);
+            level.links.add(new Link(anchor, room, dice.chance(0.5) ? LinkKind.DOOR : LinkKind.OPEN, false));
+            branches.add(new Room[] {anchor, room}); // the first link is essential, like a branch's
+            // A second way out, across the middle: to another loop room or the previous inner room.
+            Room other = previousInner != null && dice.chance(0.4) ? previousInner
+                    : near.get(1 + dice.nextInt(Math.min(3, near.size() - 1)));
+            if (dice.chance(0.7)) {
+                level.links.add(new Link(room, other, dice.chance(0.5) ? LinkKind.DOOR : LinkKind.OPEN, false));
+            }
+            previousInner = room;
+        }
         if (!relax(level, dice)) {
             return fail("relax");
         }
