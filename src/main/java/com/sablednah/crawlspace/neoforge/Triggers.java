@@ -121,6 +121,9 @@ public final class Triggers {
         if (player.tickCount % 20 == 0 && CrawlConfig.hints()) {
             hints(level, player, here.site());
         }
+        if (player.tickCount % 10 == 0 && !player.isCreative()) {
+            wake(level, player, here.site());
+        }
         // Hints show however you move; traps want a foot on the tile.
         if (!player.onGround()) {
             return;
@@ -138,6 +141,38 @@ public final class Triggers {
             darts(level, player, feet);
         } else {
             gas(level, player, feet);
+        }
+    }
+
+    /** How near a room's monsters wake, in blocks. */
+    private static final int WAKE_RANGE = 10;
+
+    /**
+     * Wakes any room whose monsters have not appeared yet once a player comes
+     * near. Creative players are ignored, so building and testing does not use
+     * a room up. On peaceful nothing wakes, and the room stays asleep for when
+     * the difficulty changes.
+     */
+    private static void wake(ServerLevel level, ServerPlayer player, Site site) {
+        if (level.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL) {
+            return;
+        }
+        CrawlState state = CrawlState.of(level);
+        BlockPos o = site.origin();
+        for (Trigger t : site.built().blueprint().triggers()) {
+            if (!t.kind().isEncounter()) {
+                continue;
+            }
+            BlockPos p = o.offset(t.x(), t.y(), t.z());
+            if (Math.abs(p.getX() - player.getX()) > WAKE_RANGE || Math.abs(p.getZ() - player.getZ()) > WAKE_RANGE
+                    || Math.abs(p.getY() - player.getY()) > 5 || state.hasFired(p)) {
+                continue;
+            }
+            state.fire(p);
+            String message = Bestiary.wake(level, site, t);
+            if (message != null) {
+                tell(player, message);
+            }
         }
     }
 
@@ -175,6 +210,27 @@ public final class Triggers {
                 case TREASURE -> level.sendParticles(player, GREEN, false, false, p.getX() + 0.5, p.getY() + 0.6, p.getZ() + 0.5, 3, 0.4, 0.3, 0.4, 0);
                 default -> {
                 }
+            }
+        }
+    }
+
+    /**
+     * No natural monster spawns inside a dungeon built by command: its rooms'
+     * own monsters are the danger, and dark rooms otherwise fill with whatever
+     * the night brings (five creepers once, which blew the lair's boss half to
+     * death before anyone arrived). Generated dungeons get the same through
+     * their structure's spawn_overrides. Spawners are untouched.
+     */
+    public static void onSpawnCheck(net.neoforged.neoforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck e) {
+        if (e.getSpawnType() != net.minecraft.world.entity.EntitySpawnReason.NATURAL
+                || e.getEntityType().getCategory() != net.minecraft.world.entity.MobCategory.MONSTER) {
+            return;
+        }
+        ServerLevel level = e.getLevel().getLevel();
+        for (Site s : CrawlState.of(level).built()) {
+            if (s.contains(e.getPos())) {
+                e.setResult(net.neoforged.neoforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck.Result.FAIL);
+                return;
             }
         }
     }

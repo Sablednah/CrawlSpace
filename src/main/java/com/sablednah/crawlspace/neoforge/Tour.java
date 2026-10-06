@@ -101,12 +101,22 @@ final class Tour {
                     return null;
                 }
                 Room r = rooms.get(dice.nextInt(rooms.size()));
-                // Stand near the south edge looking north, across the room.
-                for (int z = r.maxZ(); z >= r.minZ(); z--) {
-                    int x = r.centerX();
-                    if (level.cell(x, z) == Cell.FLOOR && level.cell(x, z - 1) == Cell.FLOOR) {
-                        return new double[] {x + 0.5, z - 0.5, 180};
+                // From the floor cell nearest the room's south-west corner, looking across at its centre.
+                int[] best = null;
+                double bestD = Double.MAX_VALUE;
+                for (int x = r.minX(); x <= r.maxX(); x++) {
+                    for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                        if (r.contains(x, z) && level.cell(x, z) == Cell.FLOOR) {
+                            double d = Math.hypot(x - (r.minX() + 1), z - (r.maxZ() - 1));
+                            if (d < bestD) {
+                                bestD = d;
+                                best = new int[] {x, z};
+                            }
+                        }
                     }
+                }
+                if (best != null) {
+                    return new double[] {best[0] + 0.5, best[1] + 0.5, yaw(r.centerX() - best[0], r.centerZ() - best[1])};
                 }
                 return null;
             }
@@ -115,7 +125,7 @@ final class Tour {
     }
 
     /** Minecraft yaw for a heading: 0 is south (+z), 90 west, 180 north, -90 east. */
-    private static double yaw(int dx, int dz) {
+    private static double yaw(double dx, double dz) {
         return Math.toDegrees(Math.atan2(-dx, dz));
     }
 }

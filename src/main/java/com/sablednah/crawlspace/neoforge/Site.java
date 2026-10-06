@@ -32,7 +32,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public record Site(long seed, int levels, int top, String style, BlockPos origin, int planner) {
 
     /** Bump whenever a planner or blueprint change would alter an existing seed's dungeon. */
-    public static final int PLANNER_VERSION = 2; // 2: spiral stairs with corner landings
+    public static final int PLANNER_VERSION = 3; // 2: stairs with landings; 3: dressing, encounters, loot
 
     /** A plan and its blueprint, built once and shared by every chunk that asks. */
     public record Built(DungeonPlan plan, Blueprint blueprint) {
@@ -92,6 +92,33 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
         int li = Math.max(0, Blueprint.level(code));
         String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();
         return Palettes.state(theme, style, part, Blueprint.facing(code), pos.getX(), pos.getY(), pos.getZ());
+    }
+
+    /**
+     * After a block is set: chests and barrels get their loot table, spawners
+     * their monster. Loot tiers run one per two levels; a hoard is a tier
+     * richer.
+     */
+    public void afterPlace(Built built, net.minecraft.world.level.LevelAccessor level, BlockPos pos, int code,
+            net.minecraft.util.RandomSource random) {
+        Part part = Blueprint.part(code);
+        int li = Math.max(0, Blueprint.level(code));
+        int tier = Math.min(5, 1 + li / 2);
+        String table = switch (part) {
+            case CHEST -> "chests/tier" + tier;
+            case HOARD_CHEST -> "chests/tier" + Math.min(5, tier + 1);
+            case BARREL -> "chests/supplies";
+            default -> null;
+        };
+        if (table != null) {
+            net.minecraft.world.RandomizableContainer.setBlockEntityLootTable(level, random, pos,
+                    net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,
+                            net.minecraft.resources.Identifier.fromNamespaceAndPath("crawlspace", table)));
+        } else if (part == Part.SPAWNER
+                && level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner) {
+            String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();
+            spawner.setEntityId(Bestiary.common(theme, random), random);
+        }
     }
 
     /** Whether a world position is inside this dungeon's footprint, tower included. */

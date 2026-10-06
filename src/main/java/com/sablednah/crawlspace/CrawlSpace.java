@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
 
+import com.sablednah.crawlspace.neoforge.Bosses;
 import com.sablednah.crawlspace.neoforge.Builds;
 import com.sablednah.crawlspace.neoforge.CrawlConfig;
 import com.sablednah.crawlspace.neoforge.Triggers;
@@ -36,10 +37,17 @@ public final class CrawlSpace {
         CrawlWorldgen.register(modBus);
         container.registerConfig(ModConfig.Type.SERVER, CrawlConfig.SPEC);
         NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent e) -> CrawlCommands.register(e.getDispatcher()));
-        NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post e) -> Builds.tick());
-        NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e) -> Builds.clear());
+        NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post e) -> {
+            Builds.tick();
+            Bosses.tick(e.getServer().overworld().getGameTime());
+        });
+        NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e) -> {
+            Builds.clear();
+            Bosses.clear();
+        });
         NeoForge.EVENT_BUS.addListener(Triggers::onUse);
         NeoForge.EVENT_BUS.addListener(Triggers::onTick);
         NeoForge.EVENT_BUS.addListener(Triggers::onLogout);
+        NeoForge.EVENT_BUS.addListener(Triggers::onSpawnCheck);
     }
 }

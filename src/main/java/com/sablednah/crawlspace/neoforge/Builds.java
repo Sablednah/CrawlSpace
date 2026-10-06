@@ -111,6 +111,7 @@ public final class Builds {
         private int y;
         private long count;
         private int lastQuarter;
+        private final List<BlockPos> connect = new ArrayList<>();
         private LongArrayList undoPositions = new LongArrayList();
         private List<BlockState> undoStates = new ArrayList<>();
 
@@ -173,6 +174,10 @@ public final class Builds {
                         }
                     }
                     level.setBlock(pos, state, FLAGS);
+                    placed.site().afterPlace(placed.built(), level, pos, code, level.getRandom());
+                    if (Palettes.connects(Blueprint.part(code))) {
+                        connect.add(pos.immutable());
+                    }
                     count++;
                 }
                 if (y >= codes.length) {
@@ -188,6 +193,11 @@ public final class Builds {
             if (column < columns.size()) {
                 return false;
             }
+            // Railings and fences join up now everything round them is in.
+            for (BlockPos p : connect) {
+                level.setBlock(p, net.minecraft.world.level.block.Block.updateFromNeighbourShapes(level.getBlockState(p), level, p), FLAGS);
+            }
+            connect.clear();
             if (undoPositions != null) {
                 UNDO.put(who, new Undo(placed.level(), undoPositions, undoStates));
             } else {

@@ -108,7 +108,7 @@ public final class Blueprinter {
         return 4;
     }
 
-    private static int floorAt(DungeonPlan plan, int i, int x, int z) {
+    static int floorAt(DungeonPlan plan, int i, int x, int z) {
         return floorY(plan, i) + plan.levels().get(i).height(x, z);
     }
 
@@ -206,8 +206,78 @@ public final class Blueprinter {
                 }
             }
         }
-        lights(bp, plan, i);
         triggers(bp, plan, i);
+        java.util.Set<Integer> dark = Dresser.dress(bp, plan, i);
+        lights(bp, plan, i, dark);
+        encounters(bp, plan, i);
+    }
+
+    /**
+     * Each room's monsters, as a trigger the mod wakes when a player first
+     * comes near: likelier in guard rooms and halls, never where you arrive,
+     * always in a lair (its boss). They stand on floor the dressing left free,
+     * away from doorways. The key is a block above the floor, so it never
+     * collides with a trigger on the floor.
+     */
+    private static void encounters(Blueprint bp, DungeonPlan plan, int i) {
+        LevelPlan level = plan.levels().get(i);
+        com.sablednah.crawlspace.plan.Dice dice = com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0xE2C0L);
+        for (Room r : level.rooms) {
+            double chance = switch (r.role) {
+                case ENTRY -> 0;
+                case EXIT -> 0.35;
+                case GUARD -> 0.95;
+                case HALL -> 0.75;
+                case LAIR -> 1;
+                case TREASURE, KEY -> 0.6;
+                case SECRET -> 0.5;
+                case SHRINE -> 0.3;
+                default -> Math.min(0.9, 0.45 + 0.05 * i);
+            };
+            if (!dice.chance(chance)) {
+                continue;
+            }
+            java.util.List<int[]> spots = new java.util.ArrayList<>();
+            for (int x = r.minX(); x <= r.maxX(); x++) {
+                for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                    if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR || nearDoor(level, x, z)) {
+                        continue;
+                    }
+                    int f = floorAt(plan, i, x, z);
+                    int here = bp.get(x, f, z);
+                    int above = bp.get(x, f + 1, z);
+                    if ((here == 0 || Blueprint.part(here) == Part.AIR || Blueprint.part(here) == Part.CARPET
+                            || Blueprint.part(here) == Part.MOSS) && (above == 0 || Blueprint.part(above) == Part.AIR)) {
+                        spots.add(new int[] {x, f, z});
+                    }
+                }
+            }
+            if (spots.isEmpty()) {
+                continue;
+            }
+            for (int k = spots.size() - 1; k > 0; k--) {
+                int j = dice.nextInt(k + 1);
+                int[] t = spots.get(k);
+                spots.set(k, spots.get(j));
+                spots.set(j, t);
+            }
+            int n = Math.min(spots.size(), r.role == Role.LAIR ? 3 + i / 2 : 1 + i / 2 + dice.nextInt(3));
+            Trigger.Kind kind = r.role == Role.LAIR ? Trigger.Kind.BOSS : Trigger.Kind.ENCOUNTER;
+            int f = floorAt(plan, i, r.centerX(), r.centerZ());
+            bp.addTrigger(new Trigger(kind, r.centerX(), f + 1, r.centerZ(), i,
+                    spots.subList(0, n).toArray(new int[0][])));
+        }
+    }
+
+    private static boolean nearDoor(LevelPlan level, int x, int z) {
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                if (level.cell(x + dx, z + dz).isDoor()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -279,7 +349,7 @@ public final class Blueprinter {
     }
 
     /** Lanterns: round the stairs always, in other rooms less often the deeper it gets. */
-    private static void lights(Blueprint bp, DungeonPlan plan, int i) {
+    private static void lights(Blueprint bp, DungeonPlan plan, int i, java.util.Set<Integer> dark) {
         LevelPlan level = plan.levels().get(i);
         double chance = Math.max(0.15, 0.7 - 0.07 * i);
         for (Room r : level.rooms) {
@@ -289,7 +359,7 @@ public final class Blueprinter {
                 for (int[] d : new int[][] {{-2, -2}, {2, -2}, {-2, 2}, {2, 2}}) {
                     hang(bp, plan, i, cx + d[0], cz + d[1]);
                 }
-            } else if (unit(plan.seed(), i, r.id) < chance) {
+            } else if (!dark.contains(r.id) && unit(plan.seed(), i, r.id) < chance) {
                 hang(bp, plan, i, cx, cz);
             }
         }
@@ -347,6 +417,74 @@ public final class Blueprinter {
             }
         }
         bp.fill(s[0], s[1], bottom - 1, top + upperHeight - 1, Part.NEWEL, upperLevel);
+        if (i > 0) {
+            railing(bp, plan, i - 1, s, top, bottom);
+        }
+    }
+
+    /**
+     * A railing round the hole on the floor above, open only beside the top
+     * step and landing, so nobody walks into the hole by accident. It goes in
+     * only if a walk from its gap still reaches every part of the room: in a
+     * cross-shaped room the railing cut two arms off from the gap. The tower
+     * gets none, because its floor is only the ring round the hole. A fall
+     * into any spiral lands on a step at most four blocks down.
+     */
+    private static void railing(Blueprint bp, DungeonPlan plan, int upperIndex, int[] s, int top, int bottom) {
+        LevelPlan upper = plan.levels().get(upperIndex);
+        int last = 2 * (top - bottom) - 1;
+        int[] topLanding = RING[last % RING.length];
+        int[] topStair = RING[(last - 1) % RING.length];
+        java.util.Set<Long> rail = new java.util.HashSet<>();
+        java.util.List<int[]> gap = new java.util.ArrayList<>();
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                if (Math.max(Math.abs(dx), Math.abs(dz)) != 2) {
+                    continue;
+                }
+                boolean open = Math.max(Math.abs(dx - topLanding[0]), Math.abs(dz - topLanding[1])) <= 1
+                        || Math.max(Math.abs(dx - topStair[0]), Math.abs(dz - topStair[1])) <= 1;
+                if (open) {
+                    gap.add(new int[] {s[0] + dx, s[1] + dz});
+                } else {
+                    rail.add(key(s[0] + dx, s[1] + dz));
+                }
+            }
+        }
+        // Walk the level from the gap, round the railing and the hole.
+        java.util.Set<Long> seen = new java.util.HashSet<>();
+        java.util.ArrayDeque<int[]> queue = new java.util.ArrayDeque<>();
+        for (int[] g : gap) {
+            if (upper.cell(g[0], g[1]).isWalkable() && seen.add(key(g[0], g[1]))) {
+                queue.add(g);
+            }
+        }
+        int[][] four = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        while (!queue.isEmpty()) {
+            int[] c = queue.poll();
+            for (int[] d : four) {
+                int x = c[0] + d[0];
+                int z = c[1] + d[1];
+                boolean hole = Math.abs(x - s[0]) <= 1 && Math.abs(z - s[1]) <= 1;
+                if (!hole && upper.cell(x, z).isWalkable() && !rail.contains(key(x, z)) && seen.add(key(x, z))) {
+                    queue.add(new int[] {x, z});
+                }
+            }
+        }
+        int room = upper.region(s[0], s[1]);
+        Room r = upper.room(room);
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                boolean hole = Math.abs(x - s[0]) <= 1 && Math.abs(z - s[1]) <= 1;
+                if (r.contains(x, z) && !hole && !rail.contains(key(x, z)) && upper.cell(x, z).isWalkable()
+                        && !seen.contains(key(x, z))) {
+                    return; // the railing would cut part of the room off from the stair: leave the hole open
+                }
+            }
+        }
+        for (long k : rail) {
+            bp.set((int) (k >> 32), top, (int) k, Part.RAILING, 0, upperIndex);
+        }
     }
 
     /** A pit from level {@code i} down into the pool on the level below. */
@@ -380,7 +518,12 @@ public final class Blueprinter {
                         bp.set(x, -1, z, Part.TOWER_FLOOR, 0, 0);
                     }
                     if (ring > 0) { // the centre is the stair's newel, which runs up to the roof
-                        bp.fill(x, z, 0, TOWER_HEIGHT - 1, Part.AIR, 0);
+                        for (int y = 0; y < TOWER_HEIGHT; y++) {
+                            int code = bp.get(x, y, z);
+                            if (code == 0 || Blueprint.part(code) != Part.RAILING) { // keep the stair's railing
+                                bp.set(x, y, z, Part.AIR, 0, 0);
+                            }
+                        }
                     }
                     bp.set(x, TOWER_HEIGHT, z, Part.TOWER, 0, 0);
                 }

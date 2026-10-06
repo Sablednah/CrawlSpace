@@ -207,7 +207,7 @@ class BlueprintTest {
             if (t.kind().isTrap()) {
                 int below = bp.get(t.x(), t.y() - 1, t.z());
                 Part p = below == 0 ? null : Blueprint.part(below);
-                if (p != Part.FLOOR && p != Part.CORRIDOR_FLOOR) {
+                if (p != Part.FLOOR && p != Part.CORRIDOR_FLOOR && p != Part.FLOOR_ACCENT && p != Part.FLOOR_INLAY) {
                     out.add("trap at " + t.x() + "," + t.y() + "," + t.z() + " is not on a floor");
                 }
             }
@@ -258,5 +258,131 @@ class BlueprintTest {
             return;
         }
         throw new AssertionError("no seed had a locked door to test with");
+    }
+
+    /** Props a player can walk through or over. */
+    private static boolean passable(int code) {
+        if (code == 0) {
+            return true;
+        }
+        return switch (Blueprint.part(code)) {
+            case AIR, CARPET, MOSS, RAIL, WATER, DOOR_LOWER, LOCKED_LOWER, SECRET_WALL, LIGHT, BANNER, WALL_TORCH, CHAIN, STEP, LANDING -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * After dressing, every doorway, every room and every way down is still
+     * reachable from where the stair arrives: props never wall anything off.
+     */
+    static List<String> dressingProblems(DungeonPlan plan, Blueprint bp) {
+        List<String> out = new ArrayList<>();
+        int lim = LevelPlan.RADIUS;
+        for (int i = 0; i < plan.levels().size(); i++) {
+            LevelPlan level = plan.levels().get(i);
+            boolean[][] seen = walk(plan, bp, i);
+            if (seen == null) {
+                continue;
+            }
+            for (int x = -lim; x <= lim; x++) {
+                for (int z = -lim; z <= lim; z++) {
+                    if (level.cell(x, z).isDoor() && !seen[x + lim][z + lim]) {
+                        out.add("level " + i + ": doorway " + x + "," + z + " walled off by dressing");
+                    }
+                }
+            }
+            for (int[] d : level.stairsDown) {
+                boolean ok = false;
+                for (int dx = -2; dx <= 2 && !ok; dx++) {
+                    for (int dz = -2; dz <= 2 && !ok; dz++) {
+                        ok = seen[d[0] + dx + lim][d[1] + dz + lim];
+                    }
+                }
+                if (!ok) {
+                    out.add("level " + i + ": stair down at " + d[0] + "," + d[1] + " walled off by dressing");
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Cells reachable on foot from where the stair arrives, with props as obstacles. */
+    static boolean[][] walk(DungeonPlan plan, Blueprint bp, int i) {
+        int lim = LevelPlan.RADIUS;
+        LevelPlan level = plan.levels().get(i);
+        {
+            boolean[][] seen = new boolean[LevelPlan.SIZE][LevelPlan.SIZE];
+            java.util.ArrayDeque<int[]> queue = new java.util.ArrayDeque<>();
+            int[] s = level.stairsUp.get(0);
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) == 2 && level.cell(s[0] + dx, s[1] + dz).isWalkable()) {
+                        seen[s[0] + dx + lim][s[1] + dz + lim] = true;
+                        queue.add(new int[] {s[0] + dx, s[1] + dz});
+                    }
+                }
+            }
+            while (!queue.isEmpty()) {
+                int[] c = queue.poll();
+                for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    int x = c[0] + d[0];
+                    int z = c[1] + d[1];
+                    if (!LevelPlan.inBounds(x, z) || seen[x + lim][z + lim] || !level.cell(x, z).isWalkable()) {
+                        continue;
+                    }
+                    int f = Blueprinter.floorY(plan, i) + level.height(x, z);
+                    if (!passable(bp.get(x, f, z))) {
+                        continue;
+                    }
+                    seen[x + lim][z + lim] = true;
+                    queue.add(new int[] {x, z});
+                }
+            }
+            return seen;
+        }
+    }
+
+    @Test
+    void dressingLeavesEverythingReachable() {
+        int props = 0;
+        int encounters = 0;
+        for (long seed = 0; seed < 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 6);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            List<String> problems = dressingProblems(plan, bp);
+            assertTrue(problems.isEmpty(), "seed " + seed + ": " + problems.subList(0, Math.min(5, problems.size())));
+            final int[] n = {0};
+            bp.forEachColumn(c -> {
+                for (int code : c.codes()) {
+                    if (code != 0 && Blueprint.part(code).ordinal() >= Part.CHEST.ordinal()) {
+                        n[0]++;
+                    }
+                }
+            });
+            props += n[0];
+            for (Trigger t : bp.triggers()) {
+                encounters += t.kind().isEncounter() ? 1 : 0;
+            }
+        }
+        System.out.println("dressing: " + props + " props and " + encounters + " encounters over 30 dungeons");
+        assertTrue(props > 3000 && encounters > 300, props + " props, " + encounters + " encounters");
+    }
+
+    /** ...and that check notices a doorway blocked by a barrel. */
+    @Test
+    void noticesABlockedDoorway() {
+        DungeonPlan plan = Planner.plan(4L, 3);
+        Blueprint bp = Blueprinter.blueprint(plan);
+        assertTrue(dressingProblems(plan, bp).isEmpty());
+        LevelPlan level = plan.levels().get(1);
+        for (int x = -LevelPlan.RADIUS; x <= LevelPlan.RADIUS; x++) {
+            for (int z = -LevelPlan.RADIUS; z <= LevelPlan.RADIUS; z++) {
+                if (level.cell(x, z).isDoor()) {
+                    bp.set(x, Blueprinter.floorY(plan, 1) + level.height(x, z), z, Part.BARREL, 0, 1);
+                    assertFalse(dressingProblems(plan, bp).isEmpty());
+                    return;
+                }
+            }
+        }
     }
 }

@@ -19,10 +19,18 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         /** A hidden floor tile: a cloud of poison. */
         GAS,
         /** Not a trigger: where a treasure room's hoard is, for hints. */
-        TREASURE;
+        TREASURE,
+        /** A room's monsters, woken the first time a player comes near. Targets are where they stand. */
+        ENCOUNTER,
+        /** A lair's boss and its followers; the first target is the boss's place. */
+        BOSS;
 
         public boolean isTrap() {
             return this == DARTS || this == GAS;
+        }
+
+        public boolean isEncounter() {
+            return this == ENCOUNTER || this == BOSS;
         }
     }
 

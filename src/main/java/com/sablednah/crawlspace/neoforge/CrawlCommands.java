@@ -225,7 +225,46 @@ public final class CrawlCommands {
                     .append(l.rooms.size()).append(" rooms, ").append(l.stairsDown.size()).append(" stair(s) down, ")
                     .append(l.pits.size()).append(" pit(s)");
         }
-        say(src, b.toString());
+        // The level you are standing on: its encounters and traps, woken and sprung.
+        ServerPlayer player = src.getPlayerOrException();
+        BlockPos o = last.origin();
+        int py = player.blockPosition().getY() - o.getY();
+        for (int li = 0; li < last.plan().levels().size(); li++) {
+            int fy = Blueprinter.floorY(last.plan(), li);
+            if (py < fy - 4 || py > fy + 8) {
+                continue;
+            }
+            CrawlState state = CrawlState.of(last.level());
+            int enc = 0;
+            int woken = 0;
+            int traps = 0;
+            int sprung = 0;
+            double nearest = Double.MAX_VALUE;
+            for (com.sablednah.crawlspace.build.Trigger t : last.built().blueprint().triggers()) {
+                if (t.level() != li) {
+                    continue;
+                }
+                BlockPos p = o.offset(t.x(), t.y(), t.z());
+                boolean fired = state.hasFired(p);
+                if (t.kind().isEncounter()) {
+                    enc++;
+                    woken += fired ? 1 : 0;
+                    if (!fired) {
+                        nearest = Math.min(nearest, Math.sqrt(p.distToCenterSqr(player.position())));
+                    }
+                } else if (t.kind().isTrap()) {
+                    traps++;
+                    sprung += fired ? 1 : 0;
+                }
+            }
+            b.setLength(0);
+            b.append("You are on level ").append(li + 1).append(": ").append(woken).append(" of ").append(enc)
+                    .append(" rooms awake, ").append(sprung).append(" of ").append(traps).append(" traps sprung");
+            if (nearest < Double.MAX_VALUE) {
+                b.append(", the nearest sleeping room ").append((int) nearest).append(" blocks away");
+            }
+            say(src, b.append('.').toString());
+        }
         return 1;
     }
 

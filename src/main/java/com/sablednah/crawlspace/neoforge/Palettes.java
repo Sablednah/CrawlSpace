@@ -25,7 +25,7 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
  * <p>Hard-coded while the look is being judged. These are meant to become
  * datapack JSON so a pack can add a theme.</p>
  */
-final class Palettes {
+public final class Palettes {
 
     /** A weighted choice of blocks for one role. */
     private record Mix(Block[] blocks, int[] weights, int total) {
@@ -117,7 +117,44 @@ final class Palettes {
         THEMES.put(name, m);
     }
 
-    /** The full block a stair is cut from, for the spiral's corner landings. */
+    /** What a theme's rooms are furnished with. */
+    private record Fittings(Block carpet, Block banner, Block altar, Block sarcophagus, Block brazier, Block railing,
+            Block support, Block beam, Block accent, Block throne, Block torch, Block candle,
+            Block floorAccent, Block floorInlay, Block pilaster) {
+    }
+
+    private static final Map<String, Fittings> FITTINGS = new HashMap<>();
+
+    static {
+        FITTINGS.put("Crypt", new Fittings(Blocks.RED_CARPET, Blocks.RED_WALL_BANNER, Blocks.CHISELED_STONE_BRICKS,
+                Blocks.POLISHED_ANDESITE, Blocks.CAMPFIRE, Blocks.STONE_BRICK_WALL, Blocks.SPRUCE_FENCE, Blocks.SPRUCE_LOG,
+                Blocks.SMOOTH_STONE, Blocks.STONE_BRICK_STAIRS, Blocks.WALL_TORCH, Blocks.WHITE_CANDLE,
+                Blocks.POLISHED_ANDESITE, Blocks.CHISELED_STONE_BRICKS, Blocks.POLISHED_ANDESITE));
+        FITTINGS.put("Sunken Halls", new Fittings(Blocks.GREEN_CARPET, Blocks.CYAN_WALL_BANNER, Blocks.PRISMARINE_BRICKS,
+                Blocks.POLISHED_ANDESITE, Blocks.CAMPFIRE, Blocks.MOSSY_STONE_BRICK_WALL, Blocks.SPRUCE_FENCE, Blocks.SPRUCE_LOG,
+                Blocks.POLISHED_ANDESITE, Blocks.MOSSY_STONE_BRICK_STAIRS, Blocks.WALL_TORCH, Blocks.CYAN_CANDLE,
+                Blocks.DARK_PRISMARINE, Blocks.PRISMARINE, Blocks.DARK_PRISMARINE));
+        FITTINGS.put("Old Mines", new Fittings(Blocks.BROWN_CARPET, Blocks.BROWN_WALL_BANNER, Blocks.POLISHED_ANDESITE,
+                Blocks.COBBLESTONE, Blocks.CAMPFIRE, Blocks.OAK_FENCE, Blocks.OAK_FENCE, Blocks.OAK_LOG,
+                Blocks.COBBLESTONE, Blocks.OAK_STAIRS, Blocks.WALL_TORCH, Blocks.CANDLE,
+                Blocks.OAK_PLANKS, Blocks.OAK_PLANKS, Blocks.STRIPPED_OAK_LOG));
+        FITTINGS.put("Caverns", new Fittings(Blocks.MOSS_CARPET, Blocks.GRAY_WALL_BANNER, Blocks.POLISHED_TUFF,
+                Blocks.POLISHED_DEEPSLATE, Blocks.SOUL_CAMPFIRE, Blocks.COBBLED_DEEPSLATE_WALL, Blocks.SPRUCE_FENCE,
+                Blocks.SPRUCE_LOG, Blocks.POLISHED_TUFF, Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.SOUL_WALL_TORCH, Blocks.CANDLE,
+                Blocks.POLISHED_TUFF, Blocks.CHISELED_TUFF, Blocks.POLISHED_TUFF));
+        FITTINGS.put("Deep Halls", new Fittings(Blocks.BLACK_CARPET, Blocks.PURPLE_WALL_BANNER,
+                Blocks.CHISELED_POLISHED_BLACKSTONE, Blocks.POLISHED_BLACKSTONE, Blocks.SOUL_CAMPFIRE,
+                Blocks.DEEPSLATE_BRICK_WALL, Blocks.DARK_OAK_FENCE, Blocks.DARK_OAK_LOG, Blocks.POLISHED_DEEPSLATE,
+                Blocks.DEEPSLATE_BRICK_STAIRS, Blocks.SOUL_WALL_TORCH, Blocks.PURPLE_CANDLE,
+                Blocks.POLISHED_BLACKSTONE_BRICKS, Blocks.GILDED_BLACKSTONE, Blocks.POLISHED_BLACKSTONE_BRICKS));
+    }
+
+    /** Parts whose look depends on their neighbours: set again once the chunk around them is in. */
+    public static boolean connects(Part part) {
+        return part == Part.RAILING || part == Part.SUPPORT;
+    }
+
+        /** The full block a stair is cut from, for the spiral's corner landings. */
     private static Block landingFor(Block stair) {
         if (stair == Blocks.MOSSY_STONE_BRICK_STAIRS) {
             return Blocks.MOSSY_STONE_BRICKS;
@@ -191,6 +228,7 @@ final class Palettes {
         long hash = Dice.mix(Dice.mix(Dice.mix(x * 0x9E3779B1L) ^ y * 0x85EBCA77L) ^ z * 0xC2B2AE3DL);
         Map<Part, Mix> palette = THEMES.getOrDefault(theme, THEMES.get("Crypt"));
         Style tower = STYLES.getOrDefault(style, STYLES.get("stone"));
+        Fittings fit = FITTINGS.getOrDefault(theme, FITTINGS.get("Crypt"));
         return switch (part) {
             case AIR -> Blocks.AIR.defaultBlockState();
             case WATER -> Blocks.WATER.defaultBlockState();
@@ -208,6 +246,40 @@ final class Palettes {
             // With hints on, a related block that is not in the wall's mix; otherwise the wall itself.
             case SECRET_WALL -> (CrawlConfig.hints() ? palette.get(Part.SECRET_WALL) : palette.get(Part.WALL))
                     .pick(hash).defaultBlockState();
+            case CHEST, HOARD_CHEST -> Blocks.CHEST.defaultBlockState().setValue(net.minecraft.world.level.block.ChestBlock.FACING, dir);
+            case BARREL -> Blocks.BARREL.defaultBlockState().setValue(net.minecraft.world.level.block.BarrelBlock.FACING, Direction.UP);
+            case SPAWNER -> Blocks.SPAWNER.defaultBlockState();
+            case COBWEB -> Blocks.COBWEB.defaultBlockState();
+            case SKULL -> Blocks.SKELETON_SKULL.defaultBlockState().setValue(net.minecraft.world.level.block.SkullBlock.ROTATION, facing * 4 + (int) Math.floorMod(hash, 3L));
+            case BONES -> Blocks.BONE_BLOCK.defaultBlockState();
+            case CANDLES -> fit.candle().defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.CandleBlock.CANDLES, Math.min(4, facing + 1))
+                    .setValue(net.minecraft.world.level.block.CandleBlock.LIT, true);
+            case CARPET -> fit.carpet().defaultBlockState();
+            case MOSS -> Blocks.MOSS_CARPET.defaultBlockState();
+            case RAIL -> Blocks.RAIL.defaultBlockState().setValue(net.minecraft.world.level.block.RailBlock.SHAPE,
+                    facing == 1 ? net.minecraft.world.level.block.state.properties.RailShape.EAST_WEST
+                            : net.minecraft.world.level.block.state.properties.RailShape.NORTH_SOUTH);
+            case ALTAR -> fit.altar().defaultBlockState();
+            case SARCOPHAGUS -> fit.sarcophagus().defaultBlockState();
+            case BRAZIER -> fit.brazier().defaultBlockState();
+            case STALAGMITE -> Blocks.POINTED_DRIPSTONE.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.PointedDripstoneBlock.TIP_DIRECTION, Direction.UP)
+                    .setValue(net.minecraft.world.level.block.PointedDripstoneBlock.THICKNESS,
+                            net.minecraft.world.level.block.state.properties.DripstoneThickness.TIP);
+            case BANNER -> fit.banner().defaultBlockState().setValue(net.minecraft.world.level.block.WallBannerBlock.FACING, dir);
+            case WALL_TORCH -> fit.torch().defaultBlockState().setValue(net.minecraft.world.level.block.WallTorchBlock.FACING, dir);
+            case CHAIN -> Blocks.IRON_CHAIN.defaultBlockState();
+            case BEAM -> fit.beam().defaultBlockState().setValue(net.minecraft.world.level.block.RotatedPillarBlock.AXIS,
+                    facing == 0 ? Direction.Axis.X : Direction.Axis.Z);
+            case SUPPORT -> fit.support().defaultBlockState();
+            case RAILING -> fit.railing().defaultBlockState();
+            case SHELF -> Blocks.BOOKSHELF.defaultBlockState();
+            case WALL_ACCENT -> fit.accent().defaultBlockState();
+            case THRONE -> fit.throne().defaultBlockState().setValue(StairBlock.FACING, dir);
+            case FLOOR_ACCENT -> fit.floorAccent().defaultBlockState();
+            case FLOOR_INLAY -> fit.floorInlay().defaultBlockState();
+            case PILASTER -> fit.pilaster().defaultBlockState();
             default -> palette.get(part).pick(hash).defaultBlockState();
         };
     }

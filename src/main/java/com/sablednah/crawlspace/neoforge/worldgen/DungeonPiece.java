@@ -3,7 +3,9 @@ package com.sablednah.crawlspace.neoforge.worldgen;
 import com.sablednah.crawlspace.CrawlSpace;
 import com.sablednah.crawlspace.build.Blueprint;
 import com.sablednah.crawlspace.build.Blueprinter;
+import com.sablednah.crawlspace.neoforge.Palettes;
 import com.sablednah.crawlspace.neoforge.Site;
+import net.minecraft.world.level.block.Block;
 import com.sablednah.crawlspace.plan.LevelPlan;
 
 import net.minecraft.core.BlockPos;
@@ -62,6 +64,7 @@ public final class DungeonPiece extends StructurePiece {
         Blueprint bp = built.blueprint();
         BlockPos o = site.origin();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        java.util.List<BlockPos> connect = new java.util.ArrayList<>();
         for (int x = box.minX(); x <= box.maxX(); x++) {
             for (int z = box.minZ(); z <= box.maxZ(); z++) {
                 Blueprint.Column col = bp.column(x - o.getX(), z - o.getZ());
@@ -78,8 +81,16 @@ public final class DungeonPiece extends StructurePiece {
                         continue;
                     }
                     level.setBlock(pos, site.state(built, codes[i], pos), 2);
+                    site.afterPlace(built, level, pos, codes[i], random);
+                    if (Palettes.connects(Blueprint.part(codes[i]))) {
+                        connect.add(pos.immutable());
+                    }
                 }
             }
+        }
+        // Railings and fences join up with what is now around them.
+        for (BlockPos p : connect) {
+            level.setBlock(p, Block.updateFromNeighbourShapes(level.getBlockState(p), level, p), 2);
         }
     }
 }
