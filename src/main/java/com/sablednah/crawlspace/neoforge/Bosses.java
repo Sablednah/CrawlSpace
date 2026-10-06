@@ -32,7 +32,7 @@ public final class Bosses {
     }
 
     static void track(ServerLevel level, Mob mob, BossEvent.BossBarColor colour) {
-        ServerBossEvent bar = new ServerBossEvent(mob.getDisplayName(), colour, BossEvent.BossBarOverlay.NOTCHED_10);
+        ServerBossEvent bar = new ServerBossEvent(java.util.UUID.randomUUID(), mob.getDisplayName(), colour, BossEvent.BossBarOverlay.NOTCHED_10);
         TRACKED.put(mob.getUUID(), new Tracked(level, mob.getUUID(), bar));
     }
 

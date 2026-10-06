@@ -32,7 +32,8 @@ public final class CrawlState extends SavedData {
         return s;
     }));
 
-    private static final SavedDataType<CrawlState> TYPE = new SavedDataType<>("crawlspace", CrawlState::new, CODEC);
+    private static final SavedDataType<CrawlState> TYPE = new SavedDataType<>(
+            net.minecraft.resources.Identifier.fromNamespaceAndPath("crawlspace", "crawlspace"), CrawlState::new, CODEC);
 
     private final Set<Long> fired = new HashSet<>();
     private final List<Site> built = new ArrayList<>();

@@ -53,7 +53,7 @@ public final class DungeonStructure extends Structure {
         }
         BlockPos origin = new BlockPos(x, ground, z);
         return Optional.of(new GenerationStub(origin, builder -> {
-            long seed = Dice.mix(ctx.seed() ^ Dice.mix(cp.toLong()));
+            long seed = Dice.mix(ctx.seed() ^ Dice.mix(cp.pack()));
             Map<Long, Integer> samples = new HashMap<>();
             Site site = Site.fit(seed, CrawlConfig.maxLevels(), minLevels, origin, (dx, dz) -> {
                 int lo = Integer.MAX_VALUE;

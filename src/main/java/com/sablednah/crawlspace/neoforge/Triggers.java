@@ -386,6 +386,6 @@ public final class Triggers {
     }
 
     private static void tell(ServerPlayer player, String text) {
-        player.displayClientMessage(Component.literal(text).withStyle(ChatFormatting.GOLD), true);
+        player.sendOverlayMessage(Component.literal(text).withStyle(ChatFormatting.GOLD));
     }
 }
