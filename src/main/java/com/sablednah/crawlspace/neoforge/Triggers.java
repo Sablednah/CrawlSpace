@@ -58,6 +58,12 @@ public final class Triggers {
         if (site == null) {
             return;
         }
+        // The trap's floor tile, or something standing on the trap's own cell (a corridor stair, a rug).
+        if (player.isShiftKeyDown() && (disarm(level, player, site, pos.above()) || disarm(level, player, site, pos))) {
+            e.setCanceled(true);
+            e.setCancellationResult(InteractionResult.SUCCESS);
+            return;
+        }
         Trigger t = triggerAt(site, pos);
         if (t == null) {
             return;
@@ -103,6 +109,33 @@ public final class Triggers {
         }
     }
 
+    /**
+     * Sneak-using the floor tile of a trap you know about: disarm it. With a
+     * perception mod registered it is that mod's roll, and a failure springs
+     * the trap; without one a known trap disarms.
+     */
+    private static boolean disarm(ServerLevel level, ServerPlayer player, Site site, BlockPos trapPos) {
+        Trigger t = triggerAt(site, trapPos);
+        if (t == null || !t.kind().isTrap()) {
+            return false;
+        }
+        CrawlState state = CrawlState.of(level);
+        if (state.hasFired(trapPos) || !known(player, trapPos)) {
+            return false;
+        }
+        boolean ok = com.sablednah.crawlspace.api.CrawlSpaceApi.perception().map(p -> p.disarms(player, t.level())).orElse(true);
+        state.fire(trapPos);
+        if (ok) {
+            level.playSound(null, trapPos, SoundEvents.TRIPWIRE_CLICK_OFF, SoundSource.BLOCKS, 1f, 0.8f);
+            tell(player, "You disarm the " + (t.kind() == Trigger.Kind.DARTS ? "dart trap." : "gas trap."));
+        } else if (t.kind() == Trigger.Kind.DARTS) {
+            darts(level, player, trapPos);
+        } else {
+            gas(level, player, trapPos);
+        }
+        return true;
+    }
+
     public static void onTick(PlayerTickEvent.Post e) {
         if (!(e.getEntity() instanceof ServerPlayer player) || player.isSpectator() || player.tickCount % 2 != 0) {
             return;
@@ -118,8 +151,16 @@ public final class Triggers {
         if (here.site() == null) {
             return;
         }
-        if (player.tickCount % 20 == 0 && CrawlConfig.hints()) {
-            hints(level, player, here.site());
+        if (player.tickCount % 20 == 0) {
+            final Site site = here.site();
+            if (CrawlConfig.hints()) {
+                hints(level, player, site, null);
+            } else {
+                com.sablednah.crawlspace.api.CrawlSpaceApi.perception().ifPresent(p -> {
+                    notice(level, player, site, p);
+                    hints(level, player, site, NOTICED.getOrDefault(player.getUUID(), java.util.Map.of()));
+                });
+            }
         }
         if (player.tickCount % 10 == 0 && !player.isCreative()) {
             wake(level, player, here.site());
@@ -186,13 +227,64 @@ public final class Triggers {
      * would find: red over an unsprung trap, green at a secret wall not yet
      * opened and over a treasure room's hoard.
      */
-    private static void hints(ServerLevel level, ServerPlayer player, Site site) {
+    /** Per player: hidden things already asked about, and whether they were noticed. Memory only: a restart re-rolls. */
+    private static final Map<UUID, Map<Long, Boolean>> NOTICED = new HashMap<>();
+    /** How near a hidden thing has to be before a player gets a chance to notice it. */
+    private static final int NOTICE_RANGE = 5;
+
+    /**
+     * Asks the registered perception about each hidden thing a player has
+     * just come near: once per player per thing, so walking past again does
+     * not reroll. What they notice they are told about, and shown from then on.
+     */
+    private static void notice(ServerLevel level, ServerPlayer player, Site site, com.sablednah.crawlspace.api.Perception perception) {
+        CrawlState state = CrawlState.of(level);
+        Map<Long, Boolean> asked = NOTICED.computeIfAbsent(player.getUUID(), k -> new HashMap<>());
+        BlockPos o = site.origin();
+        for (Trigger t : site.built().blueprint().triggers()) {
+            boolean trap = t.kind().isTrap();
+            boolean secret = t.kind() == Trigger.Kind.SECRET && t.targets().length > 0 && t.targets()[0][1] == t.y();
+            if (!trap && !secret) {
+                continue;
+            }
+            BlockPos p = o.offset(t.x(), t.y(), t.z());
+            if (asked.containsKey(p.asLong()) || state.hasFired(p) || p.distSqr(player.blockPosition()) > NOTICE_RANGE * NOTICE_RANGE) {
+                continue;
+            }
+            boolean seen = perception.notices(player, trap ? com.sablednah.crawlspace.api.Perception.Hidden.TRAP
+                    : com.sablednah.crawlspace.api.Perception.Hidden.SECRET_DOOR, t.level());
+            asked.put(p.asLong(), seen);
+            if (seen) {
+                tell(player, trap ? "You notice a trap in the floor ahead. Sneak and use it to disarm it."
+                        : "Something about this wall is not right...");
+            }
+        }
+    }
+
+    /** Whether this player knows about the hidden thing at {@code pos}: hints show all, else only what they noticed. */
+    private static boolean known(ServerPlayer player, BlockPos pos) {
+        if (CrawlConfig.hints()) {
+            return true;
+        }
+        Boolean seen = NOTICED.getOrDefault(player.getUUID(), Map.of()).get(pos.asLong());
+        return seen != null && seen;
+    }
+
+    /**
+     * @param noticed null to show every hint (hints on), else only the hidden
+     *                things this player noticed (treasure is not hidden, and
+     *                with a perception mod in charge it is not pointed out)
+     */
+    private static void hints(ServerLevel level, ServerPlayer player, Site site, Map<Long, Boolean> noticed) {
         CrawlState state = CrawlState.of(level);
         BlockPos o = site.origin();
         for (Trigger t : site.built().blueprint().triggers()) {
             BlockPos p = o.offset(t.x(), t.y(), t.z());
             if (Math.abs(p.getX() - player.getX()) > HINT_RANGE || Math.abs(p.getZ() - player.getZ()) > HINT_RANGE
                     || Math.abs(p.getY() - player.getY()) > 4) {
+                continue;
+            }
+            if (noticed != null && !Boolean.TRUE.equals(noticed.get(p.asLong()))) {
                 continue;
             }
             switch (t.kind()) {
@@ -237,6 +329,7 @@ public final class Triggers {
 
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent e) {
         HERE.remove(e.getEntity().getUUID());
+        NOTICED.remove(e.getEntity().getUUID());
     }
 
     private static Trigger triggerAt(Site site, BlockPos pos) {

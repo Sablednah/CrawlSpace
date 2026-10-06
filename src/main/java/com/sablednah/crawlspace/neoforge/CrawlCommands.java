@@ -57,7 +57,11 @@ public final class CrawlCommands {
                                                 StringArgumentType.getString(ctx, "what"))))))
                 .then(Commands.literal("info").executes(CrawlCommands::info))
                 .then(Commands.literal("undo").executes(CrawlCommands::undo))
-                .then(Commands.literal("cancel").executes(CrawlCommands::cancel)));
+                .then(Commands.literal("cancel").executes(CrawlCommands::cancel))
+                .then(Commands.literal("perception")
+                        .then(Commands.argument("mode", StringArgumentType.word())
+                                .suggests((c, b) -> SharedSuggestionProvider.suggest(java.util.List.of("always", "never", "half", "off"), b))
+                                .executes(ctx -> perception(ctx, StringArgumentType.getString(ctx, "mode"))))));
     }
 
     private static int help(CommandContext<CommandSourceStack> ctx) {
@@ -278,6 +282,41 @@ public final class CrawlCommands {
         undo.done = n -> say(src, "Put back " + n + " blocks.");
         Builds.add(undo);
         say(src, "Undoing your last build...");
+        return 1;
+    }
+
+    /**
+     * A stand-in perception check, for testing the hook without an RPG mod:
+     * always, never or half the time; off removes it. An RPG mod that
+     * registers its own replaces this.
+     */
+    private static int perception(CommandContext<CommandSourceStack> ctx, String mode) {
+        java.util.Random random = new java.util.Random();
+        switch (mode) {
+            case "off" -> com.sablednah.crawlspace.api.CrawlSpaceApi.setPerception(null);
+            case "always", "never", "half" -> com.sablednah.crawlspace.api.CrawlSpaceApi.setPerception(
+                    new com.sablednah.crawlspace.api.Perception() {
+                        private boolean roll() {
+                            return mode.equals("always") || (mode.equals("half") && random.nextBoolean());
+                        }
+
+                        @Override
+                        public boolean notices(ServerPlayer player, Hidden what, int depth) {
+                            return roll();
+                        }
+
+                        @Override
+                        public boolean disarms(ServerPlayer player, int depth) {
+                            return roll();
+                        }
+                    });
+            default -> {
+                fail(ctx.getSource(), "always, never, half or off.");
+                return 0;
+            }
+        }
+        say(ctx.getSource(), mode.equals("off") ? "Perception: none (CrawlSpace's hints decide)."
+                : "Perception: a stand-in that succeeds " + mode + ". Hints set to AUTO now hide what nobody noticed.");
         return 1;
     }
 

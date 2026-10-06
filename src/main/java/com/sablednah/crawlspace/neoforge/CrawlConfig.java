@@ -19,7 +19,7 @@ public final class CrawlConfig {
 
     /** Whether secret walls look different and traps and treasure give off particles. */
     public enum Hints {
-        /** On, unless LegendQuest is installed: then its perception checks do the finding. */
+        /** On, unless a mod has registered a perception check (CrawlSpaceApi): then that does the finding. */
         AUTO,
         ALWAYS,
         NEVER
@@ -47,7 +47,7 @@ public final class CrawlConfig {
         HINTS = b.comment(
                 "Tells for players without a perception skill: secret walls built from a related but different block,",
                 "and faint particles near you, red for an unsprung trap, green for a secret door or treasure.",
-                "AUTO is on unless LegendQuest is installed.")
+                "AUTO is on unless a mod (LegendQuest, say) has registered its own perception checks.")
                 .defineEnum("hints", Hints.AUTO);
         b.pop();
         SPEC = b.build();
@@ -81,7 +81,7 @@ public final class CrawlConfig {
         return switch (get(HINTS, Hints.AUTO)) {
             case ALWAYS -> true;
             case NEVER -> false;
-            case AUTO -> !net.neoforged.fml.ModList.get().isLoaded("legendquest");
+            case AUTO -> com.sablednah.crawlspace.api.CrawlSpaceApi.perception().isEmpty();
         };
     }
 

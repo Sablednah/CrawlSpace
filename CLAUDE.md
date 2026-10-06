@@ -293,6 +293,26 @@ has no part and places everything.
 - Railings, fences and coving are set again once their chunk is in
   (`Block.updateFromNeighbourShapes`), so they join up.
 
+## Perception: the seam for RPG mods (`api/`)
+
+`CrawlSpaceApi.setPerception(Perception)` lets an RPG mod decide who notices
+traps and secret doors, and who disarms traps. CrawlSpace never imports the
+mod. That is the inward-pointing seam from the design notes, like
+LegendQuest's `PartyVoice`.
+
+- `notices(player, TRAP | SECRET_DOOR, depth)` is asked once per player per
+  thing, when they come within 5 blocks, and remembered in memory (a restart
+  rerolls). Whatever a player noticed is then shown to them with the hint
+  particles, and nothing else is.
+- `disarms(player, depth)`: sneak-use a known trap's floor tile, or anything
+  standing on its cell. A failure springs it. With no provider, a known trap
+  simply disarms.
+- `hints = AUTO` now means "on unless a provider is registered". Before, it
+  meant "off if LegendQuest is installed", which hid everything in a pack
+  where nothing yet did the finding.
+- `/crawlspace perception always|never|half|off` registers a stand-in, for
+  testing the hook without an RPG mod.
+
 ## Triggers
 
 All of them are ordinary blocks or floor tiles that `Triggers` watches, never
