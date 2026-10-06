@@ -46,11 +46,11 @@ public final class Bosses {
     /** A boss coming back from disk takes its bar again. A new boss is already tracked by the time it joins. */
     public static void onJoin(EntityJoinLevelEvent e) {
         if (!(e.getLevel() instanceof ServerLevel level) || !(e.getEntity() instanceof Mob mob)
-                || !mob.getTags().contains(TAG) || TRACKED.containsKey(mob.getUUID())) {
+                || !mob.entityTags().contains(TAG) || TRACKED.containsKey(mob.getUUID())) {
             return;
         }
         BossEvent.BossBarColor colour = BossEvent.BossBarColor.PURPLE;
-        for (String tag : mob.getTags()) {
+        for (String tag : mob.entityTags()) {
             for (BossEvent.BossBarColor c : BossEvent.BossBarColor.values()) {
                 if (tag.equals(COLOUR_TAG + c.getName())) {
                     colour = c;
