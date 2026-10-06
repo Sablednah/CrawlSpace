@@ -159,7 +159,8 @@ final class Bestiary {
         mob.setHealth(mob.getMaxHealth());
         mob.setCustomName(Component.literal(capitalise(spec.name())).withStyle(ChatFormatting.GOLD));
         mob.setCustomNameVisible(true);
-        mob.addTag("crawlspace_boss");
+        mob.addTag(Bosses.TAG);
+        mob.addTag(Bosses.COLOUR_TAG + spec.colour().getName());
     }
 
     private static void modify(Mob mob, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr,

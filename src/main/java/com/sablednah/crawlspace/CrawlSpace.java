@@ -45,6 +45,7 @@ public final class CrawlSpace {
             Builds.clear();
             Bosses.clear();
         });
+        NeoForge.EVENT_BUS.addListener(Bosses::onJoin);
         NeoForge.EVENT_BUS.addListener(Triggers::onUse);
         NeoForge.EVENT_BUS.addListener(Triggers::onTick);
         NeoForge.EVENT_BUS.addListener(Triggers::onLogout);
