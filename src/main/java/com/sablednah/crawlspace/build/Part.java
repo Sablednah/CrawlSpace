@@ -100,5 +100,23 @@ public enum Part {
     /** A decorated pot. */
     POT,
     /** A rug: carpet in the theme's second colour. */
-    RUG
+    RUG,
+    // ---- clutter ----
+    FLOOR_LANTERN,
+    ANVIL,
+    GRINDSTONE,
+    CAULDRON,
+    LECTERN,
+    MUSHROOM,
+    // ---- overgrowth ----
+    /** Vines on the wall behind; facing is the direction of that wall. */
+    VINE,
+    /** A fern or grass tuft on a moss floor. */
+    PLANT,
+    /** A floor block swapped for moss, for plants to grow from. */
+    MOSS_FLOOR,
+    /** An azalea bush, which never decays. */
+    LEAVES,
+    /** Roots hanging from the ceiling. */
+    ROOTS
 }

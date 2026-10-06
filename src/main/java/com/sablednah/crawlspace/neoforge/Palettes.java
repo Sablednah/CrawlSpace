@@ -309,6 +309,20 @@ public final class Palettes {
             case CHAIR -> fin.chair().defaultBlockState().setValue(StairBlock.FACING, dir);
             case POT -> Blocks.DECORATED_POT.defaultBlockState();
             case RUG -> fin.rug().defaultBlockState();
+            case FLOOR_LANTERN -> palette.get(Part.LIGHT).pick(hash).defaultBlockState().setValue(LanternBlock.HANGING, false);
+            case ANVIL -> Blocks.CHIPPED_ANVIL.defaultBlockState().setValue(net.minecraft.world.level.block.AnvilBlock.FACING, dir);
+            case GRINDSTONE -> Blocks.GRINDSTONE.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.GrindstoneBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR)
+                    .setValue(net.minecraft.world.level.block.GrindstoneBlock.FACING, dir);
+            case CAULDRON -> Blocks.CAULDRON.defaultBlockState();
+            case LECTERN -> Blocks.LECTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LecternBlock.FACING, dir);
+            case MUSHROOM -> (Math.floorMod(hash, 2L) == 0 ? Blocks.RED_MUSHROOM : Blocks.BROWN_MUSHROOM).defaultBlockState();
+            case VINE -> Blocks.VINE.defaultBlockState().setValue(net.minecraft.world.level.block.VineBlock.getPropertyForFace(dir), true);
+            case PLANT -> (facing == 0 ? Blocks.FERN : Blocks.SHORT_GRASS).defaultBlockState();
+            case MOSS_FLOOR -> Blocks.MOSS_BLOCK.defaultBlockState();
+            case LEAVES -> (facing == 0 ? Blocks.AZALEA_LEAVES : Blocks.FLOWERING_AZALEA_LEAVES).defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, true);
+            case ROOTS -> Blocks.HANGING_ROOTS.defaultBlockState();
             default -> palette.get(part).pick(hash).defaultBlockState();
         };
     }

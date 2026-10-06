@@ -98,10 +98,7 @@ final class Dresser {
                 }
                 case GUARD -> {
                     take(perim, 2 + dice.nextInt(2), p -> props.add(floor(p, f, Part.BARREL, 0, true)));
-                    if (i >= 1 && centreFree && dice.chance(0.3 + 0.05 * i)) {
-                        props.add(new Prop(centre[0], f, centre[1], Part.SPAWNER, 0, true));
-                        spawner = true;
-                    } else if (centreFree) {
+                    if (centreFree) {
                         tableSet(centre, f, dice, props); // the guards' mess table
                     }
                     take(perim, 1, p -> props.add(banner(p, f)));
@@ -112,6 +109,16 @@ final class Dresser {
                 }
                 case KEY -> take(perim, 2, p -> props.add(floor(p, f, Part.CANDLES, dice.nextInt(4), true)));
                 default -> flavour(theme, level, r, f, h, perim, reserved, centreFree, centre, dice, props);
+            }
+
+            spawner = spawners(level, r, i, f, reserved, props, dice);
+            boolean columns = columns(theme, r, dice);
+            if (columns) {
+                engaged(level, r, f, h, reserved, props, perim);
+            }
+            clutter(theme, r, i, f, perim, dice, props);
+            if (dice.chance(overgrown(theme))) {
+                overgrowth(level, r, f, h, theme, reserved, perim, dice, props);
             }
 
             // Cobwebs gather in corners of the old, dry places.
@@ -145,6 +152,12 @@ final class Dresser {
             }
             if (r.role == Role.ROOM && theme.equals("Crypt") && dice.chance(0.25)) {
                 shelves(bp, level, r, plan, i, reserved);
+            }
+            if (built) {
+                doorFrames(bp, level, r, plan, i);
+                if (columns || dice.chance(0.3)) {
+                    niches(bp, level, r, plan, i, reserved, dice);
+                }
             }
         }
         corridors(bp, plan, i, dice);
@@ -212,6 +225,273 @@ final class Dresser {
                 take(perim, 2, p -> props.add(floor(p, f, Part.SKULL, dice.nextInt(4), true)));
             }
             default -> {
+            }
+        }
+    }
+
+    /**
+     * Spawners: likely from the first level, and the deeper you go the likelier
+     * a room holds two or three (Sable: "not more likely to get a spawner as you
+     * go down, but likely from the start, and more likely to get multiple").
+     * They stand on clear floor away from the walls, at least three apart.
+     * Returns whether any were placed: such a room stays dark.
+     */
+    private static boolean spawners(LevelPlan level, Room r, int i, int f, boolean[][] reserved, List<Prop> props, Dice dice) {
+        double any = switch (r.role) {
+            case GUARD -> 0.65;
+            case ROOM, HALL -> 0.35;
+            case LAIR -> i >= 2 ? 0.5 : 0;
+            default -> 0;
+        };
+        if (!dice.chance(any)) {
+            return false;
+        }
+        int count = 1;
+        if (dice.chance(Math.min(0.7, 0.1 * i))) {
+            count++;
+        }
+        if (dice.chance(Math.min(0.5, 0.06 * i))) {
+            count++;
+        }
+        Set<Long> taken = new HashSet<>();
+        for (Prop p : props) {
+            taken.add(key(p.x(), p.z()));
+        }
+        List<int[]> spots = new ArrayList<>();
+        for (int x = r.minX() + 2; x <= r.maxX() - 2; x++) {
+            for (int z = r.minZ() + 2; z <= r.maxZ() - 2; z++) {
+                if (free(level, reserved, r, x, z) && !taken.contains(key(x, z)) && !nearWall(level, x, z)) {
+                    spots.add(new int[] {x, z});
+                }
+            }
+        }
+        List<int[]> placed = new ArrayList<>();
+        while (placed.size() < count && !spots.isEmpty()) {
+            int[] s = spots.remove(dice.nextInt(spots.size()));
+            boolean spaced = true;
+            for (int[] p : placed) {
+                spaced &= Math.max(Math.abs(p[0] - s[0]), Math.abs(p[1] - s[1])) >= 3;
+            }
+            if (spaced) {
+                placed.add(s);
+                props.add(new Prop(s[0], f, s[1], Part.SPAWNER, 0, true));
+            }
+        }
+        return !placed.isEmpty();
+    }
+
+    private static boolean nearWall(LevelPlan level, int x, int z) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (!level.cell(x + dx, z + dz).isOpen()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Which rooms get columns standing out from their walls: the grand ones, and some others. */
+    private static boolean columns(String theme, Room r, Dice dice) {
+        if (theme.equals("Old Mines") || theme.equals("Caverns") || Math.min(r.w, r.h) < 9 || r.shape == com.sablednah.crawlspace.plan.Shape.HALL) {
+            return false;
+        }
+        return switch (r.role) {
+            case LAIR, SHRINE -> true;
+            case HALL, GUARD, ROOM, EXIT, ENTRY -> dice.chance(0.4);
+            default -> false;
+        };
+    }
+
+    /**
+     * Engaged columns: every fourth cell along the walls, standing out into
+     * the room, floor to ceiling, with a base and a capital in the trim.
+     */
+    private static void engaged(LevelPlan level, Room r, int f, int h, boolean[][] reserved, List<Prop> props, List<int[]> perim) {
+        Set<Long> taken = new HashSet<>();
+        for (Prop p : props) {
+            taken.add(key(p.x(), p.z())); // never stand a column on the hoard, the throne or a spawner
+        }
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (!free(level, reserved, r, x, z) || Math.floorMod(x + z, 4) != 0 || taken.contains(key(x, z))) {
+                    continue;
+                }
+                boolean wall = false;
+                for (int[] d : DIRS) {
+                    wall |= level.cell(x + d[0], z + d[1]) == Cell.WALL;
+                }
+                if (!wall) {
+                    continue;
+                }
+                for (int y = f; y < f + h; y++) {
+                    Part part = y == f || y == f + h - 1 ? Part.DADO : Part.PILLAR;
+                    props.add(new Prop(x, y, z, part, 0, y == f));
+                }
+                final int cx = x;
+                final int cz = z;
+                perim.removeIf(p -> p[0] == cx && p[1] == cz); // nothing else goes on a column's cell
+            }
+        }
+    }
+
+    /** More things lying about, by theme: some of what is left of the wall-side floor. */
+    private static void clutter(String theme, Room r, int i, int f, List<int[]> perim, Dice dice, List<Prop> props) {
+        int n = perim.size() / 4;
+        for (int k = 0; k < n && !perim.isEmpty(); k++) {
+            int[] p = perim.remove(perim.size() - 1);
+            Part part = switch (theme) {
+                case "Crypt" -> pick(dice, Part.SKULL, Part.CANDLES, Part.POT, Part.FLOOR_LANTERN, Part.BONES, Part.COBWEB);
+                case "Sunken Halls" -> pick(dice, Part.POT, Part.CANDLES, Part.CAULDRON, Part.FLOOR_LANTERN, Part.MOSS);
+                case "Old Mines" -> pick(dice, Part.BARREL, Part.BARREL, Part.FLOOR_LANTERN, Part.ANVIL, Part.GRINDSTONE, Part.CAULDRON, Part.COBWEB);
+                case "Caverns" -> pick(dice, Part.STALAGMITE, Part.MUSHROOM, Part.MUSHROOM, Part.CANDLES, Part.POT);
+                default -> pick(dice, Part.SKULL, Part.CANDLES, Part.FLOOR_LANTERN, Part.CAULDRON, Part.LECTERN, Part.POT);
+            };
+            boolean blocks = part != Part.MOSS && part != Part.MUSHROOM;
+            int facing = part == Part.SKULL ? dice.nextInt(4) : part == Part.CANDLES ? dice.nextInt(4) : p[2];
+            props.add(floor(p, f, part, facing, blocks));
+            if (part == Part.BARREL && dice.chance(0.5)) {
+                props.add(new Prop(p[0], f + 1, p[1], Part.BARREL, 0, false)); // a stack of two
+            }
+        }
+    }
+
+    private static Part pick(Dice dice, Part... parts) {
+        return parts[dice.nextInt(parts.length)];
+    }
+
+    private static double overgrown(String theme) {
+        return switch (theme) {
+            case "Sunken Halls" -> 0.6;
+            case "Caverns" -> 0.7;
+            case "Old Mines" -> 0.25;
+            case "Crypt" -> 0.2;
+            default -> 0.1;
+        };
+    }
+
+    /**
+     * Overgrowth: vines hanging down the walls, moss with ferns and grass, an
+     * azalea bush or two in the corners, and in the caverns roots from the
+     * ceiling.
+     */
+    private static void overgrowth(LevelPlan level, Room r, int f, int h, String theme, boolean[][] reserved,
+            List<int[]> perim, Dice dice, List<Prop> props) {
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (!r.contains(x, z) || !level.cell(x, z).isOpen()) {
+                    continue;
+                }
+                for (int d = 0; d < 4; d++) {
+                    if (level.cell(x + DIRS[d][0], z + DIRS[d][1]) == Cell.WALL && dice.chance(0.3)) {
+                        int len = 1 + dice.nextInt(Math.max(1, h - 2));
+                        for (int y = f + h - 2; y > f + h - 2 - len && y > f + 1; y--) {
+                            props.add(new Prop(x, y, z, Part.VINE, d, false));
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        scatter(level, r, reserved, dice, 0.12, (x, z) -> {
+            props.add(new Prop(x, f - 1, z, Part.MOSS_FLOOR, 0, false));
+            if (dice.chance(0.6)) {
+                props.add(new Prop(x, f, z, Part.PLANT, dice.nextInt(2), false));
+            }
+        });
+        for (int[] p : new ArrayList<>(perim)) {
+            if (corner(level, p) && dice.chance(0.5)) {
+                props.add(floor(p, f, Part.LEAVES, dice.nextInt(2), true));
+                perim.remove(p);
+            }
+        }
+        if (theme.equals("Caverns") || theme.equals("Sunken Halls")) {
+            scatter(level, r, reserved, dice, 0.06, (x, z) -> props.add(new Prop(x, f + h - 1, z, Part.ROOTS, 0, false)));
+        }
+    }
+
+    /** A frame round each doorway on the room side: the walls either side and the lintel, in the pilaster stone. */
+    private static void doorFrames(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i) {
+        for (int x = r.minX() - 1; x <= r.maxX() + 1; x++) {
+            for (int z = r.minZ() - 1; z <= r.maxZ() + 1; z++) {
+                if (!level.cell(x, z).isDoor()) {
+                    continue;
+                }
+                boolean ours = false;
+                for (int[] d : DIRS) {
+                    ours |= level.region(x + d[0], z + d[1]) == r.id;
+                }
+                if (!ours) {
+                    continue;
+                }
+                int f = Blueprinter.floorAt(plan, i, x, z);
+                for (int[] d : DIRS) {
+                    int wx = x + d[0];
+                    int wz = z + d[1];
+                    if (level.cell(wx, wz) != Cell.WALL) {
+                        continue;
+                    }
+                    for (int y = f; y <= f + 3; y++) {
+                        swapWall(bp, wx, y, wz, Part.PILASTER, i);
+                    }
+                }
+                for (int y = f + 2; y <= f + 3; y++) {
+                    int code = bp.get(x, y, z);
+                    if (code != 0 && Blueprint.part(code) == Part.WALL) {
+                        bp.set(x, y, z, Part.PILASTER, 0, i); // the lintel
+                    }
+                }
+            }
+        }
+    }
+
+    private static void swapWall(Blueprint bp, int x, int y, int z, Part part, int i) {
+        int code = bp.get(x, y, z);
+        if (code != 0) {
+            Part p = Blueprint.part(code);
+            if (p == Part.WALL || p == Part.WALL_ACCENT || p == Part.PANEL || p == Part.DADO) {
+                bp.set(x, y, z, part, 0, i);
+            }
+        }
+    }
+
+    /**
+     * Niches: a recess two high cut into a wall, with a skull, candles, a pot
+     * or a lantern in it. Only where the wall has plain rock behind it: the
+     * rock behind is walled in, so the dungeon stays sealed.
+     */
+    private static void niches(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i, boolean[][] reserved, Dice dice) {
+        int made = 0;
+        for (int x = r.minX() - 1; x <= r.maxX() + 1 && made < 4; x++) {
+            for (int z = r.minZ() - 1; z <= r.maxZ() + 1 && made < 4; z++) {
+                if (level.cell(x, z) != Cell.WALL || Math.floorMod(x + z, 4) != 2 || !dice.chance(0.5)) {
+                    continue;
+                }
+                for (int d = 0; d < 4; d++) {
+                    int rx = x - DIRS[d][0]; // the room cell in front
+                    int rz = z - DIRS[d][1];
+                    int bx = x + DIRS[d][0]; // the rock behind
+                    int bz = z + DIRS[d][1];
+                    int px = -DIRS[d][1];
+                    int pz = DIRS[d][0];
+                    if (!r.contains(rx, rz) || level.cell(rx, rz) != Cell.FLOOR || reserved[rx + R][rz + R]
+                            || level.cell(bx, bz) != Cell.ROCK
+                            || level.cell(x + px, z + pz) != Cell.WALL || level.cell(x - px, z - pz) != Cell.WALL) {
+                        continue;
+                    }
+                    int f = Blueprinter.floorAt(plan, i, rx, rz);
+                    int h = Blueprinter.clearHeight(level, rx, rz);
+                    if (h < 4 || bp.get(bx, f, bz) != 0) {
+                        continue;
+                    }
+                    for (int y = f; y <= f + 3; y++) {
+                        bp.set(bx, y, bz, Part.WALL, 0, i); // back the niche with wall
+                    }
+                    bp.set(x, f + 1, z, pick(dice, Part.SKULL, Part.CANDLES, Part.POT, Part.FLOOR_LANTERN), (d + 2) % 4, i);
+                    bp.set(x, f + 2, z, Part.AIR, 0, i);
+                    made++;
+                    break;
+                }
             }
         }
     }

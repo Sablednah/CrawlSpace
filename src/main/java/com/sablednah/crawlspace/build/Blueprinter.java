@@ -211,6 +211,7 @@ public final class Blueprinter {
         java.util.Set<Integer> dark = Dresser.dress(bp, plan, i);
         lights(bp, plan, i, dark);
         encounters(bp, plan, i);
+        ambushes(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0xA4B5L));
     }
 
     /**
@@ -255,14 +256,13 @@ public final class Blueprinter {
         for (Room r : level.rooms) {
             double chance = switch (r.role) {
                 case ENTRY -> 0;
-                case EXIT -> 0.35;
-                case GUARD -> 0.95;
-                case HALL -> 0.75;
-                case LAIR -> 1;
-                case TREASURE, KEY -> 0.6;
-                case SECRET -> 0.5;
-                case SHRINE -> 0.3;
-                default -> Math.min(0.9, 0.45 + 0.05 * i);
+                case EXIT -> 0.5;
+                case GUARD, LAIR -> 1;
+                case HALL -> 0.85;
+                case TREASURE, KEY -> 0.75;
+                case SECRET -> 0.6;
+                case SHRINE -> 0.4;
+                default -> Math.min(0.95, 0.6 + 0.05 * i);
             };
             if (!dice.chance(chance)) {
                 continue;
@@ -291,11 +291,49 @@ public final class Blueprinter {
                 spots.set(k, spots.get(j));
                 spots.set(j, t);
             }
-            int n = Math.min(spots.size(), r.role == Role.LAIR ? 3 + i / 2 : 1 + i / 2 + dice.nextInt(3));
+            int n = Math.min(spots.size(), r.role == Role.LAIR ? 4 + i / 2 : 2 + i / 2 + dice.nextInt(3));
             Trigger.Kind kind = r.role == Role.LAIR ? Trigger.Kind.BOSS : Trigger.Kind.ENCOUNTER;
             int f = floorAt(plan, i, r.centerX(), r.centerZ());
             bp.addTrigger(new Trigger(kind, r.centerX(), f + 1, r.centerZ(), i,
                     spots.subList(0, n).toArray(new int[0][])));
+        }
+    }
+
+    /**
+     * Ambushes: a group waiting partway along a long corridor, likelier deeper
+     * down. They stand along the corridor's middle, on clear floor.
+     */
+    private static void ambushes(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice dice) {
+        LevelPlan level = plan.levels().get(i);
+        for (com.sablednah.crawlspace.plan.Link l : level.links) {
+            if (l.path == null || l.path.length < 14 || !dice.chance(Math.min(0.6, 0.25 + 0.04 * i))) {
+                continue;
+            }
+            int mid = l.path.length / 2;
+            java.util.List<int[]> spots = new java.util.ArrayList<>();
+            for (int k = mid - 3; k <= mid + 3; k++) {
+                int[] c = l.path[k];
+                if (level.cell(c[0], c[1]) != Cell.CORRIDOR || nearDoor(level, c[0], c[1])) {
+                    continue;
+                }
+                int f = floorAt(plan, i, c[0], c[1]);
+                int here = bp.get(c[0], f, c[1]);
+                int above = bp.get(c[0], f + 1, c[1]);
+                if ((here == 0 || Blueprint.part(here) == Part.AIR || Blueprint.part(here) == Part.RAIL)
+                        && (above == 0 || Blueprint.part(above) == Part.AIR)) {
+                    spots.add(new int[] {c[0], f, c[1]});
+                }
+            }
+            if (spots.size() < 2) {
+                continue;
+            }
+            int n = Math.min(spots.size(), 1 + dice.nextInt(2) + i / 3);
+            int[] c = l.path[mid];
+            int key = floorAt(plan, i, c[0], c[1]) + 1;
+            if (bp.triggerAt(c[0], key, c[1]) == null) {
+                bp.addTrigger(new Trigger(Trigger.Kind.ENCOUNTER, c[0], key, c[1], i,
+                        spots.subList(0, n).toArray(new int[0][])));
+            }
         }
     }
 

@@ -266,7 +266,8 @@ class BlueprintTest {
             return true;
         }
         return switch (Blueprint.part(code)) {
-            case AIR, CARPET, MOSS, RAIL, WATER, DOOR_LOWER, LOCKED_LOWER, SECRET_WALL, LIGHT, BANNER, WALL_TORCH, CHAIN, STEP, LANDING -> true;
+            case AIR, CARPET, MOSS, RAIL, WATER, DOOR_LOWER, LOCKED_LOWER, SECRET_WALL, LIGHT, BANNER, WALL_TORCH, CHAIN, STEP, LANDING,
+                    RUG, PLANT, MUSHROOM, VINE, ROOTS, TABLE_TOP -> true;
             default -> false;
         };
     }
