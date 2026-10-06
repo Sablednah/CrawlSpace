@@ -108,12 +108,30 @@ final class Palettes {
         m.put(Part.CEILING, ceiling);
         m.put(Part.PILLAR, pillar);
         m.put(Part.STEP, Mix.of(step, 1));
+        m.put(Part.LANDING, Mix.of(landingFor(step), 1));
         m.put(Part.NEWEL, Mix.of(newel, 1));
         m.put(Part.SECRET_WALL, Mix.of(secret, 1));
         m.put(Part.LIGHT, Mix.of(light, 1));
         m.put(Part.DOOR_LOWER, Mix.of(door, 1));
         m.put(Part.DOOR_UPPER, Mix.of(door, 1));
         THEMES.put(name, m);
+    }
+
+    /** The full block a stair is cut from, for the spiral's corner landings. */
+    private static Block landingFor(Block stair) {
+        if (stair == Blocks.MOSSY_STONE_BRICK_STAIRS) {
+            return Blocks.MOSSY_STONE_BRICKS;
+        }
+        if (stair == Blocks.OAK_STAIRS) {
+            return Blocks.OAK_PLANKS;
+        }
+        if (stair == Blocks.COBBLED_DEEPSLATE_STAIRS) {
+            return Blocks.COBBLED_DEEPSLATE;
+        }
+        if (stair == Blocks.DEEPSLATE_BRICK_STAIRS) {
+            return Blocks.DEEPSLATE_BRICKS;
+        }
+        return Blocks.STONE_BRICKS;
     }
 
     /** How the entrance tower looks: chosen from the biome it stands in. */

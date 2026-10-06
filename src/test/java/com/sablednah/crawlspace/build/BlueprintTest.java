@@ -95,28 +95,74 @@ class BlueprintTest {
         assertFalse(leaks(bp).isEmpty());
     }
 
-    /** A spiral stair climbs one block per step from each level's floor to the floor above. */
-    @Test
-    void stairsClimbAllTheWay() {
-        DungeonPlan plan = Planner.plan(11L, 4);
-        Blueprint bp = Blueprinter.blueprint(plan);
-        for (int i = 0; i < 4; i++) {
+    /** Cells round a well, clockwise from north: the order a climber walks them. */
+    private static final int[][] RING = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}};
+
+    /**
+     * Walks every spiral stair from its floor to the floor above, the way a
+     * player would: round the ring, never rising more than half a block
+     * without a stair facing the way you walk, and with room for your head.
+     * The first stairs rose a full block at every cell, corners included, and
+     * nobody could climb them; counting the steps never noticed.
+     */
+    static List<String> climbProblems(DungeonPlan plan, Blueprint bp) {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < plan.levels().size(); i++) {
             LevelPlan level = plan.levels().get(i);
-            int[] s = level.stairsUp.get(0);
-            int bottom = Blueprinter.floorY(plan, i) + level.height(s[0], s[1]);
-            int top = i == 0 ? 0 : Blueprinter.floorY(plan, i - 1) + plan.levels().get(i - 1).height(s[0], s[1]);
-            int steps = 0;
-            for (int y = bottom; y < top; y++) {
-                for (int dx = -1; dx <= 1; dx++) {
-                    for (int dz = -1; dz <= 1; dz++) {
-                        int c = bp.get(s[0] + dx, y, s[1] + dz);
-                        if (c != 0 && Blueprint.part(c) == Part.STEP) {
-                            steps++;
+            for (int[] s : level.stairsUp) {
+                int bottom = Blueprinter.floorY(plan, i) + level.height(s[0], s[1]);
+                int top = i == 0 ? 0 : Blueprinter.floorY(plan, i - 1) + plan.levels().get(i - 1).height(s[0], s[1]);
+                int feet = bottom; // standing on the floor beside the first step
+                int prevDir = -1;
+                for (int n = 0; feet < top; n++) {
+                    if (n > 64) {
+                        out.add("level " + i + ": the stair never reaches the floor above (stuck at " + feet + " of " + top + ")");
+                        break;
+                    }
+                    int[] c = RING[n % 8];
+                    int x = s[0] + c[0];
+                    int z = s[1] + c[1];
+                    int[] next = RING[(n + 1) % 8];
+                    int dir = dirOf(next[0] - c[0], next[1] - c[1]);
+                    int arrive = n == 0 ? dir : prevDir;
+                    // What is underfoot in this cell at or just below the current feet?
+                    int code = bp.get(x, feet, z);
+                    Part p = code == 0 ? null : Blueprint.part(code);
+                    if (p == Part.STEP) {
+                        if (Blueprint.facing(code) != arrive) {
+                            out.add("level " + i + ": step " + n + " faces " + Blueprint.facing(code) + " but is climbed going " + arrive);
+                            break;
+                        }
+                        feet += 1;
+                    } else if (bp.get(x, feet - 1, z) != 0 && Blueprint.part(bp.get(x, feet - 1, z)) != Part.AIR) {
+                        // A flat landing level with where we stand.
+                    } else {
+                        out.add("level " + i + ": nothing to stand on at step " + n + " (y " + feet + ")");
+                        break;
+                    }
+                    for (int h = 0; h < 2; h++) {
+                        int above = bp.get(x, feet + h, z);
+                        if (above != 0 && Blueprint.part(above) != Part.AIR && Blueprint.part(above) != Part.LIGHT) {
+                            out.add("level " + i + ": no headroom at step " + n);
                         }
                     }
+                    prevDir = dir;
                 }
             }
-            assertEquals(top - bottom, steps, "level " + i);
+        }
+        return out;
+    }
+
+    private static int dirOf(int dx, int dz) {
+        return dz < 0 ? 0 : dx > 0 ? 1 : dz > 0 ? 2 : 3;
+    }
+
+    @Test
+    void stairsCanBeClimbed() {
+        for (long seed = 0; seed < 20; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 4);
+            List<String> problems = climbProblems(plan, Blueprinter.blueprint(plan));
+            assertTrue(problems.isEmpty(), "seed " + seed + ": " + problems);
         }
     }
 

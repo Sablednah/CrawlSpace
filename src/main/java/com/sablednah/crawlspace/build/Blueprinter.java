@@ -30,9 +30,14 @@ public final class Blueprinter {
     public static final int COVER = 3;
     /** Inside the tower, floor to roof. */
     public static final int TOWER_HEIGHT = 7;
-    /** Cells round a spiral stair, clockwise from north, and the way each step faces (0 N, 1 E, 2 S, 3 W). */
+    /**
+     * Cells round a spiral stair, clockwise from north, and the way a climber
+     * walks through each (0 N, 1 E, 2 S, 3 W). Only the side cells (even
+     * indices) hold stairs, and each faces the way it is walked; the corners
+     * are flat landings.
+     */
     private static final int[][] RING = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}};
-    private static final int[] RING_FACING = {1, 2, 2, 3, 3, 0, 0, 1};
+    private static final int[] SIDE_FACING = {1, -1, 2, -1, 3, -1, 0, -1};
 
     private Blueprinter() {
     }
@@ -328,9 +333,18 @@ public final class Blueprinter {
         for (int[] r : RING) {
             bp.fill(s[0] + r[0], s[1] + r[1], bottom, top - 1, Part.AIR, i);
         }
-        for (int n = 0; n < top - bottom; n++) {
+        // A stair on each side and a landing in each corner, rising one block per side: four a turn,
+        // so three blocks of headroom under the turn above. Every rise is a stair taken head on, so
+        // nobody has to jump. The first version rose a block at every cell, corners included, where
+        // a stair can face only one of the two ways you walk through it: nobody could climb it.
+        for (int n = 0; n < 2 * (top - bottom); n++) {
             int k = n % RING.length;
-            bp.set(s[0] + RING[k][0], bottom + n, s[1] + RING[k][1], Part.STEP, RING_FACING[k], upperLevel);
+            int y = bottom + n / 2;
+            if (SIDE_FACING[k] >= 0) {
+                bp.set(s[0] + RING[k][0], y, s[1] + RING[k][1], Part.STEP, SIDE_FACING[k], upperLevel);
+            } else {
+                bp.set(s[0] + RING[k][0], y, s[1] + RING[k][1], Part.LANDING, 0, upperLevel);
+            }
         }
         bp.fill(s[0], s[1], bottom - 1, top + upperHeight - 1, Part.NEWEL, upperLevel);
     }

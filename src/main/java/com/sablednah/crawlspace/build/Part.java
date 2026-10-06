@@ -36,5 +36,7 @@ public enum Part {
     TOWER_DOOR_LOWER,
     TOWER_DOOR_UPPER,
     /** A lever on the floor: the mod watches it (see {@link Trigger}). */
-    LEVER
+    LEVER,
+    /** A spiral stair's flat corner, level with the top of the step before it. */
+    LANDING
 }
