@@ -25,29 +25,39 @@ CrawlSpace never imports either.
 **Server-side, vanilla first.** Everything is ordinary blocks and vanilla
 entities, so an unmodded client can play: `displayTest="IGNORE_ALL_VERSION"`.
 
-## Where it stands (2026-10-06)
+## Where it stands (2026-10-06, afternoon)
 
-**The planner works, and `/crawlspace build` builds a whole dungeon in a
-world.** It was seen on the Vivo rig on 2026-10-06: the tower, spiral stairs,
-the crypt, pillared halls, mine tunnels. `./gradlew test` plans thousands of
-dungeons, checks every one, proves the blueprint is sealed, and draws sheets to
-`build/plan-renders/*.png`. **Look at the sheets after any planner change.**
-That is the only way to judge "does this look like a good dungeon", and the
-reason the planner has no Minecraft in it.
+**Dungeons generate with the world, and their levers, secret walls and traps
+work.** `/crawlspace build` still makes one on demand. Everything below was
+seen on the Vivo rig.
+
+- **Worldgen:** `crawlspace:dungeon`, a structure set whose spacing comes from
+  the config (see "Worldgen"). The entrance tower is dressed for its biome.
+  `/locate structure crawlspace:dungeon` finds them.
+- **Triggers:** a floor lever in the KEY room opens the level's locked iron
+  doors, right-clicking a secret wall crumbles it, and hidden trap tiles fire
+  darts or gas, once each (see "Triggers").
+- **Inner rooms:** one to three rooms inside each loop, with paths across it,
+  so a level no longer reads as a ring.
+- `./gradlew test` plans thousands of dungeons, checks every one, proves the
+  blueprint is sealed and the triggers are wired, and draws sheets to
+  `build/plan-renders/*.png`, traps included. **Look at the sheets after any
+  planner change.**
 
 Not yet:
-- **Worldgen.** Dungeons only come from the command. Use a structure set, and
-  **store the plan in the structure start's NBT, not just the seed**, or a
-  generator change between versions splits half-built dungeons.
-  **Prefer flat sites:** `requiredTop` sinks levels under the lowest ground
-  over the footprint, and on a mountainside the first level went 56 down.
-- **Locked doors do not open.** They are iron doors and the lever does not
-  exist yet. A level is still finishable, because the lock is always on the
-  loop. Plan: a lever in the KEY room that the mod watches, so no redstone
-  wiring is needed and it works on vanilla clients.
-- Mobs, spawners, loot, traps, room dressing (beyond pillars and pools), and
-  themes as data.
-- The LegendQuest/StoryTeller seams.
+- Mobs, spawners and loot scaled by depth; room dressing beyond pillars and
+  pools; themes and entrance styles as data.
+- Visible tripwires and pressure plates. The trigger system takes them as
+  they are (another `Trigger.Kind` and a block in the blueprint); only the
+  invisible tiles exist so far.
+- Secret walls carry no tell: a cracked or mossy block in a wall that already
+  has some. LegendQuest's perception check is the intended way to spot them.
+  Whether to add a visual hint is Sable's call.
+- Vanilla structures can overlap a dungeon: one mineshaft's planks crossed a
+  generated dungeon. **Unverified:** whether water or lava springs can appear
+  in Old Mines and Caverns walls, whose stone and deepslate count as natural
+  rock to the spring feature.
+- The LegendQuest and StoryTeller seams.
 
 ## Layout
 
@@ -56,7 +66,8 @@ Not yet:
 | `plan` | the planner: topology, layout, routing, cells, heights, checks | **no** |
 | `build` | `Blueprinter`: a plan as blocks by role (`Part`), not block states | **no** |
 | `debug` | `PlanRenderer`, PNG sheets (AWT, headless: never call from a client) | **no** |
-| `neoforge` | `Palettes` (role to block, per theme), `Builds` (tick-budgeted placement, undo), commands, `Tour` | yes |
+| `neoforge` | `Site` (one dungeon's identity), `Palettes`, `EntranceStyle`, `Builds`, `Triggers`, `CrawlState`, `CrawlConfig`, commands, `Tour` | yes |
+| `neoforge.worldgen` | `DungeonStructure`, `DungeonPiece`, `ConfiguredSpread`, registration | yes |
 | (root) | `CrawlSpace`, the mod class | yes |
 
 Keep `plan` free of Minecraft. That is what lets the tests run thousands of
@@ -115,6 +126,58 @@ shaft into a one-deep pool, which breaks the fall.
 Blocks are set with client updates and no neighbour updates, 20,000 a tick,
 as in WadCraft.
 
+## Worldgen
+
+One structure, one piece covering the whole footprint. `DungeonStructure`
+plans in the start chunk. It samples the ground every 8 blocks with
+`getBaseHeight(OCEAN_FLOOR_WG)`, and each cell takes the lowest of the four
+samples round it. `Site.fit` then sinks the levels under that and drops
+levels until the lowest block clears the bedrock layers. A site where fewer
+than `minLevels` fit gets no pieces, so nothing is placed there. Each chunk's
+`postProcess` places only the blueprint columns inside its box.
+
+- **A `Site` (seed, levels, top, style, origin) is saved in the piece, not the
+  plan.** A saved plan would be hundreds of KB in one chunk. The plan and
+  blueprint are regenerated from the seed and cached (six at most), so
+  **`Site.PLANNER_VERSION` must be bumped by any change that would alter an
+  existing seed's dungeon.** A mismatch is logged, because parts of a dungeon
+  not yet generated would no longer match the parts that were.
+- Traps come from their own dice (`Dice.of(seed, index, 0x7EA95)`), so tuning
+  them never moves a wall.
+- **Spacing is config, not data:** `ConfiguredSpread` extends vanilla's
+  `RandomSpreadStructurePlacement`, because that is the only type `/locate`
+  searches. It overrides `spacing()`, `separation()` and
+  `getPotentialStructureChunk`. The defaults are 36/16. Dungeon Crawl uses
+  32/12, but a CrawlSpace dungeon is up to 15 chunks across, and below
+  separation 16 two can overlap. The config is `config/crawlspace-server.toml`;
+  NeoForge 21.x keeps server configs there, not per world.
+- Biomes are Dungeon Crawl's list (`#crawlspace:has_structure/dungeon`), plus
+  mushroom fields, mangroves, cherry groves and the pale garden. No ocean, river
+  or deep lowland.
+- **Planning runs on worldgen threads.** The planner is pure and allocates its
+  own state. Its only statics are diagnostics, and those are concurrent.
+
+## Triggers
+
+All of them are ordinary blocks or floor tiles that `Triggers` watches, never
+redstone: a vanilla client sees a lever and an iron door, and the mod does the
+wiring. `Blueprinter` emits `Trigger`s beside the blocks, at blueprint
+positions. At runtime `Dungeons.at(level, pos)` finds the `Site`: generated
+dungeons through the structure manager, command builds through `CrawlState`.
+The site's cached blueprint then answers "is there a trigger here".
+
+- **Lever:** the event fires before the lever flips, so the doors follow the
+  state it is about to take. `DoorBlock.setOpen` moves both halves and plays
+  the sound.
+- **Secret wall:** right-click it, and it is destroyed, with particles and no
+  drop.
+- **Traps:** checked every 2 ticks for a player on the ground, looked up
+  through a per-player cache refreshed every 40 ticks. **Darts fire from the
+  nearest wall's face above head height, angled down.** Fired level from a
+  narrow corridor's wall, they started inside the player and missed.
+- `CrawlState` (SavedData) keeps which triggers have fired, so a sprung trap
+  stays sprung across restarts. It also keeps command-built sites.
+
 ## Testing on Vivo
 
 The rig is `~/rig/crawlspace` on Vivo: display `:6`, game 25587, RCON 25597
@@ -126,7 +189,17 @@ Drive it over RCON:
 - `execute as TestBuddy at TestBuddy run crawlspace build 6 42`
 - `execute as TestBuddy run crawlspace goto 4 hall`: a corridor style or room
   role, facing along or across it, which is how screenshots get aimed.
+- `goto <level> lever|locked|trap|secretdoor` stands you two cells from a
+  trigger, facing it. Step onto a trap with `tp TestBuddy ^ ^ ^2`. For the lever
+  or wall, aim with `tp ~ ~ ~ ~ 38` and click with
+  `xdotool mousemove --window $W 640 360 click --window $W 3`.
 - Give TestBuddy night vision: the dungeon is meant to be dark.
+- **`Level.getHeight` answers the world's minimum Y for an unloaded chunk.** A
+  build just after a teleport was refused on a coast because most of its
+  footprint read as bottomless. `ground()` loads the chunk first.
+- Framing a tower: spectator, then `tp X Y Z facing ox oy oz` from above and
+  to one side. A camera at ground level ends up inside a tree.
+- The world on the rig is `worldgen1` (`level-name` in `server.properties`).
 
 Builds are remembered in memory only, so after a restart, rebuild the same
 seed in the same place to use `goto`. The same seed means the same blueprint,
