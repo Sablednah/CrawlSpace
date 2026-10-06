@@ -17,6 +17,7 @@ import net.minecraft.world.BossEvent;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -44,21 +45,21 @@ final class Bestiary {
     private static final Map<String, BossSpec> BOSSES = new HashMap<>();
 
     static {
-        COMMON.put("Crypt", List.of(new Pick(EntityType.ZOMBIE, 4), new Pick(EntityType.SKELETON, 4), new Pick(EntityType.SPIDER, 1)));
-        COMMON.put("Sunken Halls", List.of(new Pick(EntityType.DROWNED, 4), new Pick(EntityType.ZOMBIE, 2),
-                new Pick(EntityType.SKELETON, 2), new Pick(EntityType.BOGGED, 2)));
-        COMMON.put("Old Mines", List.of(new Pick(EntityType.ZOMBIE, 3), new Pick(EntityType.SKELETON, 2),
-                new Pick(EntityType.CAVE_SPIDER, 3), new Pick(EntityType.SPIDER, 2), new Pick(EntityType.CREEPER, 1)));
-        COMMON.put("Caverns", List.of(new Pick(EntityType.SPIDER, 3), new Pick(EntityType.CAVE_SPIDER, 3),
-                new Pick(EntityType.BOGGED, 2), new Pick(EntityType.CREEPER, 1), new Pick(EntityType.WITCH, 1)));
-        COMMON.put("Deep Halls", List.of(new Pick(EntityType.VINDICATOR, 3), new Pick(EntityType.PILLAGER, 2),
-                new Pick(EntityType.STRAY, 2), new Pick(EntityType.WITHER_SKELETON, 2), new Pick(EntityType.WITCH, 1)));
+        COMMON.put("Crypt", List.of(new Pick(EntityTypes.ZOMBIE, 4), new Pick(EntityTypes.SKELETON, 4), new Pick(EntityTypes.SPIDER, 1)));
+        COMMON.put("Sunken Halls", List.of(new Pick(EntityTypes.DROWNED, 4), new Pick(EntityTypes.ZOMBIE, 2),
+                new Pick(EntityTypes.SKELETON, 2), new Pick(EntityTypes.BOGGED, 2)));
+        COMMON.put("Old Mines", List.of(new Pick(EntityTypes.ZOMBIE, 3), new Pick(EntityTypes.SKELETON, 2),
+                new Pick(EntityTypes.CAVE_SPIDER, 3), new Pick(EntityTypes.SPIDER, 2), new Pick(EntityTypes.CREEPER, 1)));
+        COMMON.put("Caverns", List.of(new Pick(EntityTypes.SPIDER, 3), new Pick(EntityTypes.CAVE_SPIDER, 3),
+                new Pick(EntityTypes.BOGGED, 2), new Pick(EntityTypes.CREEPER, 1), new Pick(EntityTypes.WITCH, 1)));
+        COMMON.put("Deep Halls", List.of(new Pick(EntityTypes.VINDICATOR, 3), new Pick(EntityTypes.PILLAGER, 2),
+                new Pick(EntityTypes.STRAY, 2), new Pick(EntityTypes.WITHER_SKELETON, 2), new Pick(EntityTypes.WITCH, 1)));
 
-        BOSSES.put("Crypt", new BossSpec(EntityType.SKELETON, "the Bone Warden", Items.BOW, BossEvent.BossBarColor.WHITE, 1.3));
-        BOSSES.put("Sunken Halls", new BossSpec(EntityType.DROWNED, "the Drowned Reeve", Items.TRIDENT, BossEvent.BossBarColor.BLUE, 1.35));
-        BOSSES.put("Old Mines", new BossSpec(EntityType.ZOMBIE, "the Foreman", Items.DIAMOND_PICKAXE, BossEvent.BossBarColor.YELLOW, 1.35));
-        BOSSES.put("Caverns", new BossSpec(EntityType.SPIDER, "the Broodmother", Items.AIR, BossEvent.BossBarColor.GREEN, 1.8));
-        BOSSES.put("Deep Halls", new BossSpec(EntityType.VINDICATOR, "the Gaoler", Items.DIAMOND_AXE, BossEvent.BossBarColor.PURPLE, 1.3));
+        BOSSES.put("Crypt", new BossSpec(EntityTypes.SKELETON, "the Bone Warden", Items.BOW, BossEvent.BossBarColor.WHITE, 1.3));
+        BOSSES.put("Sunken Halls", new BossSpec(EntityTypes.DROWNED, "the Drowned Reeve", Items.TRIDENT, BossEvent.BossBarColor.BLUE, 1.35));
+        BOSSES.put("Old Mines", new BossSpec(EntityTypes.ZOMBIE, "the Foreman", Items.DIAMOND_PICKAXE, BossEvent.BossBarColor.YELLOW, 1.35));
+        BOSSES.put("Caverns", new BossSpec(EntityTypes.SPIDER, "the Broodmother", Items.AIR, BossEvent.BossBarColor.GREEN, 1.8));
+        BOSSES.put("Deep Halls", new BossSpec(EntityTypes.VINDICATOR, "the Gaoler", Items.DIAMOND_AXE, BossEvent.BossBarColor.PURPLE, 1.3));
     }
 
     private Bestiary() {
@@ -126,8 +127,8 @@ final class Bestiary {
     /** Armour and a little extra health, more of both deeper down. Armour is worn only by mobs that show it. */
     private static void arm(Mob mob, int depth, RandomSource random) {
         EntityType<?> t = mob.getType();
-        boolean humanoid = t == EntityType.ZOMBIE || t == EntityType.SKELETON || t == EntityType.DROWNED
-                || t == EntityType.STRAY || t == EntityType.BOGGED || t == EntityType.WITHER_SKELETON || t == EntityType.HUSK;
+        boolean humanoid = t == EntityTypes.ZOMBIE || t == EntityTypes.SKELETON || t == EntityTypes.DROWNED
+                || t == EntityTypes.STRAY || t == EntityTypes.BOGGED || t == EntityTypes.WITHER_SKELETON || t == EntityTypes.HUSK;
         if (humanoid) {
             double chance = Math.min(0.9, 0.1 + 0.1 * depth);
             Item[] set = ARMOUR.get(Math.min(ARMOUR.size() - 1, depth / 2));
@@ -137,7 +138,7 @@ final class Bestiary {
                     mob.setDropChance(SLOTS[k], 0.05f);
                 }
             }
-            if ((t == EntityType.ZOMBIE || t == EntityType.HUSK) && random.nextDouble() < 0.2 + 0.08 * depth) {
+            if ((t == EntityTypes.ZOMBIE || t == EntityTypes.HUSK) && random.nextDouble() < 0.2 + 0.08 * depth) {
                 mob.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(depth >= 5 ? Items.DIAMOND_SWORD : Items.IRON_SWORD));
                 mob.setDropChance(EquipmentSlot.MAINHAND, 0.05f);
             }

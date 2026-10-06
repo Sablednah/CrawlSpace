@@ -126,26 +126,26 @@ public final class Palettes {
     private static final Map<String, Fittings> FITTINGS = new HashMap<>();
 
     static {
-        FITTINGS.put("Crypt", new Fittings(Blocks.RED_CARPET, Blocks.RED_WALL_BANNER, Blocks.CHISELED_STONE_BRICKS,
+        FITTINGS.put("Crypt", new Fittings(Blocks.CARPET.pick(net.minecraft.world.item.DyeColor.RED), Blocks.WALL_BANNER.pick(net.minecraft.world.item.DyeColor.RED), Blocks.CHISELED_STONE_BRICKS,
                 Blocks.POLISHED_ANDESITE, Blocks.CAMPFIRE, Blocks.STONE_BRICK_WALL, Blocks.SPRUCE_FENCE, Blocks.SPRUCE_LOG,
-                Blocks.SMOOTH_STONE, Blocks.STONE_BRICK_STAIRS, Blocks.WALL_TORCH, Blocks.WHITE_CANDLE,
+                Blocks.SMOOTH_STONE, Blocks.STONE_BRICK_STAIRS, Blocks.WALL_TORCH, Blocks.DYED_CANDLE.pick(net.minecraft.world.item.DyeColor.WHITE),
                 Blocks.POLISHED_ANDESITE, Blocks.CHISELED_STONE_BRICKS, Blocks.POLISHED_ANDESITE));
-        FITTINGS.put("Sunken Halls", new Fittings(Blocks.GREEN_CARPET, Blocks.CYAN_WALL_BANNER, Blocks.PRISMARINE_BRICKS,
+        FITTINGS.put("Sunken Halls", new Fittings(Blocks.CARPET.pick(net.minecraft.world.item.DyeColor.GREEN), Blocks.WALL_BANNER.pick(net.minecraft.world.item.DyeColor.CYAN), Blocks.PRISMARINE_BRICKS,
                 Blocks.POLISHED_ANDESITE, Blocks.CAMPFIRE, Blocks.MOSSY_STONE_BRICK_WALL, Blocks.SPRUCE_FENCE, Blocks.SPRUCE_LOG,
-                Blocks.POLISHED_ANDESITE, Blocks.MOSSY_STONE_BRICK_STAIRS, Blocks.WALL_TORCH, Blocks.CYAN_CANDLE,
+                Blocks.POLISHED_ANDESITE, Blocks.MOSSY_STONE_BRICK_STAIRS, Blocks.WALL_TORCH, Blocks.DYED_CANDLE.pick(net.minecraft.world.item.DyeColor.CYAN),
                 Blocks.DARK_PRISMARINE, Blocks.PRISMARINE, Blocks.DARK_PRISMARINE));
-        FITTINGS.put("Old Mines", new Fittings(Blocks.BROWN_CARPET, Blocks.BROWN_WALL_BANNER, Blocks.POLISHED_ANDESITE,
+        FITTINGS.put("Old Mines", new Fittings(Blocks.CARPET.pick(net.minecraft.world.item.DyeColor.BROWN), Blocks.WALL_BANNER.pick(net.minecraft.world.item.DyeColor.BROWN), Blocks.POLISHED_ANDESITE,
                 Blocks.COBBLESTONE, Blocks.CAMPFIRE, Blocks.OAK_FENCE, Blocks.OAK_FENCE, Blocks.OAK_LOG,
                 Blocks.COBBLESTONE, Blocks.OAK_STAIRS, Blocks.WALL_TORCH, Blocks.CANDLE,
                 Blocks.OAK_PLANKS, Blocks.OAK_PLANKS, Blocks.STRIPPED_OAK_LOG));
-        FITTINGS.put("Caverns", new Fittings(Blocks.MOSS_CARPET, Blocks.GRAY_WALL_BANNER, Blocks.POLISHED_TUFF,
+        FITTINGS.put("Caverns", new Fittings(Blocks.MOSS_CARPET, Blocks.WALL_BANNER.pick(net.minecraft.world.item.DyeColor.GRAY), Blocks.POLISHED_TUFF,
                 Blocks.POLISHED_DEEPSLATE, Blocks.SOUL_CAMPFIRE, Blocks.COBBLED_DEEPSLATE_WALL, Blocks.SPRUCE_FENCE,
                 Blocks.SPRUCE_LOG, Blocks.POLISHED_TUFF, Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.SOUL_WALL_TORCH, Blocks.CANDLE,
                 Blocks.POLISHED_TUFF, Blocks.CHISELED_TUFF, Blocks.POLISHED_TUFF));
-        FITTINGS.put("Deep Halls", new Fittings(Blocks.BLACK_CARPET, Blocks.PURPLE_WALL_BANNER,
+        FITTINGS.put("Deep Halls", new Fittings(Blocks.CARPET.pick(net.minecraft.world.item.DyeColor.BLACK), Blocks.WALL_BANNER.pick(net.minecraft.world.item.DyeColor.PURPLE),
                 Blocks.CHISELED_POLISHED_BLACKSTONE, Blocks.POLISHED_BLACKSTONE, Blocks.SOUL_CAMPFIRE,
                 Blocks.DEEPSLATE_BRICK_WALL, Blocks.DARK_OAK_FENCE, Blocks.DARK_OAK_LOG, Blocks.POLISHED_DEEPSLATE,
-                Blocks.DEEPSLATE_BRICK_STAIRS, Blocks.SOUL_WALL_TORCH, Blocks.PURPLE_CANDLE,
+                Blocks.DEEPSLATE_BRICK_STAIRS, Blocks.SOUL_WALL_TORCH, Blocks.DYED_CANDLE.pick(net.minecraft.world.item.DyeColor.PURPLE),
                 Blocks.POLISHED_BLACKSTONE_BRICKS, Blocks.GILDED_BLACKSTONE, Blocks.POLISHED_BLACKSTONE_BRICKS));
     }
 
@@ -157,15 +157,15 @@ public final class Palettes {
 
     static {
         FINISHES.put("Crypt", new Finish(Blocks.STONE_BRICK_STAIRS, Blocks.SPRUCE_PLANKS, Blocks.POLISHED_ANDESITE,
-                Blocks.SPRUCE_FENCE, Blocks.SPRUCE_STAIRS, Blocks.RED_CARPET, Blocks.SPRUCE_PRESSURE_PLATE));
+                Blocks.SPRUCE_FENCE, Blocks.SPRUCE_STAIRS, Blocks.CARPET.pick(net.minecraft.world.item.DyeColor.RED), Blocks.SPRUCE_PRESSURE_PLATE));
         FINISHES.put("Sunken Halls", new Finish(Blocks.MOSSY_STONE_BRICK_STAIRS, Blocks.PRISMARINE_BRICKS, Blocks.DARK_PRISMARINE,
-                Blocks.SPRUCE_FENCE, Blocks.SPRUCE_STAIRS, Blocks.CYAN_CARPET, Blocks.SPRUCE_PRESSURE_PLATE));
+                Blocks.SPRUCE_FENCE, Blocks.SPRUCE_STAIRS, Blocks.CARPET.pick(net.minecraft.world.item.DyeColor.CYAN), Blocks.SPRUCE_PRESSURE_PLATE));
         FINISHES.put("Old Mines", new Finish(Blocks.OAK_STAIRS, Blocks.OAK_PLANKS, Blocks.STRIPPED_OAK_LOG,
-                Blocks.OAK_FENCE, Blocks.OAK_STAIRS, Blocks.BROWN_CARPET, Blocks.OAK_PRESSURE_PLATE));
+                Blocks.OAK_FENCE, Blocks.OAK_STAIRS, Blocks.CARPET.pick(net.minecraft.world.item.DyeColor.BROWN), Blocks.OAK_PRESSURE_PLATE));
         FINISHES.put("Caverns", new Finish(Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.POLISHED_TUFF, Blocks.TUFF_BRICKS,
                 Blocks.SPRUCE_FENCE, Blocks.SPRUCE_STAIRS, Blocks.MOSS_CARPET, Blocks.SPRUCE_PRESSURE_PLATE));
         FINISHES.put("Deep Halls", new Finish(Blocks.DEEPSLATE_BRICK_STAIRS, Blocks.DARK_OAK_PLANKS, Blocks.POLISHED_BLACKSTONE_BRICKS,
-                Blocks.DARK_OAK_FENCE, Blocks.DARK_OAK_STAIRS, Blocks.PURPLE_CARPET, Blocks.DARK_OAK_PRESSURE_PLATE));
+                Blocks.DARK_OAK_FENCE, Blocks.DARK_OAK_STAIRS, Blocks.CARPET.pick(net.minecraft.world.item.DyeColor.PURPLE), Blocks.DARK_OAK_PRESSURE_PLATE));
     }
 
     /** Parts whose look depends on their neighbours: set again once the chunk around them is in. */
@@ -208,7 +208,7 @@ public final class Palettes {
                 Mix.of(Blocks.SMOOTH_SANDSTONE, 1), Blocks.CHISELED_SANDSTONE, Blocks.BIRCH_DOOR,
                 Blocks.CUT_SANDSTONE, Blocks.SANDSTONE_STAIRS, Blocks.IRON_BARS, Blocks.SMOOTH_SANDSTONE, Blocks.SMOOTH_SANDSTONE));
         STYLES.put("terracotta", new Style(
-                Mix.of(Blocks.TERRACOTTA, 40, Blocks.ORANGE_TERRACOTTA, 25, Blocks.RED_SANDSTONE, 20, Blocks.BROWN_TERRACOTTA, 15),
+                Mix.of(Blocks.TERRACOTTA, 40, Blocks.DYED_TERRACOTTA.pick(net.minecraft.world.item.DyeColor.ORANGE), 25, Blocks.RED_SANDSTONE, 20, Blocks.DYED_TERRACOTTA.pick(net.minecraft.world.item.DyeColor.BROWN), 15),
                 Mix.of(Blocks.CUT_RED_SANDSTONE, 1), Blocks.CHISELED_RED_SANDSTONE, Blocks.ACACIA_DOOR,
                 Blocks.CUT_RED_SANDSTONE, Blocks.RED_SANDSTONE_STAIRS, Blocks.IRON_BARS, Blocks.SMOOTH_RED_SANDSTONE, Blocks.TERRACOTTA));
         STYLES.put("mossy", new Style(
@@ -304,7 +304,7 @@ public final class Palettes {
             case STALAGMITE -> Blocks.POINTED_DRIPSTONE.defaultBlockState()
                     .setValue(net.minecraft.world.level.block.PointedDripstoneBlock.TIP_DIRECTION, Direction.UP)
                     .setValue(net.minecraft.world.level.block.PointedDripstoneBlock.THICKNESS,
-                            net.minecraft.world.level.block.state.properties.DripstoneThickness.TIP);
+                            net.minecraft.world.level.block.state.properties.SpeleothemThickness.TIP);
             case BANNER -> fit.banner().defaultBlockState().setValue(net.minecraft.world.level.block.WallBannerBlock.FACING, dir);
             case WALL_TORCH -> fit.torch().defaultBlockState().setValue(net.minecraft.world.level.block.WallTorchBlock.FACING, dir);
             case CHAIN -> Blocks.IRON_CHAIN.defaultBlockState();
