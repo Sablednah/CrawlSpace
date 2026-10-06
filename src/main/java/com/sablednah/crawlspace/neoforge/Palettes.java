@@ -170,7 +170,8 @@ public final class Palettes {
 
     /** Parts whose look depends on their neighbours: set again once the chunk around them is in. */
     public static boolean connects(Part part) {
-        return part == Part.RAILING || part == Part.SUPPORT || part == Part.COVE;
+        return part == Part.RAILING || part == Part.SUPPORT || part == Part.COVE
+                || part == Part.TOWER_STAIR || part == Part.TOWER_CORBEL || part == Part.TOWER_WINDOW;
     }
 
         /** The full block a stair is cut from, for the spiral's corner landings. */
@@ -191,7 +192,8 @@ public final class Palettes {
     }
 
     /** How the entrance tower looks: chosen from the biome it stands in. */
-    private record Style(Mix wall, Mix floor, Block top, Block door) {
+    private record Style(Mix wall, Mix floor, Block top, Block door,
+            Block trim, Block stair, Block window, Block pillar, Block roof) {
     }
 
     private static final Map<String, Style> STYLES = new HashMap<>();
@@ -199,34 +201,44 @@ public final class Palettes {
     static {
         STYLES.put("stone", new Style(
                 Mix.of(Blocks.STONE_BRICKS, 65, Blocks.MOSSY_STONE_BRICKS, 20, Blocks.CRACKED_STONE_BRICKS, 15),
-                Mix.of(Blocks.STONE_BRICKS, 1), Blocks.STONE_BRICKS, Blocks.SPRUCE_DOOR));
+                Mix.of(Blocks.STONE_BRICKS, 1), Blocks.STONE_BRICKS, Blocks.SPRUCE_DOOR,
+                Blocks.POLISHED_ANDESITE, Blocks.STONE_BRICK_STAIRS, Blocks.IRON_BARS, Blocks.POLISHED_DIORITE, Blocks.DEEPSLATE_TILES));
         STYLES.put("sandstone", new Style(
                 Mix.of(Blocks.SANDSTONE, 55, Blocks.CUT_SANDSTONE, 25, Blocks.SMOOTH_SANDSTONE, 20),
-                Mix.of(Blocks.SMOOTH_SANDSTONE, 1), Blocks.CHISELED_SANDSTONE, Blocks.BIRCH_DOOR));
+                Mix.of(Blocks.SMOOTH_SANDSTONE, 1), Blocks.CHISELED_SANDSTONE, Blocks.BIRCH_DOOR,
+                Blocks.CUT_SANDSTONE, Blocks.SANDSTONE_STAIRS, Blocks.IRON_BARS, Blocks.SMOOTH_SANDSTONE, Blocks.SMOOTH_SANDSTONE));
         STYLES.put("terracotta", new Style(
                 Mix.of(Blocks.TERRACOTTA, 40, Blocks.ORANGE_TERRACOTTA, 25, Blocks.RED_SANDSTONE, 20, Blocks.BROWN_TERRACOTTA, 15),
-                Mix.of(Blocks.CUT_RED_SANDSTONE, 1), Blocks.CHISELED_RED_SANDSTONE, Blocks.ACACIA_DOOR));
+                Mix.of(Blocks.CUT_RED_SANDSTONE, 1), Blocks.CHISELED_RED_SANDSTONE, Blocks.ACACIA_DOOR,
+                Blocks.CUT_RED_SANDSTONE, Blocks.RED_SANDSTONE_STAIRS, Blocks.IRON_BARS, Blocks.SMOOTH_RED_SANDSTONE, Blocks.TERRACOTTA));
         STYLES.put("mossy", new Style(
                 Mix.of(Blocks.MOSSY_COBBLESTONE, 45, Blocks.MOSSY_STONE_BRICKS, 35, Blocks.COBBLESTONE, 20),
-                Mix.of(Blocks.MOSSY_STONE_BRICKS, 1), Blocks.MOSS_BLOCK, Blocks.JUNGLE_DOOR));
+                Mix.of(Blocks.MOSSY_STONE_BRICKS, 1), Blocks.MOSS_BLOCK, Blocks.JUNGLE_DOOR,
+                Blocks.CHISELED_STONE_BRICKS, Blocks.MOSSY_COBBLESTONE_STAIRS, Blocks.IRON_BARS, Blocks.MOSSY_STONE_BRICKS, Blocks.MOSS_BLOCK));
         STYLES.put("mangrove", new Style(
                 Mix.of(Blocks.MUD_BRICKS, 70, Blocks.PACKED_MUD, 30),
-                Mix.of(Blocks.MANGROVE_PLANKS, 1), Blocks.MANGROVE_PLANKS, Blocks.MANGROVE_DOOR));
+                Mix.of(Blocks.MANGROVE_PLANKS, 1), Blocks.MANGROVE_PLANKS, Blocks.MANGROVE_DOOR,
+                Blocks.PACKED_MUD, Blocks.MUD_BRICK_STAIRS, Blocks.IRON_BARS, Blocks.MANGROVE_LOG, Blocks.MANGROVE_PLANKS));
         STYLES.put("snowy", new Style(
                 Mix.of(Blocks.STONE_BRICKS, 55, Blocks.POLISHED_DIORITE, 25, Blocks.CRACKED_STONE_BRICKS, 20),
-                Mix.of(Blocks.SPRUCE_PLANKS, 1), Blocks.SNOW_BLOCK, Blocks.SPRUCE_DOOR));
+                Mix.of(Blocks.SPRUCE_PLANKS, 1), Blocks.SNOW_BLOCK, Blocks.SPRUCE_DOOR,
+                Blocks.POLISHED_DIORITE, Blocks.STONE_BRICK_STAIRS, Blocks.IRON_BARS, Blocks.STRIPPED_SPRUCE_LOG, Blocks.SPRUCE_PLANKS));
         STYLES.put("woodland", new Style(
                 Mix.of(Blocks.COBBLESTONE, 50, Blocks.MOSSY_COBBLESTONE, 25, Blocks.STRIPPED_SPRUCE_LOG, 25),
-                Mix.of(Blocks.SPRUCE_PLANKS, 1), Blocks.SPRUCE_PLANKS, Blocks.DARK_OAK_DOOR));
+                Mix.of(Blocks.SPRUCE_PLANKS, 1), Blocks.SPRUCE_PLANKS, Blocks.DARK_OAK_DOOR,
+                Blocks.SPRUCE_PLANKS, Blocks.COBBLESTONE_STAIRS, Blocks.IRON_BARS, Blocks.SPRUCE_LOG, Blocks.SPRUCE_PLANKS));
         STYLES.put("mushroom", new Style(
                 Mix.of(Blocks.MUSHROOM_STEM, 70, Blocks.BROWN_MUSHROOM_BLOCK, 30),
-                Mix.of(Blocks.MYCELIUM, 1), Blocks.RED_MUSHROOM_BLOCK, Blocks.OAK_DOOR));
+                Mix.of(Blocks.MYCELIUM, 1), Blocks.RED_MUSHROOM_BLOCK, Blocks.OAK_DOOR,
+                Blocks.MUSHROOM_STEM, Blocks.OAK_STAIRS, Blocks.IRON_BARS, Blocks.MUSHROOM_STEM, Blocks.RED_MUSHROOM_BLOCK));
         STYLES.put("cherry", new Style(
                 Mix.of(Blocks.CALCITE, 50, Blocks.STONE_BRICKS, 30, Blocks.CHERRY_PLANKS, 20),
-                Mix.of(Blocks.CHERRY_PLANKS, 1), Blocks.CHERRY_PLANKS, Blocks.CHERRY_DOOR));
+                Mix.of(Blocks.CHERRY_PLANKS, 1), Blocks.CHERRY_PLANKS, Blocks.CHERRY_DOOR,
+                Blocks.CALCITE, Blocks.CHERRY_STAIRS, Blocks.IRON_BARS, Blocks.CALCITE, Blocks.CHERRY_PLANKS));
         STYLES.put("pale", new Style(
                 Mix.of(Blocks.STONE_BRICKS, 50, Blocks.PALE_OAK_PLANKS, 25, Blocks.CRACKED_STONE_BRICKS, 25),
-                Mix.of(Blocks.PALE_OAK_PLANKS, 1), Blocks.PALE_MOSS_BLOCK, Blocks.PALE_OAK_DOOR));
+                Mix.of(Blocks.PALE_OAK_PLANKS, 1), Blocks.PALE_MOSS_BLOCK, Blocks.PALE_OAK_DOOR,
+                Blocks.PALE_OAK_PLANKS, Blocks.STONE_BRICK_STAIRS, Blocks.IRON_BARS, Blocks.PALE_OAK_LOG, Blocks.PALE_OAK_PLANKS));
     }
 
     static java.util.Set<String> styles() {
@@ -256,6 +268,12 @@ public final class Palettes {
             case TOWER_FLOOR -> tower.floor().pick(hash).defaultBlockState();
             case TOWER_TOP -> tower.top().defaultBlockState();
             case TOWER_DOOR_LOWER, TOWER_DOOR_UPPER -> door(tower.door(), dir, part == Part.TOWER_DOOR_UPPER);
+            case TOWER_TRIM -> tower.trim().defaultBlockState();
+            case TOWER_STAIR -> stairs(tower.stair(), dir, false);
+            case TOWER_CORBEL -> stairs(tower.stair(), dir, true);
+            case TOWER_WINDOW -> tower.window().defaultBlockState();
+            case TOWER_PILLAR -> tower.pillar().defaultBlockState();
+            case TOWER_ROOF -> tower.roof().defaultBlockState();
             case LOCKED_LOWER, LOCKED_UPPER -> door(Blocks.IRON_DOOR, dir, part == Part.LOCKED_UPPER);
             case DOOR_LOWER, DOOR_UPPER -> door(palette.get(part).pick(hash), dir, part == Part.DOOR_UPPER);
             case STEP -> palette.get(Part.STEP).pick(hash).defaultBlockState().setValue(StairBlock.FACING, dir);
@@ -325,6 +343,17 @@ public final class Palettes {
             case ROOTS -> Blocks.HANGING_ROOTS.defaultBlockState();
             default -> palette.get(part).pick(hash).defaultBlockState();
         };
+    }
+
+    /** A stair; a non-stair block (a style with none) is placed whole. */
+    private static BlockState stairs(Block block, Direction facing, boolean upsideDown) {
+        BlockState st = block.defaultBlockState();
+        if (!st.hasProperty(StairBlock.FACING)) {
+            return st;
+        }
+        return st.setValue(StairBlock.FACING, facing).setValue(StairBlock.HALF,
+                upsideDown ? net.minecraft.world.level.block.state.properties.Half.TOP
+                        : net.minecraft.world.level.block.state.properties.Half.BOTTOM);
     }
 
     private static BlockState door(Block block, Direction facing, boolean upper) {

@@ -35,6 +35,17 @@ public enum Part {
     TOWER_TOP,
     TOWER_DOOR_LOWER,
     TOWER_DOOR_UPPER,
+    /** Quoins, string courses, door frames and lintels. */
+    TOWER_TRIM,
+    /** A stair in the style's stone: steps, stepped faces, a roof's edge; facing is the way it climbs. */
+    TOWER_STAIR,
+    /** An upside-down stair carrying a parapet; facing is toward the wall. */
+    TOWER_CORBEL,
+    TOWER_WINDOW,
+    /** A temple's column. */
+    TOWER_PILLAR,
+    /** A roof's covering. */
+    TOWER_ROOF,
     /** A lever on the floor: the mod watches it (see {@link Trigger}). */
     LEVER,
     /** A spiral stair's flat corner, level with the top of the step before it. */

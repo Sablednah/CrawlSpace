@@ -25,9 +25,11 @@ public final class Dungeons {
         if (generated.isPresent()) {
             return generated;
         }
-        for (Site s : CrawlState.of(level).built()) {
-            if (s.contains(pos)) {
-                return Optional.of(s);
+        // Newest first: a dungeon built over an older one's footprint is the one you mean.
+        java.util.List<Site> built = CrawlState.of(level).built();
+        for (int k = built.size() - 1; k >= 0; k--) {
+            if (built.get(k).contains(pos)) {
+                return Optional.of(built.get(k));
             }
         }
         return Optional.empty();

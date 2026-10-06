@@ -30,6 +30,8 @@ public final class Blueprinter {
     public static final int COVER = 3;
     /** Inside the tower, floor to roof. */
     public static final int TOWER_HEIGHT = 7;
+    /** The highest a blueprint goes above the ground: the tallest tower design and its finial. */
+    public static final int TOP = Towers.MAX_HEIGHT + 2;
     /**
      * Cells round a spiral stair, clockwise from north, and the way a climber
      * walks through each (0 N, 1 E, 2 S, 3 W). Only the side cells (even
@@ -74,8 +76,13 @@ public final class Blueprinter {
     }
 
     public static Blueprint blueprint(DungeonPlan plan) {
+        return blueprint(plan, "stone");
+    }
+
+    /** @param style the entrance's biome style, which picks the tower's design */
+    public static Blueprint blueprint(DungeonPlan plan, String style) {
         int levels = plan.levels().size();
-        Blueprint bp = new Blueprint(floorY(plan, levels - 1) - 4, TOWER_HEIGHT + 3);
+        Blueprint bp = new Blueprint(floorY(plan, levels - 1) - 4, TOP);
         for (int i = 0; i < levels; i++) {
             level(bp, plan, i);
         }
@@ -88,7 +95,8 @@ public final class Blueprinter {
                 shaft(bp, plan, i, p);
             }
         }
-        tower(bp, plan);
+        Towers.build(bp, Towers.choose(style, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), 0x70E3L)),
+                com.sablednah.crawlspace.plan.Dice.of(plan.seed(), 0x70E4L));
         return bp;
     }
 
@@ -572,42 +580,6 @@ public final class Blueprinter {
                 boolean rim = Math.max(Math.abs(dx), Math.abs(dz)) == 2;
                 bp.fill(p[0] + dx, p[1] + dz, bottom, rim ? top - 1 : top, rim ? Part.WALL : Part.AIR, i);
             }
-        }
-    }
-
-    /** A squat tower over level 0's stair: 7 by 7, a door to the north, crenellated. */
-    private static void tower(Blueprint bp, DungeonPlan plan) {
-        int[] s = plan.levels().get(0).stairsUp.get(0);
-        for (int dx = -3; dx <= 3; dx++) {
-            for (int dz = -3; dz <= 3; dz++) {
-                int x = s[0] + dx;
-                int z = s[1] + dz;
-                int ring = Math.max(Math.abs(dx), Math.abs(dz));
-                if (ring == 3) {
-                    bp.fill(x, z, -4, TOWER_HEIGHT, Part.TOWER, 0);
-                    if ((dx + dz) % 2 == 0) {
-                        bp.set(x, TOWER_HEIGHT + 1, z, Part.TOWER_TOP, 0, 0);
-                    }
-                } else {
-                    if (ring == 2) {
-                        bp.set(x, -1, z, Part.TOWER_FLOOR, 0, 0);
-                    }
-                    if (ring > 0) { // the centre is the stair's newel, which runs up to the roof
-                        for (int y = 0; y < TOWER_HEIGHT; y++) {
-                            int code = bp.get(x, y, z);
-                            if (code == 0 || Blueprint.part(code) != Part.RAILING) { // keep the stair's railing
-                                bp.set(x, y, z, Part.AIR, 0, 0);
-                            }
-                        }
-                    }
-                    bp.set(x, TOWER_HEIGHT, z, Part.TOWER, 0, 0);
-                }
-            }
-        }
-        bp.set(s[0], 0, s[1] - 3, Part.TOWER_DOOR_LOWER, 0, 0);
-        bp.set(s[0], 1, s[1] - 3, Part.TOWER_DOOR_UPPER, 0, 0);
-        for (int[] d : new int[][] {{-2, -2}, {2, -2}, {-2, 2}, {2, 2}}) {
-            bp.set(s[0] + d[0], TOWER_HEIGHT - 1, s[1] + d[1], Part.LIGHT, 0, 0);
         }
     }
 

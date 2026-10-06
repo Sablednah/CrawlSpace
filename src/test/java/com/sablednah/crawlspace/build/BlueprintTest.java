@@ -386,4 +386,22 @@ class BlueprintTest {
             }
         }
     }
+
+    /** Every tower design, in every style: still sealed below ground, and the stair still climbs into it. */
+    @Test
+    void everyTowerDesignIsSoundAndClimbable() {
+        java.util.Set<Towers.Design> seen = java.util.EnumSet.noneOf(Towers.Design.class);
+        for (String style : new String[] {"stone", "sandstone", "terracotta", "mossy", "snowy", "mushroom", "cherry"}) {
+            for (long seed = 0; seed < 8; seed++) {
+                DungeonPlan plan = Planner.plan(seed, 2);
+                seen.add(Towers.choose(style, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), 0x70E3L)));
+                Blueprint bp = Blueprinter.blueprint(plan, style);
+                List<String> climb = climbProblems(plan, bp);
+                assertTrue(climb.isEmpty(), style + " seed " + seed + ": " + climb);
+                List<String> leaks = leaks(bp.compact());
+                assertTrue(leaks.isEmpty(), style + " seed " + seed + ": " + leaks);
+            }
+        }
+        assertEquals(java.util.EnumSet.allOf(Towers.Design.class), seen, "every design came up");
+    }
 }

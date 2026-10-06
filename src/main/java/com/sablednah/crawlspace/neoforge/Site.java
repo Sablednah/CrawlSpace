@@ -32,7 +32,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public record Site(long seed, int levels, int top, String style, BlockPos origin, int planner) {
 
     /** Bump whenever a planner or blueprint change would alter an existing seed's dungeon. */
-    public static final int PLANNER_VERSION = 3; // 2: stairs with landings; 3: dressing, encounters, loot
+    public static final int PLANNER_VERSION = 4; // 2: stairs with landings; 3: dressing, encounters, loot
 
     /**
      * A plan and its blueprint, built once and shared by every chunk that asks.
@@ -61,7 +61,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
     }
 
     /** Half the tower's width: columns this close to the origin belong to the tower's piece. */
-    public static final int TOWER_REACH = 3;
+    public static final int TOWER_REACH = com.sablednah.crawlspace.build.Towers.REACH;
 
     /** Whether a blueprint column belongs to the tower (and the stair under it) rather than the buried levels. */
     public static boolean towerColumn(int x, int z) {
@@ -92,7 +92,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
             if (lowest >= worldMinY + 6) {
                 Site site = new Site(seed, n, top, style, origin, PLANNER_VERSION);
                 synchronized (CACHE) {
-                    CACHE.putIfAbsent(site.key(), new Built(plan.withTop(top), Blueprinter.blueprint(plan.withTop(top)).compact()));
+                    CACHE.putIfAbsent(site.key(), new Built(plan.withTop(top), Blueprinter.blueprint(plan.withTop(top), style).compact()));
                 }
                 return site;
             }
@@ -101,7 +101,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
     }
 
     private String key() {
-        return seed + "/" + levels + "/" + top;
+        return seed + "/" + levels + "/" + top + "/" + style;
     }
 
     public Built built() {
@@ -109,7 +109,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
             Built b = CACHE.get(key());
             if (b == null) {
                 DungeonPlan plan = Planner.plan(seed, levels).withTop(top);
-                b = new Built(plan, Blueprinter.blueprint(plan).compact());
+                b = new Built(plan, Blueprinter.blueprint(plan, style).compact());
                 CACHE.put(key(), b);
             }
             return b;
@@ -155,7 +155,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
     public boolean contains(BlockPos pos) {
         int r = com.sablednah.crawlspace.plan.LevelPlan.RADIUS;
         return Math.abs(pos.getX() - origin.getX()) <= r && Math.abs(pos.getZ() - origin.getZ()) <= r
-                && pos.getY() >= bottomY() && pos.getY() <= origin.getY() + Blueprinter.TOWER_HEIGHT + 3;
+                && pos.getY() >= bottomY() && pos.getY() <= origin.getY() + Blueprinter.TOP;
     }
 
     /** The lowest block the dungeon sets, in world y. */

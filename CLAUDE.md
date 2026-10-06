@@ -207,6 +207,33 @@ creative tester saw nothing.
   tier richer. `Site.afterPlace` sets a chest's table, and a spawner's mob,
   as the block is placed, for both worldgen and command builds.
 
+## Entrances (`Towers`)
+
+There are four designs, each wrapped round the stair's hole, with a floor at
+y = -1 and the door or opening to the north:
+- **KEEP:** buttressed quoined corners, string courses, barred windows, and
+  corbels under a crenellated parapet. It has a storey above the ground
+  floor.
+- **ROUND:** banded, with a stepped cone and finial, or battlements.
+- **PYRAMID:** stair-faced steps, a capstone, a tunnel and a chamber.
+- **TEMPLE:** a stepped platform, a colonnade, an entablature and a
+  pediment.
+
+The biome style weights the choice: deserts lean to pyramids and temples,
+jungles to mossy pyramids, snow to keeps and round towers. The style's
+`Style` record supplies the materials (trim, stair, window, pillar, roof).
+
+Constraints every design keeps:
+- Nothing below ground touches the 5×5 round the hole, which is the stair
+  well's.
+- The ground floor stays clear to y = 6, the newel's top.
+- Each design fits within `Towers.REACH` (6), which is also CityWorld's
+  tower piece.
+- The blueprint reaches `Blueprinter.TOP` above ground.
+
+`BlueprintTest.everyTowerDesignIsSoundAndClimbable` builds every design in
+every style.
+
 ## CityWorld
 
 CityWorld (`../CityWorld-ReForged`, its own session's repo: **read it, never

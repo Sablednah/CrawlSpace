@@ -56,7 +56,7 @@ public final class DungeonPiece extends StructurePiece {
 
     private static BoundingBox box(Site site, Part part) {
         BlockPos o = site.origin();
-        int top = o.getY() + Blueprinter.TOWER_HEIGHT + 3;
+        int top = o.getY() + Blueprinter.TOP;
         if (part == Part.TOWER) {
             int r = Site.TOWER_REACH;
             return new BoundingBox(o.getX() - r, site.bottomY(), o.getZ() - r, o.getX() + r, top, o.getZ() + r);
