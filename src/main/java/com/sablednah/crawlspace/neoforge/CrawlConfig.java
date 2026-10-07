@@ -16,6 +16,7 @@ public final class CrawlConfig {
     private static final ModConfigSpec.IntValue MAX_LEVELS;
     private static final ModConfigSpec.IntValue MIN_LEVELS;
     private static final ModConfigSpec.EnumValue<Hints> HINTS;
+    private static final ModConfigSpec.DoubleValue DISARM_CHANCE;
 
     /** Whether secret walls look different and traps and treasure give off particles. */
     public enum Hints {
@@ -49,6 +50,10 @@ public final class CrawlConfig {
                 "and faint particles near you, red for an unsprung trap, green for a secret door or treasure.",
                 "AUTO is on unless a mod (LegendQuest, say) has registered its own perception checks.")
                 .defineEnum("hints", Hints.AUTO);
+        DISARM_CHANCE = b.comment(
+                "Without a perception mod: the chance that breaking a trap's plate or wire, or sneak-using it,",
+                "disarms it rather than setting it off. A perception mod (LegendQuest) rolls its own instead.")
+                .defineInRange("disarmChance", 0.75, 0.0, 1.0);
         b.pop();
         SPEC = b.build();
     }
@@ -75,6 +80,19 @@ public final class CrawlConfig {
 
     public static int minLevels() {
         return Math.min(get(MIN_LEVELS, 2), maxLevels());
+    }
+
+    public static double disarmChance() {
+        return get(DISARM_CHANCE, 0.75);
+    }
+
+    /**
+     * Whether real traps are built with their plate or wire showing. Only when
+     * no perception mod is registered: with one, a trap's plate appears when a
+     * player notices it.
+     */
+    public static boolean trapsVisible() {
+        return com.sablednah.crawlspace.api.CrawlSpaceApi.perception().isEmpty();
     }
 
     public static boolean hints() {

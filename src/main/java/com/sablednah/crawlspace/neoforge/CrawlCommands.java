@@ -58,6 +58,7 @@ public final class CrawlCommands {
                 .then(Commands.literal("info").executes(CrawlCommands::info))
                 .then(Commands.literal("undo").executes(CrawlCommands::undo))
                 .then(Commands.literal("cancel").executes(CrawlCommands::cancel))
+                .then(Commands.literal("export").executes(CrawlCommands::export))
                 .then(Commands.literal("perception")
                         .then(Commands.argument("mode", StringArgumentType.word())
                                 .suggests((c, b) -> SharedSuggestionProvider.suggest(java.util.List.of("always", "never", "half", "off"), b))
@@ -71,7 +72,8 @@ public final class CrawlCommands {
                 + "    what: a corridor style (straight, angled, winding, curved) or a room (lair, hall, exit...)\n"
                 + "/crawlspace info  - your last build's seed and where it is\n"
                 + "/crawlspace undo  - put back what your last build replaced\n"
-                + "/crawlspace cancel  - stop builds in progress");
+                + "/crawlspace cancel  - stop builds in progress\n"
+                + "/crawlspace export  - write the themes in force as a datapack to edit");
         return 1;
     }
 
@@ -200,7 +202,7 @@ public final class CrawlCommands {
         }
         LevelPlan level = last.plan().levels().get(index - 1);
         double[] spot = switch (what) {
-            case "lever", "trap", "secretdoor", "locked" -> Tour.findTrigger(level, last.built().blueprint(), what);
+            case "lever", "trap", "decoy", "secretdoor", "locked" -> Tour.findTrigger(level, last.built().blueprint(), what);
             default -> Tour.find(level, what, level.index * 31L + System.nanoTime() % 7);
         };
         if (spot == null) {
@@ -290,6 +292,21 @@ public final class CrawlCommands {
      * always, never or half the time; off removes it. An RPG mod that
      * registers its own replaces this.
      */
+    /** Writes the themes and entrances in force as a datapack to edit, in the world folder. */
+    private static int export(CommandContext<CommandSourceStack> ctx) {
+        java.nio.file.Path root = ctx.getSource().getServer()
+                .getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).resolve("crawlspace-export").normalize();
+        try {
+            int n = ThemeData.export(root);
+            say(ctx.getSource(), "Wrote " + n + " files to " + root + ". Edit them, keep only what you change,"
+                    + " move the folder into this world's datapacks folder, then /reload: new chunks use it.");
+            return n;
+        } catch (java.io.IOException e) {
+            fail(ctx.getSource(), "Could not write " + root + ": " + e.getMessage());
+            return 0;
+        }
+    }
+
     private static int perception(CommandContext<CommandSourceStack> ctx, String mode) {
         java.util.Random random = new java.util.Random();
         switch (mode) {
