@@ -371,6 +371,13 @@ Drive it over RCON:
   2026-10-07 it stood the player facing a polished andesite pilaster, with
   the trap behind it and every walkable neighbour of the trap filled. Check
   the cells with `execute if block` before blaming input.
+- **Disarming sneaks, and sneaking lowers the eye from 1.62 to 1.27.** From
+  two cells out, the trap tile is at pitch 32, not the 38 that aims a
+  standing click at a lever, and 38 lands one cell short. In general, aim at
+  atan(1.27/n). Hold the key with `xdotool keydown --window $W shift`. A
+  notice message does not say which trap was noticed, so look for its red
+  particles: on 2026-10-07 the trap `goto` faced failed its roll, and the
+  noticed one was two cells further on.
 - **The rig is peaceful in `server.properties`.** A restart re-applies it and
   vanilla discards every hostile mob as it loads, so a "does X survive a
   restart" test needs `difficulty=normal` in the file, not just the command.
