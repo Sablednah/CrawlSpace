@@ -23,7 +23,9 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         /** A room's monsters, woken the first time a player comes near. Targets are where they stand. */
         ENCOUNTER,
         /** A lair's boss and its followers; the first target is the boss's place. */
-        BOSS;
+        BOSS,
+        /** Not a trigger: a plate or wire that does nothing, kept here so dressing leaves it alone. */
+        DECOY;
 
         public boolean isTrap() {
             return this == DARTS || this == GAS;

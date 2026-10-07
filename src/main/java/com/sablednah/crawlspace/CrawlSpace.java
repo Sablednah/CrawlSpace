@@ -37,6 +37,8 @@ public final class CrawlSpace {
         CrawlWorldgen.register(modBus);
         container.registerConfig(ModConfig.Type.SERVER, CrawlConfig.SPEC);
         NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent e) -> CrawlCommands.register(e.getDispatcher()));
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.AddServerReloadListenersEvent e) ->
+                e.addListener(com.sablednah.crawlspace.neoforge.ThemeData.ID, com.sablednah.crawlspace.neoforge.ThemeData.INSTANCE));
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post e) -> {
             Builds.tick();
             Bosses.tick(e.getServer().overworld().getGameTime());
@@ -49,6 +51,7 @@ public final class CrawlSpace {
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onHurt);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onTarget);
         NeoForge.EVENT_BUS.addListener(Triggers::onUse);
+        NeoForge.EVENT_BUS.addListener(Triggers::onBreak);
         NeoForge.EVENT_BUS.addListener(Triggers::onTick);
         NeoForge.EVENT_BUS.addListener(Triggers::onLogout);
         NeoForge.EVENT_BUS.addListener(Triggers::onSpawnCheck);

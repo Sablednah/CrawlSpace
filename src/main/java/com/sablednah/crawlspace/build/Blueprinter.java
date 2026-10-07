@@ -395,14 +395,79 @@ public final class Blueprinter {
                 }
             }
         }
+        // Its own stream, so adding plates moved nothing else in a dungeon.
+        com.sablednah.crawlspace.plan.Dice look = com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x7A9F1L);
         for (int[] t : level.traps) {
             Cell c = level.cell(t[0], t[1]);
             if (c != Cell.FLOOR && c != Cell.CORRIDOR) {
                 continue; // a pit or stair arrived on it afterwards
             }
             Trigger.Kind kind = t[2] == com.sablednah.crawlspace.plan.TrapKind.GAS.ordinal() ? Trigger.Kind.GAS : Trigger.Kind.DARTS;
-            bp.addTrigger(new Trigger(kind, t[0], floorAt(plan, i, t[0], t[1]), t[1], i, new int[0][]));
+            int f = floorAt(plan, i, t[0], t[1]);
+            bp.addTrigger(new Trigger(kind, t[0], f, t[1], i, new int[0][]));
+            trapLook(bp, level, i, t[0], f, t[1], false, look);
         }
+        decoys(bp, plan, i, look);
+    }
+
+    /**
+     * A plate in a room, mostly a wire in a corridor. A trap on a step keeps
+     * its stair and stays hidden: there is nowhere to put a plate.
+     */
+    private static void trapLook(Blueprint bp, LevelPlan level, int i, int x, int f, int z, boolean decoy,
+            com.sablednah.crawlspace.plan.Dice look) {
+        int code = bp.get(x, f, z);
+        if (code != 0 && Blueprint.part(code) != Part.AIR) {
+            return;
+        }
+        boolean wire = look.chance(level.cell(x, z) == Cell.CORRIDOR ? 0.65 : 0.15);
+        Part part = decoy ? (wire ? Part.DECOY_WIRE : Part.DECOY_PLATE) : (wire ? Part.TRAP_WIRE : Part.TRAP_PLATE);
+        bp.set(x, f, z, part, 0, i);
+    }
+
+    /**
+     * Plates and wires that do nothing, about one per real trap: so a plate in
+     * the floor is a question rather than an answer. Kept off doorways and
+     * stairs, two cells from any trap, and off steps.
+     */
+    private static void decoys(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice look) {
+        LevelPlan level = plan.levels().get(i);
+        int want = Math.max(1, level.traps.size());
+        int lim = LevelPlan.RADIUS - 2;
+        for (int tries = 0; tries < 600 && want > 0; tries++) {
+            int x = look.nextInt(2 * lim + 1) - lim;
+            int z = look.nextInt(2 * lim + 1) - lim;
+            Cell c = level.cell(x, z);
+            if (c != Cell.FLOOR && c != Cell.CORRIDOR || !clearAround(bp, level, i, x, z)) {
+                continue;
+            }
+            int f = floorAt(plan, i, x, z);
+            int code = bp.get(x, f, z);
+            if (code != 0 && Blueprint.part(code) != Part.AIR) {
+                continue;
+            }
+            bp.addTrigger(new Trigger(Trigger.Kind.DECOY, x, f, z, i, new int[0][]));
+            trapLook(bp, level, i, x, f, z, true, look);
+            want--;
+        }
+    }
+
+    /** No door, stair, pit or pool within one cell, and no trigger of this level within two. */
+    private static boolean clearAround(Blueprint bp, LevelPlan level, int i, int x, int z) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                Cell n = level.cell(x + dx, z + dz);
+                if (n.isDoor() || n == Cell.STAIR_UP || n == Cell.STAIR_DOWN || n == Cell.PIT || n == Cell.POOL) {
+                    return false;
+                }
+            }
+        }
+        for (Trigger t : bp.triggers()) {
+            if (t.level() == i && Math.abs(t.x() - x) <= 2 && Math.abs(t.z() - z) <= 2) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** The floor cell nearest a room's centre, searching outward. */
