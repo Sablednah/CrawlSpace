@@ -22,8 +22,9 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
  * odd mossy or cracked one. The choice per position comes from a hash of it,
  * so a rebuild of the same seed in the same place is identical.
  *
- * <p>Hard-coded while the look is being judged. These are meant to become
- * datapack JSON so a pack can add a theme.</p>
+ * <p>The built-in palettes below are the defaults. A datapack can replace any
+ * role of any theme or entrance style, or add entrance styles: see
+ * {@link ThemeData}.</p>
  */
 public final class Palettes {
 
@@ -39,6 +40,20 @@ public final class Palettes {
                 total += w[i / 2];
             }
             return new Mix(b, w, total);
+        }
+
+        com.google.gson.JsonElement toJson() {
+            if (blocks.length == 1) {
+                return new com.google.gson.JsonPrimitive(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(blocks[0]).toString());
+            }
+            com.google.gson.JsonArray a = new com.google.gson.JsonArray();
+            for (int i = 0; i < blocks.length; i++) {
+                com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+                o.addProperty("block", net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(blocks[i]).toString());
+                o.addProperty("weight", weights[i]);
+                a.add(o);
+            }
+            return a;
         }
 
         Block pick(long hash) {
@@ -248,6 +263,139 @@ public final class Palettes {
     private Palettes() {
     }
 
+    // ---- what a datapack can change: every role by name ----
+
+    /** A theme's blocks by role ("wall", "carpet", ...): the built-in palette, with any datapack's on top. */
+    private static volatile Map<String, Map<String, Mix>> skins = Map.of();
+    /** The same for entrance styles ("stone", "sandstone", ...). */
+    private static volatile Map<String, Map<String, Mix>> towers = Map.of();
+    private static final Map<String, Map<String, Mix>> DEFAULT_SKINS = new HashMap<>();
+    private static final Map<String, Map<String, Mix>> DEFAULT_TOWERS = new HashMap<>();
+
+    /** What a theme's trap plates are made of. */
+    private static final Map<String, Block> PLATES = Map.of(
+            "Crypt", Blocks.STONE_PRESSURE_PLATE,
+            "Sunken Halls", Blocks.STONE_PRESSURE_PLATE,
+            "Old Mines", Blocks.OAK_PRESSURE_PLATE,
+            "Caverns", Blocks.POLISHED_BLACKSTONE_PRESSURE_PLATE,
+            "Deep Halls", Blocks.POLISHED_BLACKSTONE_PRESSURE_PLATE);
+
+    static {
+        for (String theme : THEMES.keySet()) {
+            Map<String, Mix> m = new java.util.TreeMap<>();
+            THEMES.get(theme).forEach((part, mix) -> m.put(part == Part.DOOR_LOWER ? "door" : part.name().toLowerCase(java.util.Locale.ROOT), mix));
+            m.remove("door_upper");
+            fields(FITTINGS.get(theme), m);
+            fields(FINISHES.get(theme), m);
+            m.put("table_top", m.remove("plate"));
+            m.put("trap_plate", Mix.of(PLATES.getOrDefault(theme, Blocks.STONE_PRESSURE_PLATE), 1));
+            m.put("trap_wire", Mix.of(Blocks.TRIPWIRE, 1));
+            DEFAULT_SKINS.put(theme, m);
+        }
+        STYLES.forEach((style, st) -> {
+            Map<String, Mix> m = new java.util.TreeMap<>();
+            fields(st, m);
+            DEFAULT_TOWERS.put(style, m);
+        });
+        skins = Map.copyOf(DEFAULT_SKINS);
+        towers = Map.copyOf(DEFAULT_TOWERS);
+    }
+
+    /** A record's fields by snake_case name, each a Mix or a single block. Saves listing them twice. */
+    private static void fields(Record r, Map<String, Mix> into) {
+        for (java.lang.reflect.RecordComponent c : r.getClass().getRecordComponents()) {
+            try {
+                java.lang.reflect.Method m = c.getAccessor();
+                m.setAccessible(true);
+                Object v = m.invoke(r);
+                String key = c.getName().replaceAll("([A-Z])", "_$1").toLowerCase(java.util.Locale.ROOT);
+                into.put(key, v instanceof Mix mix ? mix : Mix.of(v, 1));
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+    }
+
+    static java.util.Set<String> themeNames() {
+        return DEFAULT_SKINS.keySet();
+    }
+
+    /**
+     * Datapack themes and entrances, as ThemeData read them: each file's
+     * "blocks" are laid over the built-in roles key by key. An unknown role or
+     * block is skipped with a warning naming it, so a typo costs one role, not
+     * the pack. A new entrance style starts from "stone".
+     */
+    static void apply(Map<String, com.google.gson.JsonObject> themeData, Map<String, com.google.gson.JsonObject> entranceData) {
+        skins = overlay(DEFAULT_SKINS, themeData, "Crypt", "theme");
+        towers = overlay(DEFAULT_TOWERS, entranceData, "stone", "entrance");
+    }
+
+    private static Map<String, Map<String, Mix>> overlay(Map<String, Map<String, Mix>> defaults,
+            Map<String, com.google.gson.JsonObject> data, String base, String what) {
+        Map<String, Map<String, Mix>> out = new HashMap<>();
+        defaults.forEach((k, v) -> out.put(k, new java.util.TreeMap<>(v)));
+        data.forEach((name, json) -> {
+            Map<String, Mix> m = out.computeIfAbsent(name, k -> new java.util.TreeMap<>(defaults.get(base)));
+            if (!json.has("blocks")) {
+                return;
+            }
+            for (Map.Entry<String, com.google.gson.JsonElement> e : json.getAsJsonObject("blocks").entrySet()) {
+                if (!m.containsKey(e.getKey())) {
+                    ThemeData.LOG.warn("CrawlSpace {} '{}': no role called '{}'. Roles: {}", what, name, e.getKey(), m.keySet());
+                    continue;
+                }
+                Mix mix = parse(e.getValue(), what + " '" + name + "' role '" + e.getKey() + "'");
+                if (mix != null) {
+                    m.put(e.getKey(), mix);
+                }
+            }
+        });
+        return Map.copyOf(out);
+    }
+
+    /** "minecraft:stone", or a list of those or of {"block": ..., "weight": n}. */
+    private static Mix parse(com.google.gson.JsonElement el, String where) {
+        java.util.List<Object> pairs = new java.util.ArrayList<>();
+        Iterable<com.google.gson.JsonElement> items = el.isJsonArray() ? el.getAsJsonArray() : java.util.List.of(el);
+        for (com.google.gson.JsonElement item : items) {
+            String id = item.isJsonObject() ? item.getAsJsonObject().get("block").getAsString() : item.getAsString();
+            int weight = item.isJsonObject() && item.getAsJsonObject().has("weight") ? item.getAsJsonObject().get("weight").getAsInt() : 1;
+            java.util.Optional<Block> block = net.minecraft.core.registries.BuiltInRegistries.BLOCK
+                    .getOptional(net.minecraft.resources.Identifier.tryParse(id));
+            if (block.isEmpty()) {
+                ThemeData.LOG.warn("CrawlSpace {}: no block called '{}', so this role keeps its old blocks", where, id);
+                return null;
+            }
+            pairs.add(block.get());
+            pairs.add(Math.max(1, weight));
+        }
+        return pairs.isEmpty() ? null : Mix.of(pairs.toArray());
+    }
+
+    /** What is in force now, as JSON a datapack could carry: for /crawlspace export. */
+    static Map<String, com.google.gson.JsonObject> export(boolean entrances) {
+        Map<String, com.google.gson.JsonObject> out = new java.util.TreeMap<>();
+        (entrances ? towers : skins).forEach((name, roles) -> {
+            com.google.gson.JsonObject blocks = new com.google.gson.JsonObject();
+            roles.forEach((role, mix) -> blocks.add(role, mix.toJson()));
+            com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+            o.addProperty(entrances ? "style" : "theme", name);
+            o.add("blocks", blocks);
+            out.put(name, o);
+        });
+        return out;
+    }
+
+    private static Block block(Map<String, Mix> roles, String role, long hash) {
+        return roles.get(role).pick(hash);
+    }
+
+    private static <T extends Comparable<T>> BlockState with(BlockState st,
+            net.minecraft.world.level.block.state.properties.Property<T> p, T v) {
+        return st.hasProperty(p) ? st.setValue(p, v) : st;
+    }
+
     /** The block for a part, dressed in {@code theme} (the tower in {@code style}), at a position. */
     static BlockState state(String theme, String style, Part part, int facing, int x, int y, int z) {
         Direction dir = switch (facing) {
@@ -257,77 +405,75 @@ public final class Palettes {
             default -> Direction.NORTH;
         };
         long hash = Dice.mix(Dice.mix(Dice.mix(x * 0x9E3779B1L) ^ y * 0x85EBCA77L) ^ z * 0xC2B2AE3DL);
-        Map<Part, Mix> palette = THEMES.getOrDefault(theme, THEMES.get("Crypt"));
-        Style tower = STYLES.getOrDefault(style, STYLES.get("stone"));
-        Fittings fit = FITTINGS.getOrDefault(theme, FITTINGS.get("Crypt"));
-        Finish fin = FINISHES.getOrDefault(theme, FINISHES.get("Crypt"));
+        Map<String, Mix> s = skins.getOrDefault(theme, skins.get("Crypt"));
+        Map<String, Mix> tw = towers.getOrDefault(style, towers.get("stone"));
+        java.util.function.Function<String, BlockState> b = role -> block(s, role, hash).defaultBlockState();
+        java.util.function.Function<String, BlockState> t = role -> block(tw, role, hash).defaultBlockState();
         return switch (part) {
             case AIR -> Blocks.AIR.defaultBlockState();
             case WATER -> Blocks.WATER.defaultBlockState();
-            case TOWER -> tower.wall().pick(hash).defaultBlockState();
-            case TOWER_FLOOR -> tower.floor().pick(hash).defaultBlockState();
-            case TOWER_TOP -> tower.top().defaultBlockState();
-            case TOWER_DOOR_LOWER, TOWER_DOOR_UPPER -> door(tower.door(), dir, part == Part.TOWER_DOOR_UPPER);
-            case TOWER_TRIM -> tower.trim().defaultBlockState();
-            case TOWER_STAIR -> stairs(tower.stair(), dir, false);
-            case TOWER_CORBEL -> stairs(tower.stair(), dir, true);
-            case TOWER_WINDOW -> tower.window().defaultBlockState();
-            case TOWER_PILLAR -> tower.pillar().defaultBlockState();
-            case TOWER_ROOF -> tower.roof().defaultBlockState();
+            case TOWER -> t.apply("wall");
+            case TOWER_FLOOR -> t.apply("floor");
+            case TOWER_TOP -> t.apply("top");
+            case TOWER_DOOR_LOWER, TOWER_DOOR_UPPER -> door(block(tw, "door", hash), dir, part == Part.TOWER_DOOR_UPPER);
+            case TOWER_TRIM -> t.apply("trim");
+            case TOWER_STAIR -> stairs(block(tw, "stair", hash), dir, false);
+            case TOWER_CORBEL -> stairs(block(tw, "stair", hash), dir, true);
+            case TOWER_WINDOW -> t.apply("window");
+            case TOWER_PILLAR -> t.apply("pillar");
+            case TOWER_ROOF -> t.apply("roof");
             case LOCKED_LOWER, LOCKED_UPPER -> door(Blocks.IRON_DOOR, dir, part == Part.LOCKED_UPPER);
-            case DOOR_LOWER, DOOR_UPPER -> door(palette.get(part).pick(hash), dir, part == Part.DOOR_UPPER);
-            case STEP -> palette.get(Part.STEP).pick(hash).defaultBlockState().setValue(StairBlock.FACING, dir);
-            case LIGHT -> palette.get(Part.LIGHT).pick(hash).defaultBlockState().setValue(LanternBlock.HANGING, true);
+            case DOOR_LOWER, DOOR_UPPER -> door(block(s, "door", hash), dir, part == Part.DOOR_UPPER);
+            case STEP -> with(b.apply("step"), StairBlock.FACING, dir);
+            case LIGHT -> with(b.apply("light"), LanternBlock.HANGING, true);
             case LEVER -> Blocks.LEVER.defaultBlockState()
                     .setValue(net.minecraft.world.level.block.LeverBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR)
                     .setValue(net.minecraft.world.level.block.LeverBlock.FACING, dir);
             // With hints on, a related block that is not in the wall's mix; otherwise the wall itself.
-            case SECRET_WALL -> (CrawlConfig.hints() ? palette.get(Part.SECRET_WALL) : palette.get(Part.WALL))
-                    .pick(hash).defaultBlockState();
+            case SECRET_WALL -> b.apply(CrawlConfig.hints() ? "secret_wall" : "wall");
             case CHEST, HOARD_CHEST -> Blocks.CHEST.defaultBlockState().setValue(net.minecraft.world.level.block.ChestBlock.FACING, dir);
             case BARREL -> Blocks.BARREL.defaultBlockState().setValue(net.minecraft.world.level.block.BarrelBlock.FACING, Direction.UP);
             case SPAWNER -> Blocks.SPAWNER.defaultBlockState();
             case COBWEB -> Blocks.COBWEB.defaultBlockState();
             case SKULL -> Blocks.SKELETON_SKULL.defaultBlockState().setValue(net.minecraft.world.level.block.SkullBlock.ROTATION, facing * 4 + (int) Math.floorMod(hash, 3L));
             case BONES -> Blocks.BONE_BLOCK.defaultBlockState();
-            case CANDLES -> fit.candle().defaultBlockState()
-                    .setValue(net.minecraft.world.level.block.CandleBlock.CANDLES, Math.min(4, facing + 1))
-                    .setValue(net.minecraft.world.level.block.CandleBlock.LIT, true);
-            case CARPET -> fit.carpet().defaultBlockState();
+            case CANDLES -> with(with(b.apply("candle"), net.minecraft.world.level.block.CandleBlock.CANDLES, Math.min(4, facing + 1)),
+                    net.minecraft.world.level.block.CandleBlock.LIT, true);
+            case CARPET -> b.apply("carpet");
             case MOSS -> Blocks.MOSS_CARPET.defaultBlockState();
             case RAIL -> Blocks.RAIL.defaultBlockState().setValue(net.minecraft.world.level.block.RailBlock.SHAPE,
                     facing == 1 ? net.minecraft.world.level.block.state.properties.RailShape.EAST_WEST
                             : net.minecraft.world.level.block.state.properties.RailShape.NORTH_SOUTH);
-            case ALTAR -> fit.altar().defaultBlockState();
-            case SARCOPHAGUS -> fit.sarcophagus().defaultBlockState();
-            case BRAZIER -> fit.brazier().defaultBlockState();
+            case ALTAR -> b.apply("altar");
+            case SARCOPHAGUS -> b.apply("sarcophagus");
+            case BRAZIER -> b.apply("brazier");
             case STALAGMITE -> Blocks.POINTED_DRIPSTONE.defaultBlockState()
                     .setValue(net.minecraft.world.level.block.PointedDripstoneBlock.TIP_DIRECTION, Direction.UP)
                     .setValue(net.minecraft.world.level.block.PointedDripstoneBlock.THICKNESS,
                             net.minecraft.world.level.block.state.properties.DripstoneThickness.TIP);
-            case BANNER -> fit.banner().defaultBlockState().setValue(net.minecraft.world.level.block.WallBannerBlock.FACING, dir);
-            case WALL_TORCH -> fit.torch().defaultBlockState().setValue(net.minecraft.world.level.block.WallTorchBlock.FACING, dir);
+            case BANNER -> with(b.apply("banner"), net.minecraft.world.level.block.WallBannerBlock.FACING, dir);
+            case WALL_TORCH -> with(b.apply("torch"), net.minecraft.world.level.block.WallTorchBlock.FACING, dir);
             case CHAIN -> Blocks.IRON_CHAIN.defaultBlockState();
-            case BEAM -> fit.beam().defaultBlockState().setValue(net.minecraft.world.level.block.RotatedPillarBlock.AXIS,
+            case BEAM -> with(b.apply("beam"), net.minecraft.world.level.block.RotatedPillarBlock.AXIS,
                     facing == 0 ? Direction.Axis.X : Direction.Axis.Z);
-            case SUPPORT -> fit.support().defaultBlockState();
-            case RAILING -> fit.railing().defaultBlockState();
+            case SUPPORT -> b.apply("support");
+            case RAILING, STATUE -> b.apply("railing");
             case SHELF -> Blocks.BOOKSHELF.defaultBlockState();
-            case WALL_ACCENT -> fit.accent().defaultBlockState();
-            case THRONE -> fit.throne().defaultBlockState().setValue(StairBlock.FACING, dir);
-            case FLOOR_ACCENT -> fit.floorAccent().defaultBlockState();
-            case FLOOR_INLAY -> fit.floorInlay().defaultBlockState();
-            case PILASTER -> fit.pilaster().defaultBlockState();
-            case COVE -> fin.cove().defaultBlockState().setValue(StairBlock.FACING, dir)
-                    .setValue(StairBlock.HALF, net.minecraft.world.level.block.state.properties.Half.TOP);
-            case PANEL -> fin.panel().defaultBlockState();
-            case DADO -> fin.dado().defaultBlockState();
-            case TABLE -> fin.table().defaultBlockState();
-            case TABLE_TOP -> fin.plate().defaultBlockState();
-            case CHAIR -> fin.chair().defaultBlockState().setValue(StairBlock.FACING, dir);
+            case WALL_ACCENT -> b.apply("accent");
+            case THRONE -> with(b.apply("throne"), StairBlock.FACING, dir);
+            case FLOOR_ACCENT -> b.apply("floor_accent");
+            case FLOOR_INLAY -> b.apply("floor_inlay");
+            case PILASTER -> b.apply("pilaster");
+            case COVE -> with(with(b.apply("cove"), StairBlock.FACING, dir), StairBlock.HALF,
+                    net.minecraft.world.level.block.state.properties.Half.TOP);
+            case PANEL -> b.apply("panel");
+            case DADO -> b.apply("dado");
+            case TABLE -> b.apply("table");
+            case TABLE_TOP -> b.apply("table_top");
+            case CHAIR -> with(b.apply("chair"), StairBlock.FACING, dir);
             case POT -> Blocks.DECORATED_POT.defaultBlockState();
-            case RUG -> fin.rug().defaultBlockState();
-            case FLOOR_LANTERN -> palette.get(Part.LIGHT).pick(hash).defaultBlockState().setValue(LanternBlock.HANGING, false);
+            case RUG -> b.apply("rug");
+            case FLOOR_LANTERN -> with(b.apply("light"), LanternBlock.HANGING, false);
             case ANVIL -> Blocks.CHIPPED_ANVIL.defaultBlockState().setValue(net.minecraft.world.level.block.AnvilBlock.FACING, dir);
             case GRINDSTONE -> Blocks.GRINDSTONE.defaultBlockState()
                     .setValue(net.minecraft.world.level.block.GrindstoneBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR)
@@ -342,27 +488,18 @@ public final class Palettes {
                     .setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, true);
             case ROOTS -> Blocks.HANGING_ROOTS.defaultBlockState();
             case LADDER -> Blocks.LADDER.defaultBlockState().setValue(net.minecraft.world.level.block.LadderBlock.FACING, dir);
-            case STATUE -> fit.railing().defaultBlockState();
             case TRAP_PLATE -> CrawlConfig.trapsVisible() ? trapBlock(theme, false) : Blocks.AIR.defaultBlockState();
             case TRAP_WIRE -> CrawlConfig.trapsVisible() ? trapBlock(theme, true) : Blocks.AIR.defaultBlockState();
             case DECOY_PLATE -> trapBlock(theme, false);
             case DECOY_WIRE -> trapBlock(theme, true);
-            default -> palette.get(part).pick(hash).defaultBlockState();
+            default -> b.apply(part.name().toLowerCase(java.util.Locale.ROOT));
         };
     }
 
-    /** What a theme's trap plates are made of. */
-    private static final Map<String, Block> PLATES = Map.of(
-            "Crypt", Blocks.STONE_PRESSURE_PLATE,
-            "Sunken Halls", Blocks.STONE_PRESSURE_PLATE,
-            "Old Mines", Blocks.OAK_PRESSURE_PLATE,
-            "Caverns", Blocks.POLISHED_BLACKSTONE_PRESSURE_PLATE,
-            "Deep Halls", Blocks.POLISHED_BLACKSTONE_PRESSURE_PLATE);
-
     /** A trap's plate or wire as it looks once it can be seen. */
     static BlockState trapBlock(String theme, boolean wire) {
-        return wire ? Blocks.TRIPWIRE.defaultBlockState()
-                : PLATES.getOrDefault(theme, Blocks.STONE_PRESSURE_PLATE).defaultBlockState();
+        Map<String, Mix> s = skins.getOrDefault(theme, skins.get("Crypt"));
+        return s.get(wire ? "trap_wire" : "trap_plate").pick(0).defaultBlockState();
     }
 
     /** A stair; a non-stair block (a style with none) is placed whole. */
@@ -377,6 +514,9 @@ public final class Palettes {
     }
 
     private static BlockState door(Block block, Direction facing, boolean upper) {
+        if (!(block instanceof DoorBlock)) {
+            return block.defaultBlockState(); // a datapack gave a plain block: it fills the doorway
+        }
         return block.defaultBlockState()
                 .setValue(DoorBlock.FACING, facing)
                 .setValue(DoorBlock.HALF, upper ? DoubleBlockHalf.UPPER : DoubleBlockHalf.LOWER);

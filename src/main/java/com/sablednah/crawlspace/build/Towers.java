@@ -36,9 +36,25 @@ public final class Towers {
     private Towers() {
     }
 
+    /**
+     * Design weights a datapack gave a style (KEEP, ROUND, PYRAMID, TEMPLE), or
+     * null to use the built-in ones. Set by the mod when data loads; this
+     * package never reads data itself.
+     */
+    public static volatile java.util.function.Function<String, double[]> designOverride = s -> null;
+
     /** The design for a biome style, from the dungeon's seed. */
     public static Design choose(String style, Dice dice) {
-        double[] w = switch (style) { // KEEP, ROUND, PYRAMID, TEMPLE
+        return Design.values()[dice.weighted(designWeights(style))];
+    }
+
+    /** KEEP, ROUND, PYRAMID, TEMPLE: a datapack's, else the built-in ones for the style. */
+    public static double[] designWeights(String style) {
+        double[] given = designOverride.apply(style);
+        if (given != null) {
+            return given;
+        }
+        return switch (style) { // KEEP, ROUND, PYRAMID, TEMPLE
             case "sandstone" -> new double[] {0, 1, 3, 2};
             case "terracotta" -> new double[] {1, 0, 2, 2};
             case "mossy" -> new double[] {1, 1, 2, 0};
@@ -47,7 +63,6 @@ public final class Towers {
             case "snowy" -> new double[] {2, 2, 0, 0};
             default -> new double[] {3, 2, 0, 1};
         };
-        return Design.values()[dice.weighted(w)];
     }
 
     public static void build(Blueprint bp, Design design, Dice dice) {

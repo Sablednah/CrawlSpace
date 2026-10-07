@@ -20,9 +20,11 @@ caverns, deep halls.
 - **Danger that scales with depth.** Rooms wake their monsters as you
   approach, spawners turn up from the first level, and each lair has a named
   boss with a boss bar.
-- **Traps and secrets.** Hidden dart and gas traps can be disarmed if you
-  spot them. Secret walls open onto treasure, and levers open locked iron
-  doors. Pits drop you to the level below.
+- **Traps and secrets.** Pressure plates and tripwires fire darts or poison
+  gas, and some of them are decoys: faint red sparks mark the real ones.
+  Break one or sneak-use it to try to disarm it, and it might go off in your
+  face. Secret walls open onto treasure, and levers open locked iron doors.
+  Pits drop you to the level below.
 - **Loot worth the trip.** Five tiers by depth, with Mending, rare books,
   armour trim templates and trimmed, enchanted armour.
 
@@ -30,7 +32,12 @@ caverns, deep halls.
 Configurable spacing, depth and hints are in `config/crawlspace-server.toml`.
 In a CityWorld world, cities keep clear of the entrance.
 
-Works on its own. Other RPG mods can plug their own perception and disarm
-checks into `CrawlSpaceApi`.
+**Datapacks** can reskin any theme, change its monsters and boss, and add
+entrance styles for chosen biomes. `/crawlspace export` writes the built-in
+ones as a datapack to start from, and `examples/datapack` shows the shape.
+
+Works on its own. With **LegendQuest**, traps stay hidden until your
+character's Wisdom spots them, and disarming is a Dexterity roll (dwarves are
+good at it). Other RPG mods can plug their own checks into `CrawlSpaceApi`.
 
 Minecraft 1.21.11, 26.1.2, 26.2 and 26.3 (NeoForge). MIT licensed.

@@ -1,0 +1,14 @@
+{
+  "biomes": ["minecraft:basalt_deltas", "#minecraft:is_badlands"],
+  "blocks": {
+    "wall": [
+      { "block": "minecraft:polished_basalt", "weight": 3 },
+      { "block": "minecraft:basalt", "weight": 1 }
+    ],
+    "top": "minecraft:blackstone",
+    "trim": "minecraft:polished_blackstone",
+    "stair": "minecraft:polished_blackstone_stairs",
+    "roof": "minecraft:blackstone"
+  },
+  "designs": { "keep": 1, "round": 3 }
+}

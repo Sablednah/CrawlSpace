@@ -1,0 +1,18 @@
+{
+  "blocks": {
+    "wall": [
+      { "block": "minecraft:sandstone", "weight": 60 },
+      { "block": "minecraft:cut_sandstone", "weight": 25 },
+      { "block": "minecraft:chiseled_sandstone", "weight": 15 }
+    ],
+    "floor": "minecraft:smooth_sandstone",
+    "carpet": "minecraft:orange_carpet",
+    "trap_plate": "minecraft:birch_pressure_plate"
+  },
+  "mobs": [
+    { "type": "minecraft:husk", "weight": 4 },
+    { "type": "minecraft:skeleton", "weight": 3 },
+    { "type": "minecraft:cave_spider", "weight": 1 }
+  ],
+  "boss": { "type": "minecraft:husk", "name": "the Dune King", "weapon": "minecraft:golden_sword", "bar": "yellow" }
+}

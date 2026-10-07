@@ -54,17 +54,14 @@ See "Population" and "Dressing".
 other alone, and README, CHANGELOG and CURSEFORGE.md for 0.1.0. Nothing is
 released, and there is no CurseForge project yet.
 
+**2026-10-07 (day):** traps you can see, with decoys (see "Traps you can
+see"), and datapack themes, monsters and entrances (see "Datapacks").
+LegendQuest's perception support is merged for **LegendQuest 2.9.0** (not yet
+released). Sable's MobHealth - Forge instance runs both, with `hints = "AUTO"`.
+
 Not yet:
-- Themes, bestiary, entrance styles and dressing as data. They are
-  hard-coded while Sable judges the look.
-- Visible tripwires and pressure plates. The trigger system takes them as
-  they are (another `Trigger.Kind` and a block in the blueprint); only the
-  invisible tiles exist so far.
-- LegendQuest's perception check is written, on LegendQuest's branch
-  `crawlspace-perception`, pushed but **not merged**. WIS notices, DEX
-  disarms, and dwarves get +4. Sable's MobHealth - Forge instance still has
-  `hints = "ALWAYS"` written by hand, from before AUTO changed meaning.
 - The StoryTeller seam.
+- The level layout as data. That is deliberate; see "Datapacks".
 
 ## Layout
 
@@ -183,6 +180,71 @@ on:
 Hints show however the player moves. Only traps need a foot on the ground.
 The first version returned early for any airborne player, so a flying
 creative tester saw nothing.
+
+## Traps you can see (Sable, 2026-10-07)
+
+Sable's rule: without LegendQuest, plates and wires you can see, with decoys,
+and the particles pick out the real ones. With LegendQuest, the plate or wire
+appears when you pass the check. Breaking it is a disarm attempt that can set
+it off.
+
+- **The blueprint carries the look.** `TRAP_PLATE` or `TRAP_WIRE` sits on a
+  trap's cell: a plate in rooms, mostly wire in corridors. `DECOY_PLATE` or
+  `DECOY_WIRE` sits on a `Trigger.Kind.DECOY` cell, about one per trap, kept
+  off doorways and stairs and 2 cells from any trigger. All of it comes from
+  its own `Dice` stream, so adding it moved nothing else in a dungeon.
+- **Visibility is decided at placement.** `Palettes` builds a real trap's part
+  as its plate only when no perception provider is registered
+  (`CrawlConfig.trapsVisible()`), and as air otherwise. Decoys always show.
+  A trap on a corridor step keeps its stair and stays hidden; that is 22 of
+  987 over the test's 30 dungeons.
+- **Revealed for everyone.** When a player notices a trap, `Triggers.reveal`
+  places its plate or wire in the world. It is a real block, not a per-player
+  fake, so breaking it is an ordinary block event, and a party can point it
+  out to each other.
+- **Breaking is a disarm attempt** (`Triggers.onBreak`): the block goes with
+  no drop, then it is the perception mod's roll, or `play.disarmChance` (0.75)
+  without one. A failure springs the trap and says "You set it off!". Sneak
+  using the plate does the same. Breaking a decoy drops it and says "it was a
+  decoy". Creative players break things as normal.
+- `Dresser` keeps props, rugs and mine frames off plates. The new test
+  `trapsAndDecoysHaveTheirPlates` caught both overwrites.
+
+## Datapacks (2026-10-07)
+
+`ThemeData` (a `ResourceManagerReloadListener`, registered on
+`AddServerReloadListenersEvent`) reads two folders on every load and
+`/reload`:
+
+- `data/<ns>/crawlspace/theme/<name>.json` has `blocks` (role to block, or a
+  weighted list), `mobs` (which replaces the theme's list) and `boss` (which
+  changes only the fields it names). The file names its theme with "theme",
+  or by file name (`sunken_halls.json`).
+- `data/<ns>/crawlspace/entrance/<style>.json` has `blocks`, `designs`
+  (keep/round/pyramid/temple weights) and `biomes` (ids or `#tags`, which
+  claim those biomes ahead of the built-in rules). A new name makes a new
+  style, starting from "stone".
+
+Everything is laid over the code defaults key by key. Unknown roles, blocks
+and entities are skipped with a warning naming the file and the key.
+`/crawlspace export` writes what is in force as a complete datapack in
+`<world>/crawlspace-export/`. `examples/datapack` turns the Crypt into
+sandstone with "the Dune King", and adds a basalt entrance that claims
+badlands. On the rig both took effect after a `/reload`.
+
+- **Every role is looked up by name**, from records flattened by reflection
+  (`Palettes.fields`), so a field added to `Fittings` is a new role with no
+  second list to keep in step. **Every block property is set through
+  `with()`**, which skips properties the block lacks: a pack can put a plain
+  block where a stair was without crashing worldgen. A non-door block given
+  as a door fills the doorway.
+- **The layout is never data, on purpose.** A generated dungeon is planned
+  again from its seed for every chunk it touches. If a pack could move a
+  wall, installing or editing one mid-world would change half a dungeon.
+  Blocks, monsters and towers can change between sessions without breaking
+  one. `Theme`'s shape and corridor weights stay in code.
+- Loot was already data: the `crawlspace:chests/tier1..5` and `supplies`
+  tables can be overridden like any loot table.
 
 ## Population
 
@@ -341,7 +403,7 @@ The site's cached blueprint then answers "is there a trigger here".
   the sound.
 - **Secret wall:** right-click it, and it is destroyed, with particles and no
   drop.
-- **Traps:** checked every 2 ticks for a player on the ground, looked up
+- **Traps** (see also "Traps you can see"): checked every 2 ticks for a player on the ground, looked up
   through a per-player cache refreshed every 40 ticks. **Darts fire from the
   nearest wall's face above head height, angled down.** Fired level from a
   narrow corridor's wall, they started inside the player and missed.
