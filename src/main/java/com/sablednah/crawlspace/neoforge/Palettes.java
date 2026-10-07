@@ -343,8 +343,26 @@ public final class Palettes {
             case ROOTS -> Blocks.HANGING_ROOTS.defaultBlockState();
             case LADDER -> Blocks.LADDER.defaultBlockState().setValue(net.minecraft.world.level.block.LadderBlock.FACING, dir);
             case STATUE -> fit.railing().defaultBlockState();
+            case TRAP_PLATE -> CrawlConfig.trapsVisible() ? trapBlock(theme, false) : Blocks.AIR.defaultBlockState();
+            case TRAP_WIRE -> CrawlConfig.trapsVisible() ? trapBlock(theme, true) : Blocks.AIR.defaultBlockState();
+            case DECOY_PLATE -> trapBlock(theme, false);
+            case DECOY_WIRE -> trapBlock(theme, true);
             default -> palette.get(part).pick(hash).defaultBlockState();
         };
+    }
+
+    /** What a theme's trap plates are made of. */
+    private static final Map<String, Block> PLATES = Map.of(
+            "Crypt", Blocks.STONE_PRESSURE_PLATE,
+            "Sunken Halls", Blocks.STONE_PRESSURE_PLATE,
+            "Old Mines", Blocks.OAK_PRESSURE_PLATE,
+            "Caverns", Blocks.POLISHED_BLACKSTONE_PRESSURE_PLATE,
+            "Deep Halls", Blocks.POLISHED_BLACKSTONE_PRESSURE_PLATE);
+
+    /** A trap's plate or wire as it looks once it can be seen. */
+    static BlockState trapBlock(String theme, boolean wire) {
+        return wire ? Blocks.TRIPWIRE.defaultBlockState()
+                : PLATES.getOrDefault(theme, Blocks.STONE_PRESSURE_PLATE).defaultBlockState();
     }
 
     /** A stair; a non-stair block (a style with none) is placed whole. */

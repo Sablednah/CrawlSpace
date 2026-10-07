@@ -133,5 +133,14 @@ public enum Part {
     /** A ladder; facing is away from the wall it hangs on. */
     LADDER,
     /** A statue's body: a wall post. */
-    STATUE
+    STATUE,
+    // ---- traps ----
+    /** A real trap's pressure plate: shown when nobody's perception does the finding, else air until noticed. */
+    TRAP_PLATE,
+    /** A real trap's tripwire, shown and hidden the same way. */
+    TRAP_WIRE,
+    /** A pressure plate that does nothing, always shown. */
+    DECOY_PLATE,
+    /** A tripwire that does nothing, always shown. */
+    DECOY_WIRE
 }
