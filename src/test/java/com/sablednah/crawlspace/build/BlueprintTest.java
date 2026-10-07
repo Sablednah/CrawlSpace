@@ -267,7 +267,7 @@ class BlueprintTest {
         }
         return switch (Blueprint.part(code)) {
             case AIR, CARPET, MOSS, RAIL, WATER, DOOR_LOWER, LOCKED_LOWER, SECRET_WALL, LIGHT, BANNER, WALL_TORCH, CHAIN, STEP, LANDING,
-                    RUG, PLANT, MUSHROOM, VINE, ROOTS, TABLE_TOP -> true;
+                    RUG, PLANT, MUSHROOM, VINE, ROOTS, TABLE_TOP, TRAP_PLATE, TRAP_WIRE, DECOY_PLATE, DECOY_WIRE -> true;
             default -> false;
         };
     }
@@ -367,6 +367,51 @@ class BlueprintTest {
         }
         System.out.println("dressing: " + props + " props and " + encounters + " encounters over 30 dungeons");
         assertTrue(props > 3000 && encounters > 300, props + " props, " + encounters + " encounters");
+    }
+
+    /**
+     * Every trap not on a step carries a plate or wire, every decoy carries a
+     * decoy one, nothing else does, and there are decoys at all.
+     */
+    @Test
+    void trapsAndDecoysHaveTheirPlates() {
+        int traps = 0;
+        int shown = 0;
+        int decoys = 0;
+        for (long seed = 0; seed < 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 6);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            java.util.Set<Long> marked = new java.util.HashSet<>();
+            for (Trigger t : bp.triggers()) {
+                int code = bp.get(t.x(), t.y(), t.z());
+                Part part = code == 0 ? Part.AIR : Blueprint.part(code);
+                if (t.kind().isTrap()) {
+                    traps++;
+                    assertTrue(part == Part.TRAP_PLATE || part == Part.TRAP_WIRE || part == Part.STEP,
+                            "seed " + seed + ": trap at " + t.x() + "," + t.z() + " carries " + part);
+                    shown += part == Part.STEP ? 0 : 1;
+                } else if (t.kind() == Trigger.Kind.DECOY) {
+                    decoys++;
+                    assertTrue(part == Part.DECOY_PLATE || part == Part.DECOY_WIRE, "seed " + seed + ": decoy carries " + part);
+                } else {
+                    continue;
+                }
+                marked.add(Trigger.key(t.x(), t.y(), t.z()));
+            }
+            final long s = seed;
+            bp.forEachColumn(c -> {
+                for (int k = 0; k < c.codes().length; k++) {
+                    int code = c.codes()[k];
+                    Part part = code == 0 ? Part.AIR : Blueprint.part(code);
+                    if (part.name().startsWith("TRAP_") || part.name().startsWith("DECOY_")) {
+                        assertTrue(marked.contains(Trigger.key(c.x(), c.y0() + k, c.z())),
+                                "seed " + s + ": a stray " + part + " at " + c.x() + "," + c.z());
+                    }
+                }
+            });
+        }
+        System.out.println("traps: " + traps + " (" + shown + " with a plate or wire), " + decoys + " decoys over 30 dungeons");
+        assertTrue(shown > traps * 0.8 && decoys >= traps * 0.8, traps + " traps, " + shown + " shown, " + decoys + " decoys");
     }
 
     /** ...and that check notices a doorway blocked by a barrel. */

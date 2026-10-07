@@ -34,15 +34,25 @@ import net.minecraft.world.item.Items;
  */
 public final class Bestiary {
 
-    private record Pick(EntityType<?> type, int weight) {
+    /** @param armour whether it wears armour by depth; only mobs that show armour should */
+    private record Pick(EntityType<?> type, int weight, boolean armour) {
+        Pick(EntityType<?> type, int weight) {
+            this(type, weight, HUMANOIDS.contains(type));
+        }
     }
 
     /** A theme's boss: what it is, what it is called, what it carries, its bar's colour. */
     private record BossSpec(EntityType<?> type, String name, Item weapon, BossEvent.BossBarColor colour, double scale) {
     }
 
+    private static final java.util.Set<EntityType<?>> HUMANOIDS = java.util.Set.of(EntityTypes.ZOMBIE, EntityTypes.SKELETON,
+            EntityTypes.DROWNED, EntityTypes.STRAY, EntityTypes.BOGGED, EntityTypes.WITHER_SKELETON, EntityTypes.HUSK);
+
     private static final Map<String, List<Pick>> COMMON = new HashMap<>();
     private static final Map<String, BossSpec> BOSSES = new HashMap<>();
+    /** The built-in tables with any datapack's on top; swapped whole on reload. */
+    private static volatile Map<String, List<Pick>> common = Map.of();
+    private static volatile Map<String, BossSpec> bosses = Map.of();
 
     static {
         COMMON.put("Crypt", List.of(new Pick(EntityTypes.ZOMBIE, 4), new Pick(EntityTypes.SKELETON, 4), new Pick(EntityTypes.SPIDER, 1)));
@@ -60,6 +70,90 @@ public final class Bestiary {
         BOSSES.put("Old Mines", new BossSpec(EntityTypes.ZOMBIE, "the Foreman", Items.DIAMOND_PICKAXE, BossEvent.BossBarColor.YELLOW, 1.35));
         BOSSES.put("Caverns", new BossSpec(EntityTypes.SPIDER, "the Broodmother", Items.AIR, BossEvent.BossBarColor.GREEN, 1.8));
         BOSSES.put("Deep Halls", new BossSpec(EntityTypes.VINDICATOR, "the Gaoler", Items.DIAMOND_AXE, BossEvent.BossBarColor.PURPLE, 1.3));
+        common = Map.copyOf(COMMON);
+        bosses = Map.copyOf(BOSSES);
+    }
+
+    /**
+     * A theme file's "mobs" replace that theme's list outright; its "boss"
+     * changes only the fields it names. Anything unknown is skipped with a
+     * warning naming it.
+     */
+    static void apply(Map<String, com.google.gson.JsonObject> themes) {
+        Map<String, List<Pick>> c = new HashMap<>(COMMON);
+        Map<String, BossSpec> b = new HashMap<>(BOSSES);
+        themes.forEach((theme, json) -> {
+            if (json.has("mobs")) {
+                List<Pick> picks = new java.util.ArrayList<>();
+                for (com.google.gson.JsonElement el : json.getAsJsonArray("mobs")) {
+                    com.google.gson.JsonObject o = el.isJsonObject() ? el.getAsJsonObject() : null;
+                    String id = o != null ? o.get("type").getAsString() : el.getAsString();
+                    EntityType<?> type = entity(id, theme);
+                    if (type != null) {
+                        int weight = o != null && o.has("weight") ? Math.max(1, o.get("weight").getAsInt()) : 1;
+                        boolean armour = o != null && o.has("armour") ? o.get("armour").getAsBoolean() : HUMANOIDS.contains(type);
+                        picks.add(new Pick(type, weight, armour));
+                    }
+                }
+                if (!picks.isEmpty()) {
+                    c.put(theme, List.copyOf(picks));
+                }
+            }
+            if (json.has("boss")) {
+                com.google.gson.JsonObject o = json.getAsJsonObject("boss");
+                BossSpec old = b.getOrDefault(theme, BOSSES.get("Crypt"));
+                EntityType<?> type = o.has("type") ? entity(o.get("type").getAsString(), theme) : null;
+                Item weapon = old.weapon();
+                if (o.has("weapon")) {
+                    weapon = net.minecraft.core.registries.BuiltInRegistries.ITEM
+                            .getOptional(Identifier.tryParse(o.get("weapon").getAsString())).orElse(weapon);
+                }
+                BossEvent.BossBarColor bar = old.colour();
+                if (o.has("bar")) {
+                    for (BossEvent.BossBarColor col : BossEvent.BossBarColor.values()) {
+                        if (col.getName().equals(o.get("bar").getAsString())) {
+                            bar = col;
+                        }
+                    }
+                }
+                b.put(theme, new BossSpec(type != null ? type : old.type(),
+                        o.has("name") ? o.get("name").getAsString() : old.name(), weapon, bar,
+                        o.has("scale") ? o.get("scale").getAsDouble() : old.scale()));
+            }
+        });
+        common = Map.copyOf(c);
+        bosses = Map.copyOf(b);
+    }
+
+    private static EntityType<?> entity(String id, String theme) {
+        EntityType<?> type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.tryParse(id)).orElse(null);
+        if (type == null) {
+            ThemeData.LOG.warn("CrawlSpace theme '{}': no entity called '{}'", theme, id);
+        }
+        return type;
+    }
+
+    /** A theme's monsters and boss as a datapack would write them, for /crawlspace export. */
+    static void export(String theme, com.google.gson.JsonObject into) {
+        com.google.gson.JsonArray mobs = new com.google.gson.JsonArray();
+        for (Pick p : common.getOrDefault(theme, List.of())) {
+            com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+            o.addProperty("type", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(p.type()).toString());
+            o.addProperty("weight", p.weight());
+            o.addProperty("armour", p.armour());
+            mobs.add(o);
+        }
+        into.add("mobs", mobs);
+        BossSpec spec = bosses.get(theme);
+        if (spec != null) {
+            com.google.gson.JsonObject o = new com.google.gson.JsonObject();
+            o.addProperty("type", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(spec.type()).toString());
+            o.addProperty("name", spec.name());
+            o.addProperty("weapon", net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(spec.weapon()).toString());
+            o.addProperty("bar", spec.colour().getName());
+            o.addProperty("scale", spec.scale());
+            into.add("boss", o);
+        }
     }
 
     /** Every monster a room wakes carries this tag. */
@@ -89,7 +183,7 @@ public final class Bestiary {
     }
 
     static EntityType<?> common(String theme, RandomSource random) {
-        List<Pick> picks = COMMON.getOrDefault(theme, COMMON.get("Crypt"));
+        List<Pick> picks = common.getOrDefault(theme, common.get("Crypt"));
         int total = picks.stream().mapToInt(Pick::weight).sum();
         int r = random.nextInt(total);
         for (Pick p : picks) {
@@ -116,7 +210,7 @@ public final class Bestiary {
             int[] s = t.targets()[k];
             BlockPos pos = o.offset(s[0], s[1], s[2]);
             boolean boss = t.kind() == Trigger.Kind.BOSS && k == 0;
-            BossSpec spec = BOSSES.getOrDefault(theme, BOSSES.get("Crypt"));
+            BossSpec spec = bosses.getOrDefault(theme, bosses.get("Crypt"));
             EntityType<?> type = boss ? spec.type() : common(theme, random);
             Entity e = type.create(level, EntitySpawnReason.STRUCTURE);
             if (!(e instanceof Mob mob)) {
@@ -151,8 +245,9 @@ public final class Bestiary {
     /** Armour and a little extra health, more of both deeper down. Armour is worn only by mobs that show it. */
     private static void arm(Mob mob, int depth, RandomSource random) {
         EntityType<?> t = mob.getType();
-        boolean humanoid = t == EntityTypes.ZOMBIE || t == EntityTypes.SKELETON || t == EntityTypes.DROWNED
-                || t == EntityTypes.STRAY || t == EntityTypes.BOGGED || t == EntityTypes.WITHER_SKELETON || t == EntityTypes.HUSK;
+        // A datapack's "armour" for this mob, where it gave one; otherwise whether it shows armour at all.
+        boolean humanoid = common.values().stream().flatMap(List::stream).filter(p -> p.type() == t)
+                .map(Pick::armour).findFirst().orElse(HUMANOIDS.contains(t));
         if (humanoid) {
             double chance = Math.min(0.9, 0.1 + 0.1 * depth);
             Item[] set = ARMOUR.get(Math.min(ARMOUR.size() - 1, depth / 2));

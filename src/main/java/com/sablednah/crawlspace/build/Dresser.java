@@ -131,6 +131,8 @@ final class Dresser {
                 }
             }
 
+            // A trap's plate (or a decoy's) is never covered by a rug or a barrel.
+            props.removeIf(p -> trapLook(bp.get(p.x(), p.y(), p.z())));
             if (!reachable(level, r, props, reserved, bp, i)) {
                 continue; // too crowded to walk: leave it plain
             }
@@ -635,6 +637,14 @@ final class Dresser {
         }
     }
 
+    static boolean trapLook(int code) {
+        if (code == 0) {
+            return false;
+        }
+        Part part = Blueprint.part(code);
+        return part == Part.TRAP_PLATE || part == Part.TRAP_WIRE || part == Part.DECOY_PLATE || part == Part.DECOY_WIRE;
+    }
+
     private static boolean free(LevelPlan level, boolean[][] reserved, Room r, int x, int z) {
         return r.contains(x, z) && level.cell(x, z) == Cell.FLOOR && !reserved[x + R][z + R];
     }
@@ -1104,6 +1114,11 @@ final class Dresser {
             int bz = s[1] + (s[1] - c[1]);
             if (level.cell(s[0], s[1]) != Cell.CORRIDOR || level.cell(bx, bz) != Cell.WALL
                     || Blueprinter.floorAt(plan, i, s[0], s[1]) != f) {
+                return;
+            }
+            // Not over a trap's plate or wire, nor a decoy's.
+            int code = bp.get(s[0], f, s[1]);
+            if (code != 0 && Blueprint.part(code) != Part.AIR) {
                 return;
             }
         }

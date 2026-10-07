@@ -21,7 +21,7 @@ final class Tour {
 
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
-            "treasure", "secret", "key", "room", "lever", "trap", "secretdoor", "locked");
+            "treasure", "secret", "key", "room", "lever", "trap", "decoy", "secretdoor", "locked");
 
     private Tour() {
     }
@@ -36,6 +36,7 @@ final class Tour {
             case "lever", "locked" -> com.sablednah.crawlspace.build.Trigger.Kind.LEVER;
             case "secretdoor" -> com.sablednah.crawlspace.build.Trigger.Kind.SECRET;
             case "trap" -> null;
+            case "decoy" -> com.sablednah.crawlspace.build.Trigger.Kind.DECOY;
             default -> throw new IllegalArgumentException(what);
         };
         for (com.sablednah.crawlspace.build.Trigger t : bp.triggers()) {

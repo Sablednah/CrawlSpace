@@ -110,30 +110,79 @@ public final class Triggers {
     }
 
     /**
-     * Sneak-using the floor tile of a trap you know about: disarm it. With a
-     * perception mod registered it is that mod's roll, and a failure springs
-     * the trap; without one a known trap disarms.
+     * Sneak-using the floor tile of a trap you know about, or its plate or
+     * wire: try to disarm it.
      */
     private static boolean disarm(ServerLevel level, ServerPlayer player, Site site, BlockPos trapPos) {
         Trigger t = triggerAt(site, trapPos);
         if (t == null || !t.kind().isTrap()) {
             return false;
         }
-        CrawlState state = CrawlState.of(level);
-        if (state.hasFired(trapPos) || !known(player, trapPos)) {
+        if (CrawlState.of(level).hasFired(trapPos) || !known(player, trapPos)) {
             return false;
         }
-        boolean ok = com.sablednah.crawlspace.api.CrawlSpaceApi.perception().map(p -> p.disarms(player, t.level())).orElse(true);
-        state.fire(trapPos);
+        attempt(level, player, t, trapPos);
+        return true;
+    }
+
+    /**
+     * One go at disarming: the perception mod's roll, or without one the
+     * configured chance. Success takes the plate or wire away; failure springs
+     * the trap on whoever tried. Either way it is used up.
+     */
+    private static void attempt(ServerLevel level, ServerPlayer player, Trigger t, BlockPos trapPos) {
+        boolean ok = com.sablednah.crawlspace.api.CrawlSpaceApi.perception().map(p -> p.disarms(player, t.level()))
+                .orElseGet(() -> level.getRandom().nextDouble() < CrawlConfig.disarmChance());
+        CrawlState.of(level).fire(trapPos);
         if (ok) {
+            if (isTrapBlock(level.getBlockState(trapPos))) {
+                level.removeBlock(trapPos, false);
+            }
             level.playSound(null, trapPos, SoundEvents.TRIPWIRE_CLICK_OFF, SoundSource.BLOCKS, 1f, 0.8f);
             tell(player, "You disarm the " + (t.kind() == Trigger.Kind.DARTS ? "dart trap." : "gas trap."));
         } else if (t.kind() == Trigger.Kind.DARTS) {
             darts(level, player, trapPos);
+            tell(player, "You set it off! Darts fly from the wall!");
         } else {
             gas(level, player, trapPos);
+            tell(player, "You set it off! Poison gas seeps from the floor: step out of the cloud!");
         }
-        return true;
+    }
+
+    private static boolean isTrapBlock(net.minecraft.world.level.block.state.BlockState st) {
+        return st.getBlock() instanceof net.minecraft.world.level.block.BasePressurePlateBlock
+                || st.getBlock() instanceof net.minecraft.world.level.block.TripWireBlock;
+    }
+
+    /**
+     * Breaking a real trap's plate or wire is a try at disarming it, never a
+     * free way round it; breaking a decoy says so. Creative players break
+     * things as usual.
+     */
+    public static void onBreak(net.neoforged.neoforge.event.level.block.BreakBlockEvent e) {
+        if (!(e.getLevel() instanceof ServerLevel level) || !(e.getPlayer() instanceof ServerPlayer player)
+                || player.isCreative() || !isTrapBlock(e.getState())) {
+            return;
+        }
+        BlockPos pos = e.getPos();
+        Site site = Dungeons.at(level, pos).orElse(null);
+        if (site == null) {
+            return;
+        }
+        Trigger t = triggerAt(site, pos);
+        if (t == null) {
+            return;
+        }
+        if (t.kind() == Trigger.Kind.DECOY) {
+            tell(player, "Nothing happens: it was a decoy.");
+            return;
+        }
+        if (!t.kind().isTrap() || CrawlState.of(level).hasFired(pos)) {
+            return;
+        }
+        e.setCanceled(true);
+        level.removeBlock(pos, false);
+        attempt(level, player, t, pos);
     }
 
     public static void onTick(PlayerTickEvent.Post e) {
@@ -255,15 +304,39 @@ public final class Triggers {
                     : com.sablednah.crawlspace.api.Perception.Hidden.SECRET_DOOR, t.level());
             asked.put(p.asLong(), seen);
             if (seen) {
-                tell(player, trap ? "You notice a trap in the floor ahead. Sneak and use it to disarm it."
-                        : "Something about this wall is not right...");
+                String found = trap ? reveal(level, site, t, p) : null;
+                tell(player, !trap ? "Something about this wall is not right..."
+                        : found == null ? "You notice a trap in the floor ahead. Sneak and use it to disarm it."
+                        : "You spot " + found + " ahead: a trap. Break it, or sneak and use it, to try to disarm it.");
             }
         }
     }
 
+    /**
+     * A noticed trap's plate or wire appears in the world, for everyone, once
+     * somebody has spotted it. Returns what it is ("a pressure plate"), or null
+     * for a trap with nothing to show (one on a step).
+     */
+    private static String reveal(ServerLevel level, Site site, Trigger t, BlockPos p) {
+        int code = site.built().blueprint().get(t.x(), t.y(), t.z());
+        if (code == 0) {
+            return null;
+        }
+        com.sablednah.crawlspace.build.Part part = com.sablednah.crawlspace.build.Blueprint.part(code);
+        boolean wire = part == com.sablednah.crawlspace.build.Part.TRAP_WIRE;
+        if (!wire && part != com.sablednah.crawlspace.build.Part.TRAP_PLATE) {
+            return null;
+        }
+        if (level.getBlockState(p).isAir()) {
+            String theme = site.built().plan().levels().get(t.level()).theme.name();
+            level.setBlock(p, Palettes.trapBlock(theme, wire), 3);
+        }
+        return wire ? "a tripwire" : "a pressure plate";
+    }
+
     /** Whether this player knows about the hidden thing at {@code pos}: hints show all, else only what they noticed. */
     private static boolean known(ServerPlayer player, BlockPos pos) {
-        if (CrawlConfig.hints()) {
+        if (CrawlConfig.hints() || CrawlConfig.trapsVisible()) {
             return true;
         }
         Boolean seen = NOTICED.getOrDefault(player.getUUID(), Map.of()).get(pos.asLong());
