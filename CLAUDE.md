@@ -446,6 +446,18 @@ Drive it over RCON:
   restart" test needs `difficulty=normal` in the file, not just the command.
   Put it back afterwards.
 - Give TestBuddy night vision: the dungeon is meant to be dark.
+- **Store screenshots** (the four towers, 2026-10-07):
+  - Restart display `:6` at 1920x1080 and resize the client window with
+    `xdotool windowmove $W 0 0; xdotool windowsize $W 1920 1080`. The
+    `overrideWidth` option did nothing.
+  - On Vivo, `~/rig/crawlspace/place.sh <x> <z> <seed>` stands the player on
+    an exact block and builds, printing the tower origin.
+    `cam.sh <origin> <dx dy dz> <aim-dy> shoot` previews or shoots with F1 and
+    F2. Read the origin back instead of computing it after a spreadplayers.
+  - A datapack with only `"designs": {"keep": 1}` per style pins a design.
+  - **1.21.11 renamed `doDaylightCycle` to `advance_time`.** The old name is a
+    parse error over RCON, and the sun kept moving.
+  - The shots are in Sable's `Downloads/crawlspace-screens`.
 - **`Level.getHeight` answers the world's minimum Y for an unloaded chunk.** A
   build just after a teleport was refused on a coast because most of its
   footprint read as bottomless. `ground()` loads the chunk first.
