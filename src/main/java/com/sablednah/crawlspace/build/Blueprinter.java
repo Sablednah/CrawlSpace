@@ -403,9 +403,13 @@ public final class Blueprinter {
                 continue; // a pit or stair arrived on it afterwards
             }
             Trigger.Kind kind = t[2] == com.sablednah.crawlspace.plan.TrapKind.GAS.ordinal() ? Trigger.Kind.GAS : Trigger.Kind.DARTS;
-            int f = floorAt(plan, i, t[0], t[1]);
-            bp.addTrigger(new Trigger(kind, t[0], f, t[1], i, new int[0][]));
-            trapLook(bp, level, i, t[0], f, t[1], false, look);
+            int[] at = flatSpot(bp, plan, i, t[0], t[1]);
+            if (at == null) {
+                continue; // no flat floor near it to hold a plate: a trap nobody could see is left out
+            }
+            int f = floorAt(plan, i, at[0], at[1]);
+            bp.addTrigger(new Trigger(kind, at[0], f, at[1], i, new int[0][]));
+            trapLook(bp, level, i, at[0], f, at[1], false, look);
         }
         decoys(bp, plan, i, look);
     }
@@ -423,6 +427,39 @@ public final class Blueprinter {
         boolean wire = look.chance(level.cell(x, z) == Cell.CORRIDOR ? 0.65 : 0.15);
         Part part = decoy ? (wire ? Part.DECOY_WIRE : Part.DECOY_PLATE) : (wire ? Part.TRAP_WIRE : Part.TRAP_PLATE);
         bp.set(x, f, z, part, 0, i);
+    }
+
+    /**
+     * Where a trap planned at (x, z) can show its plate: there, unless a
+     * corridor step's stair took the cell, else the nearest clear flat cell
+     * within three. Null if there is none, and the trap is dropped: every trap
+     * has to be one a player could see.
+     */
+    private static int[] flatSpot(Blueprint bp, DungeonPlan plan, int i, int x, int z) {
+        LevelPlan level = plan.levels().get(i);
+        for (int d = 0; d <= 3; d++) {
+            for (int dx = -d; dx <= d; dx++) {
+                for (int dz = -d; dz <= d; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != d) {
+                        continue;
+                    }
+                    int cx = x + dx;
+                    int cz = z + dz;
+                    Cell c = level.cell(cx, cz);
+                    if (c != Cell.FLOOR && c != Cell.CORRIDOR) {
+                        continue;
+                    }
+                    int code = bp.get(cx, floorAt(plan, i, cx, cz), cz);
+                    if (code != 0 && Blueprint.part(code) != Part.AIR) {
+                        continue;
+                    }
+                    if (d == 0 || clearAround(bp, level, i, cx, cz)) {
+                        return new int[] {cx, cz};
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /**
