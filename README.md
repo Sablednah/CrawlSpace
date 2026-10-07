@@ -1,5 +1,7 @@
 # CrawlSpace
 
+![CrawlSpace](src/main/resources/crawlspace.png)
+
 **Procedural roguelike dungeons for NeoForge — for everyone who misses
 Roguelike Dungeons and Dungeon Crawl.**
 
@@ -41,3 +43,16 @@ character's Wisdom spots them, and disarming is a Dexterity roll (dwarves are
 good at it). Other RPG mods can plug their own checks into `CrawlSpaceApi`.
 
 Minecraft 1.21.11, 26.1.2, 26.2 and 26.3 (NeoForge). MIT licensed.
+
+## Gallery
+
+![A whole dungeon, cut away](docs/images/cutaway-whole-dungeon.jpg)
+
+| | |
+|---|---|
+| ![The keep](docs/images/tower-keep.jpg) | ![The pyramid](docs/images/tower-pyramid.jpg) |
+| ![The temple](docs/images/tower-temple.jpg) | ![The round tower](docs/images/tower-round.jpg) |
+| ![The Old Mines](docs/images/old-mines-hall.jpg) | ![A cavern pool](docs/images/cavern-pool.jpg) |
+| ![Crypt over Sunken Halls](docs/images/cutaway-crypt-over-sunken-halls.jpg) | ![A Caverns level](docs/images/cutaway-caverns.jpg) |
+
+![Every level of one dungeon, as planned](docs/images/plan-sheet.png)
