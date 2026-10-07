@@ -196,8 +196,9 @@ it off.
 - **Visibility is decided at placement.** `Palettes` builds a real trap's part
   as its plate only when no perception provider is registered
   (`CrawlConfig.trapsVisible()`), and as air otherwise. Decoys always show.
-  A trap on a corridor step keeps its stair and stays hidden; that is 22 of
-  987 over the test's 30 dungeons.
+  A trap that lands on a corridor step's stair moves to the nearest clear
+  flat cell within three (`Blueprinter.flatSpot`), or is left out, so every
+  trap can be seen. Before this, 22 of 987 stayed hidden.
 - **Revealed for everyone.** When a player notices a trap, `Triggers.reveal`
   places its plate or wire in the world. It is a real block, not a per-player
   fake, so breaking it is an ordinary block event, and a party can point it
@@ -496,6 +497,17 @@ export JAVA_HOME=/home/sable/.gradle/jdks/eclipse_adoptium-21-amd64-linux.2
 
 Never report success from a command that prints it unconditionally; grep the
 output for `error:|FAIL`.
+
+## Artwork
+
+Sable's logos (2026-10-07) are in `art/`, with full-size originals on solid
+black. `src/main/resources/crawlspace-icon.png` (256px square) and
+`crawlspace.png` (the nameplate, 1100px wide) are cut from them with the black
+cleared. The mods.toml template declares `iconFile`, `bannerFile` and
+`logoFile`, as LegendQuest does. The cut flood-fills the background from the
+edge after closing gaps in the outline. A plain flood fill leaked through
+WadCraft's open badge and holed the dark panel behind its letters; the closing
+is what stopped that. `art/` is on `main` only.
 
 ## Licence: MIT, so ideas only from GPL sources
 
