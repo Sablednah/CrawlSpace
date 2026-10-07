@@ -387,9 +387,10 @@ class BlueprintTest {
                 Part part = code == 0 ? Part.AIR : Blueprint.part(code);
                 if (t.kind().isTrap()) {
                     traps++;
-                    assertTrue(part == Part.TRAP_PLATE || part == Part.TRAP_WIRE || part == Part.STEP,
+                    // Every trap, step or not: one on a stair moves to flat floor or is left out.
+                    assertTrue(part == Part.TRAP_PLATE || part == Part.TRAP_WIRE,
                             "seed " + seed + ": trap at " + t.x() + "," + t.z() + " carries " + part);
-                    shown += part == Part.STEP ? 0 : 1;
+                    shown++;
                 } else if (t.kind() == Trigger.Kind.DECOY) {
                     decoys++;
                     assertTrue(part == Part.DECOY_PLATE || part == Part.DECOY_WIRE, "seed " + seed + ": decoy carries " + part);
@@ -411,7 +412,7 @@ class BlueprintTest {
             });
         }
         System.out.println("traps: " + traps + " (" + shown + " with a plate or wire), " + decoys + " decoys over 30 dungeons");
-        assertTrue(shown > traps * 0.8 && decoys >= traps * 0.8, traps + " traps, " + shown + " shown, " + decoys + " decoys");
+        assertTrue(shown == traps && traps > 900 && decoys >= traps * 0.8, traps + " traps, " + shown + " shown, " + decoys + " decoys");
     }
 
     /** ...and that check notices a doorway blocked by a barrel. */
