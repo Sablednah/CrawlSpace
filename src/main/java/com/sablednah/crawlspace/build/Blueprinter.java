@@ -660,7 +660,12 @@ public final class Blueprinter {
         int f = floorAt(plan, i, cx, cz);
         // Which puzzle. Deeper levels may be a leap of faith (from level 3), and an ordinary maze
         // grows gaps to jump (from level 2), crumbling blocks and dripleaf (from level 2).
-        boolean leap = i >= 2 && dice.chance(LEAP_CHANCE) && f - 3 >= bp.minY && roomFree(bp, r, floor, f - 3, f - 2);
+        // The void sits a block below the paths, with air above it, wherever there is room for it: a
+        // player standing at a path's edge has their centre over the next column, and with the void
+        // right there that sent them back (Sable could not cross a room). Otherwise the void takes the
+        // floor block's place, as at first.
+        boolean sunk = f - 3 >= bp.minY && roomFree(bp, r, floor, f - 3, f - 2);
+        boolean leap = i >= 2 && dice.chance(LEAP_CHANCE) && sunk;
         double gaps = leap ? 0 : Math.min(0.35, 0.08 * (i - 0.5));
         double crumble = leap ? 0 : Math.min(0.25, 0.06 * (i - 0.5));
         double leaves = leap ? 0 : Math.min(0.15, 0.04 * (i - 0.5));
@@ -691,6 +696,8 @@ public final class Blueprinter {
                     if (leap) {
                         bp.set(x, f - 2, z, Part.VOID, 0, i);
                         bp.set(x, f - 3, z, Part.FLOOR, 0, i);
+                    } else if (sunk) {
+                        bp.set(x, f - 2, z, Part.FLOOR, 0, i);
                     }
                 } else if (leap) {
                     // Everything shows void, a block lower; the path is invisible over it.
@@ -698,9 +705,18 @@ public final class Blueprinter {
                     bp.set(x, f - 2, z, Part.VOID, 0, i);
                     bp.set(x, f - 3, z, Part.FLOOR, 0, i);
                 } else if (!path.contains(k)) {
-                    bp.set(x, f - 1, z, Part.VOID, 0, i);
+                    if (sunk) {
+                        bp.set(x, f - 1, z, Part.AIR, 0, i);
+                        bp.set(x, f - 2, z, Part.VOID, 0, i);
+                        bp.set(x, f - 3, z, Part.FLOOR, 0, i);
+                    } else {
+                        bp.set(x, f - 1, z, Part.VOID, 0, i);
+                    }
                 } else if (!fixed.test(k) && dice.chance(crumble)) {
                     bp.set(x, f - 1, z, Part.CRUMBLE, 0, i);
+                    if (sunk) {
+                        bp.set(x, f - 2, z, Part.FLOOR, 0, i);
+                    }
                 } else if (!fixed.test(k) && f - 2 >= bp.minY && roomFree(bp, x, z, f - 2) && dice.chance(leaves)) {
                     int facing = 0;
                     for (int d = 0; d < 4; d++) {
@@ -710,6 +726,8 @@ public final class Blueprinter {
                     }
                     bp.set(x, f - 1, z, Part.DRIPLEAF, facing, i);
                     bp.set(x, f - 2, z, Part.MOSS_FLOOR, 0, i);
+                } else if (sunk) {
+                    bp.set(x, f - 2, z, Part.FLOOR, 0, i); // under a plain path block, beside the sunken void
                 }
             }
         }
