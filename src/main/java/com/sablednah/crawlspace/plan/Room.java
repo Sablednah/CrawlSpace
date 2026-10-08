@@ -11,7 +11,8 @@ package com.sablednah.crawlspace.plan;
 public final class Room {
 
     public final int id;
-    public final Role role;
+    /** Final but for one change: a finished ROOM may become a PUZZLE (Planner.puzzleRooms). */
+    public Role role;
     public final Shape shape;
     public final int w;
     public final int h;

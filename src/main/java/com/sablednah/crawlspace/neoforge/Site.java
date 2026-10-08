@@ -32,7 +32,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public record Site(long seed, int levels, int top, String style, BlockPos origin, int planner) {
 
     /** Bump whenever a planner or blueprint change would alter an existing seed's dungeon. */
-    public static final int PLANNER_VERSION = 4; // 2: stairs with landings; 3: dressing, encounters, loot
+    public static final int PLANNER_VERSION = 5; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms
 
     /**
      * A plan and its blueprint, built once and shared by every chunk that asks.

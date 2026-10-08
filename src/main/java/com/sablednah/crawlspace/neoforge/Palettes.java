@@ -290,6 +290,8 @@ public final class Palettes {
             m.put("table_top", m.remove("plate"));
             m.put("trap_plate", Mix.of(PLATES.getOrDefault(theme, Blocks.STONE_PRESSURE_PLATE), 1));
             m.put("trap_wire", Mix.of(Blocks.TRIPWIRE, 1));
+            m.put("puzzle_void", Mix.of(Blocks.END_PORTAL, 1));
+            m.put("puzzle_restart", Mix.of(Blocks.CRYING_OBSIDIAN, 1));
             DEFAULT_SKINS.put(theme, m);
         }
         STYLES.forEach((style, st) -> {
@@ -492,6 +494,8 @@ public final class Palettes {
             case TRAP_WIRE -> CrawlConfig.trapsVisible() ? trapBlock(theme, true) : Blocks.AIR.defaultBlockState();
             case DECOY_PLATE -> trapBlock(theme, false);
             case DECOY_WIRE -> trapBlock(theme, true);
+            case VOID -> b.apply("puzzle_void");
+            case RESTART -> b.apply("puzzle_restart");
             default -> b.apply(part.name().toLowerCase(java.util.Locale.ROOT));
         };
     }
