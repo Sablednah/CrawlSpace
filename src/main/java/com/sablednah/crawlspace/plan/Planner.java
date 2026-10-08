@@ -37,7 +37,44 @@ public final class Planner {
                 arrival = level.stairsDown.get(0);
             }
         }
+        // Puzzle rooms last, from their own dice, once pits and second stairs are in: so adding them
+        // moved no wall, room or role anywhere else.
+        for (int i = 0; i < out.size(); i++) {
+            puzzleRoom(out.get(i), Dice.of(seed, i, 0x9022EL));
+        }
         return new DungeonPlan(seed, LEVEL_SPACING, DungeonPlan.MIN_TOP, out);
+    }
+
+    /** How often a level gets a puzzle room, where it has a room that suits one. */
+    static final double PUZZLE_CHANCE = 0.45;
+
+    /**
+     * Turns one plain rectangular room, all open floor, 7 to 17 cells a side,
+     * into a puzzle room. Its doorways stay where they are: the maze is built
+     * to meet them.
+     */
+    static void puzzleRoom(LevelPlan level, Dice dice) {
+        if (!dice.chance(PUZZLE_CHANCE)) {
+            return;
+        }
+        List<Room> candidates = new ArrayList<>();
+        for (Room r : level.rooms) {
+            if (r.role != Role.ROOM || r.shape != Shape.RECT || Math.min(r.w, r.h) < 7 || Math.max(r.w, r.h) > 17) {
+                continue;
+            }
+            boolean open = true;
+            for (int x = r.minX(); x <= r.maxX() && open; x++) {
+                for (int z = r.minZ(); z <= r.maxZ() && open; z++) {
+                    open = !r.contains(x, z) || level.cell(x, z) == Cell.FLOOR;
+                }
+            }
+            if (open && level.cell(r.centerX(), r.centerZ()) == Cell.FLOOR) {
+                candidates.add(r);
+            }
+        }
+        if (!candidates.isEmpty()) {
+            candidates.get(dice.nextInt(candidates.size())).role = Role.PUZZLE;
+        }
     }
 
     /**

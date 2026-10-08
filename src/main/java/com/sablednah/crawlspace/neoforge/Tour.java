@@ -21,7 +21,7 @@ final class Tour {
 
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
-            "treasure", "secret", "key", "room", "lever", "trap", "decoy", "secretdoor", "locked");
+            "treasure", "secret", "key", "room", "lever", "trap", "decoy", "secretdoor", "locked", "puzzle");
 
     private Tour() {
     }

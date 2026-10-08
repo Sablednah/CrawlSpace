@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 — unreleased
+
+- **Puzzle rooms.** Some levels turn a plain room into a maze of one-wide paths over the void. Step off the path and the void throws you back to a restart block at the centre. Paths lead to every doorway, and the deepest dead end holds a hoard chest. Nothing on the way needs a jump.
+- **With LegendQuest** (2.9.1 or newer), stepping off is an Athletics (Strength) check: pass and you catch yourself on the block you last stood on.
+- `CrawlSpaceApi`: `Perception.recovers(player, depth)`, optional, for that check. Mods that registered before it keep working.
+- Datapacks: the roles `puzzle_void` (end portal by default) and `puzzle_restart` (crying obsidian).
+
 ## 0.1.0 — 2026-10-07
 
 The first version.

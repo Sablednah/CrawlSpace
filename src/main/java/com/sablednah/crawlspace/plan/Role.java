@@ -24,7 +24,13 @@ public enum Role {
     /** A quiet room: a pool, an altar. */
     SHRINE('W'),
     /** Holds the lever for the level's locked door. */
-    KEY('K');
+    KEY('K'),
+    /**
+     * A maze over the void: one-wide paths from a restart block at the centre
+     * to every doorway and to a hoard chest. Step off and you are sent back.
+     * Chosen after the level is planned, from its own dice (see Planner).
+     */
+    PUZZLE('P');
 
     public final char letter;
 

@@ -211,6 +211,52 @@ it off.
 - `Dresser` keeps props, rugs and mine frames off plates. The new test
   `trapsAndDecoysHaveTheirPlates` caught both overwrites.
 
+## Puzzle rooms (Sable, 2026-10-08)
+
+Sable's brief was a parkour-style maze: the floor off the path looks like
+end-portal void, and touching it sends you to a restart block at the centre.
+Paths lead to the exits and one to a loot chest. With LegendQuest, an
+Athletics check sends you to the block you last touched instead.
+
+- **Chosen after everything else, from its own dice.** `Planner.puzzleRoom`
+  runs once pits and second stairs are in. It turns one ROOM into a PUZZLE:
+  rectangular, all open floor, 7 to 17 a side, on 45% of levels. Rooms are
+  created with their role, so `Room.role` is no longer final, for this one
+  change. No wall, room or other role moves. The trap and decoy counts in
+  the tests are identical before and after.
+- **The maze** (`Blueprinter.maze`) is a depth-first spanning tree over
+  every other cell, grown from the centre. Each way in (a room cell beside
+  walkable floor outside the room) joins it by the shortest path. The
+  deepest remaining dead end gets a HOARD_CHEST, facing back along the
+  path. Every other floor cell becomes `Part.VOID` **in place of the floor
+  block** (y = floor - 1), with solid below. The end portal's surface then
+  sits a quarter-block under the path, so it reads as sunken. Its inside
+  shape is below a player standing on the path, so walking the edge is safe.
+- **Paths are one wide and walkable: no jumps**, keeping Sable's standing
+  rule. Sneaking stops you walking off an edge, as in vanilla.
+- **The void is a real `end_portal`** for the look. So `Triggers.onTravel`
+  cancels `EntityTravelToDimensionEvent` to the End for anything inside a
+  dungeon. A diamond and a pig dropped in stayed in the Overworld (rig,
+  2026-10-08). Players are moved by the tick first: a foot in the void, or
+  on it if a datapack made it solid, means a check, then a move.
+- **Catching yourself:** `Perception.recovers` is a default method (false),
+  so older providers still compile and run. LegendQuest answers with an
+  Athletics (STR) roll against 10 + level and always shows it. A pass goes
+  to `LAST_SAFE`, the last path block stood on, if within 3. Otherwise the
+  player goes to the room's `Trigger.Kind.PUZZLE` (the restart block).
+  `/crawlspace perception always|never` drives this too.
+- Dressing, monsters, traps and decoys stay out of puzzle rooms.
+- **Tests:** `puzzleRoomsAreSolvable` walks every puzzle room from its restart
+  block over path cells only, in 40 dungeons of 6 levels (66 rooms): every
+  way in is reached, and the chest stands beside a reached cell.
+  `noticesACutOffPuzzleDoor` voids one doorway's first step and expects
+  that walk to complain, which proves it can fail. The reachability walk
+  treats the void as a wall.
+- Seen on the rig: the maze, the void, the restart block and the chest. A
+  LegendQuest roll against 14 failed and went to the centre. The stand-in
+  `always` caught and `never` went to the centre.
+- `PLANNER_VERSION` is 5: puzzle rooms change what a seed builds.
+
 ## Datapacks (2026-10-07)
 
 `ThemeData` (a `ResourceManagerReloadListener`, registered on

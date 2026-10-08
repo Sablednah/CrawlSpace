@@ -332,7 +332,7 @@ class BlueprintTest {
                         continue;
                     }
                     int f = Blueprinter.floorY(plan, i) + level.height(x, z);
-                    if (!passable(bp.get(x, f, z))) {
+                    if (!passable(bp.get(x, f, z)) || isVoid(bp.get(x, f - 1, z))) {
                         continue;
                     }
                     seen[x + lim][z + lim] = true;
@@ -413,6 +413,139 @@ class BlueprintTest {
         }
         System.out.println("traps: " + traps + " (" + shown + " with a plate or wire), " + decoys + " decoys over 30 dungeons");
         assertTrue(shown == traps && traps > 900 && decoys >= traps * 0.8, traps + " traps, " + shown + " shown, " + decoys + " decoys");
+    }
+
+    private static boolean isVoid(int code) {
+        return code != 0 && Blueprint.part(code) == Part.VOID;
+    }
+
+    /**
+     * Each puzzle room, walked from its restart block over path cells only:
+     * every way in is reached, the hoard chest stands beside a reached cell,
+     * and there is void to fall into. {@code extraVoid} treats more cells as
+     * void, which is how the test below proves the walk can fail.
+     */
+    static List<String> puzzleProblems(DungeonPlan plan, Blueprint bp, java.util.Set<Long> extraVoid) {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < plan.levels().size(); i++) {
+            LevelPlan level = plan.levels().get(i);
+            for (com.sablednah.crawlspace.plan.Room r : level.rooms) {
+                if (r.role != com.sablednah.crawlspace.plan.Role.PUZZLE) {
+                    continue;
+                }
+                int cx = r.centerX();
+                int cz = r.centerZ();
+                int f = Blueprinter.floorY(plan, i) + level.height(cx, cz);
+                String where = "level " + i + " puzzle at " + cx + "," + cz;
+                if (bp.get(cx, f - 1, cz) == 0 || Blueprint.part(bp.get(cx, f - 1, cz)) != Part.RESTART) {
+                    out.add(where + ": no restart block at the centre");
+                }
+                java.util.Set<Long> seen = new java.util.HashSet<>();
+                java.util.ArrayDeque<int[]> q = new java.util.ArrayDeque<>();
+                q.add(new int[] {cx, cz});
+                seen.add(((long) cx << 32) ^ (cz & 0xffffffffL));
+                int voids = 0;
+                while (!q.isEmpty()) {
+                    int[] c = q.poll();
+                    for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                        int x = c[0] + d[0];
+                        int z = c[1] + d[1];
+                        long k = ((long) x << 32) ^ (z & 0xffffffffL);
+                        if (!r.contains(x, z) || seen.contains(k) || extraVoid.contains(k)
+                                || isVoid(bp.get(x, f - 1, z)) || !passable(bp.get(x, f, z))) {
+                            continue;
+                        }
+                        seen.add(k);
+                        q.add(new int[] {x, z});
+                    }
+                }
+                boolean chest = false;
+                for (int x = r.minX(); x <= r.maxX(); x++) {
+                    for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                        if (!r.contains(x, z)) {
+                            continue;
+                        }
+                        voids += isVoid(bp.get(x, f - 1, z)) ? 1 : 0;
+                        int code = bp.get(x, f, z);
+                        boolean entrance = false;
+                        boolean besideSeen = false;
+                        for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                            int ox = x + d[0];
+                            int oz = z + d[1];
+                            entrance |= !r.contains(ox, oz) && level.cell(ox, oz).isWalkable();
+                            besideSeen |= seen.contains(((long) ox << 32) ^ (oz & 0xffffffffL));
+                        }
+                        if (entrance && !seen.contains(((long) x << 32) ^ (z & 0xffffffffL))) {
+                            out.add(where + ": the way in at " + x + "," + z + " is not on the maze");
+                        }
+                        if (code != 0 && Blueprint.part(code) == Part.HOARD_CHEST) {
+                            chest = true;
+                            if (!besideSeen) {
+                                out.add(where + ": the chest at " + x + "," + z + " cannot be reached");
+                            }
+                        }
+                    }
+                }
+                if (!chest) {
+                    out.add(where + ": no chest");
+                }
+                if (voids < 8) {
+                    out.add(where + ": only " + voids + " void cells");
+                }
+            }
+        }
+        return out;
+    }
+
+    /** Puzzle rooms appear, and every one is a maze that joins all its doorways and its chest. */
+    @Test
+    void puzzleRoomsAreSolvable() {
+        int rooms = 0;
+        for (long seed = 0; seed < 40; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 6);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            List<String> problems = puzzleProblems(plan, bp, java.util.Set.of());
+            assertTrue(problems.isEmpty(), "seed " + seed + ": " + problems);
+            for (LevelPlan level : plan.levels()) {
+                for (com.sablednah.crawlspace.plan.Room r : level.rooms) {
+                    rooms += r.role == com.sablednah.crawlspace.plan.Role.PUZZLE ? 1 : 0;
+                }
+            }
+        }
+        System.out.println("puzzle rooms: " + rooms + " over 40 dungeons of 6 levels");
+        assertTrue(rooms >= 20, rooms + " puzzle rooms");
+    }
+
+    /** ...and that walk notices a doorway cut off: the void put on the first step in from a door. */
+    @Test
+    void noticesACutOffPuzzleDoor() {
+        for (long seed = 0; seed < 40; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 6);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            for (LevelPlan level : plan.levels()) {
+                for (com.sablednah.crawlspace.plan.Room r : level.rooms) {
+                    if (r.role != com.sablednah.crawlspace.plan.Role.PUZZLE) {
+                        continue;
+                    }
+                    for (int x = r.minX(); x <= r.maxX(); x++) {
+                        for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                            for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                                if (r.contains(x, z) && !r.contains(x + d[0], z + d[1])
+                                        && level.cell(x + d[0], z + d[1]).isWalkable()
+                                        && (x != r.centerX() || z != r.centerZ())) {
+                                    List<String> problems = puzzleProblems(plan, bp,
+                                            java.util.Set.of(((long) x << 32) ^ (z & 0xffffffffL)));
+                                    assertTrue(problems.stream().anyMatch(m -> m.contains("not on the maze")),
+                                            "a void on the way in at " + x + "," + z + " went unnoticed: " + problems);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        throw new AssertionError("no puzzle room with a doorway in 40 dungeons");
     }
 
     /** ...and that check notices a doorway blocked by a barrel. */

@@ -214,6 +214,9 @@ public final class Triggers {
         if (player.tickCount % 10 == 0 && !player.isCreative()) {
             wake(level, player, here.site());
         }
+        if (!player.isCreative() && puzzle(level, player, here.site(), feet)) {
+            return;
+        }
         // Hints show however you move; traps want a foot on the tile.
         if (!player.onGround()) {
             return;
@@ -400,8 +403,90 @@ public final class Triggers {
         }
     }
 
+    /** Per player: the last puzzle-room path block they stood on, for a caught stumble. */
+    private static final Map<UUID, BlockPos> LAST_SAFE = new HashMap<>();
+
+    /**
+     * Puzzle rooms: a foot on the void (in it, or on it if a datapack made it
+     * solid) sends the player back. A perception mod may let them catch
+     * themselves, and they are put on the last path block they stood on;
+     * otherwise, or without one, they go to the restart block at the centre.
+     * Returns true when it moved them.
+     */
+    private static boolean puzzle(ServerLevel level, ServerPlayer player, Site site, BlockPos feet) {
+        BlockPos o = site.origin();
+        com.sablednah.crawlspace.build.Blueprint bp = site.built().blueprint();
+        int fx = feet.getX() - o.getX();
+        int fy = feet.getY() - o.getY();
+        int fz = feet.getZ() - o.getZ();
+        boolean onVoid = isVoid(bp.get(fx, fy, fz)) || isVoid(bp.get(fx, fy - 1, fz));
+        if (!onVoid) {
+            if (player.onGround()) {
+                int below = bp.get(fx, fy - 1, fz);
+                Trigger t = nearestPuzzle(site, fx, fy, fz);
+                if (t != null && below != 0) {
+                    LAST_SAFE.put(player.getUUID(), feet);
+                }
+            }
+            return false;
+        }
+        Trigger centre = nearestPuzzle(site, fx, fy, fz);
+        if (centre == null) {
+            return false;
+        }
+        BlockPos safe = LAST_SAFE.get(player.getUUID());
+        boolean caught = safe != null && safe.distSqr(feet) <= 9
+                && com.sablednah.crawlspace.api.CrawlSpaceApi.perception().map(p -> p.recovers(player, centre.level())).orElse(false);
+        BlockPos to = caught ? safe : o.offset(centre.x(), centre.y(), centre.z());
+        player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+        player.resetFallDistance();
+        player.teleportTo(level, to.getX() + 0.5, to.getY(), to.getZ() + 0.5, java.util.Set.of(), player.getYRot(), player.getXRot(), false);
+        level.sendParticles(net.minecraft.core.particles.ParticleTypes.PORTAL, to.getX() + 0.5, to.getY() + 1, to.getZ() + 0.5, 30, 0.3, 0.6, 0.3, 0.2);
+        level.playSound(null, to, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, caught ? 1.4f : 0.8f);
+        tell(player, caught ? "You catch yourself at the edge of the void."
+                : "The void throws you back to the centre. Find the path to a door, or to the chest.");
+        return true;
+    }
+
+    private static boolean isVoid(int code) {
+        return code != 0 && com.sablednah.crawlspace.build.Blueprint.part(code) == com.sablednah.crawlspace.build.Part.VOID;
+    }
+
+    /** The restart point of the puzzle room around a blueprint position: within its level, the nearest. */
+    private static Trigger nearestPuzzle(Site site, int x, int y, int z) {
+        Trigger best = null;
+        int bestD = 20 * 20;
+        for (Trigger t : site.built().blueprint().triggers()) {
+            if (t.kind() != Trigger.Kind.PUZZLE || Math.abs(t.y() - y) > 3) {
+                continue;
+            }
+            int d = (t.x() - x) * (t.x() - x) + (t.z() - z) * (t.z() - z);
+            if (d < bestD) {
+                bestD = d;
+                best = t;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * The void is a real end portal block, for its look, so nothing inside a
+     * dungeon may use one to leave: mobs and dropped items would otherwise
+     * fall through to the End. Players never get this far; the tick above
+     * moves them first.
+     */
+    public static void onTravel(net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent e) {
+        if (e.getDimension() != net.minecraft.world.level.Level.END || !(e.getEntity().level() instanceof ServerLevel level)) {
+            return;
+        }
+        if (Dungeons.at(level, e.getEntity().blockPosition()).isPresent()) {
+            e.setCanceled(true);
+        }
+    }
+
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent e) {
         HERE.remove(e.getEntity().getUUID());
+        LAST_SAFE.remove(e.getEntity().getUUID());
         NOTICED.remove(e.getEntity().getUUID());
     }
 
