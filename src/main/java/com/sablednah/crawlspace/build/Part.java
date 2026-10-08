@@ -142,5 +142,10 @@ public enum Part {
     /** A pressure plate that does nothing, always shown. */
     DECOY_PLATE,
     /** A tripwire that does nothing, always shown. */
-    DECOY_WIRE
+    DECOY_WIRE,
+    // ---- puzzle rooms ----
+    /** The void around a puzzle room's maze, in place of a floor block. Touch it and you are sent back. */
+    VOID,
+    /** The block at a puzzle room's centre that the void sends you back to; a floor block. */
+    RESTART
 }

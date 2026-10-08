@@ -25,7 +25,9 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         /** A lair's boss and its followers; the first target is the boss's place. */
         BOSS,
         /** Not a trigger: a plate or wire that does nothing, kept here so dressing leaves it alone. */
-        DECOY;
+        DECOY,
+        /** A puzzle room's restart point, on its centre block: where the void sends you. */
+        PUZZLE;
 
         public boolean isTrap() {
             return this == DARTS || this == GAS;
