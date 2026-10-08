@@ -119,6 +119,122 @@ nave. It holds the lair boss or the stairs down, and the level's best loot.
   the level to it. It is the natural target for foreshadowing windows, and
   for the boss's deliberate summon.
 
+## 2b. Objective rooms, after Warhammer Quest (2026-10-09)
+
+This comes from the Warhammer Quest Adventure Book (Games Workshop, 1995),
+which Sable supplied. Its five objective rooms (Fighting Pit, Firechasm,
+Fountain of Light, Tomb Chamber, Idol Chamber) each carry six different
+objectives. That is 30 adventures from 5 set pieces, and it is what
+CrawlSpace's objective rooms want to be: **a small number of grand rooms,
+each with a list of jobs that can be done in it.** Both lists are data.
+
+### How the book's rules carry over
+
+- **It is always deep.** The objective card is shuffled in with six dungeon
+  cards and six more go on top, so it can never be found early. For us it
+  goes in the far half of the level's graph from the entry.
+- **It has its own horde.** Entering it does not wake an ordinary room; it
+  rolls on an Objective Room Monster Table, a bigger mixed group.
+- **Finishing the objective opens the way on.** It is never a door that
+  was there all along:
+  - a secret door behind the statue;
+  - a trapdoor in the plinth;
+  - a tapestry burnt away;
+  - the ceiling collapsing to daylight.
+
+  For us that is the stairs down, so **the objective is what gates the next
+  level**, rather than "find the exit".
+- **Unfinished means pressure.** While the gate stays open, the tomb stays
+  unbroken or the idol stays standing, more monsters keep coming. Some
+  objectives have a clock (1D6 or 2D6 turns): a boss bar counting down.
+- **Something is carried in.** A casket from the first room, a gem, a ring,
+  a staff, a barrel. Carrying the barrel slows you, and drinking from it
+  helps but leaves too little to finish the job. A vanilla item with
+  `custom_data` (see the portcullis key) is all this needs.
+- **Finishing changes the way back** (the "altered return" cycle):
+  - the room collapses with two turns to get out;
+  - a new door opens onto 1D6+2 fresh rooms to fight through to the surface;
+  - smashing the idol makes every monster nearby flee, so the walk out is safe.
+- **Some jobs need a particular hero.** "Only the Dwarf can throw the ring";
+  "only the Wizard can seal the gate". With LQ that is a race or class, and
+  without it anyone can do it.
+- **Some checks are a party sum.** Overturning the idol needs everyone's
+  1D6 plus Strength to reach 24; the battle of wills needs everyone's dice
+  to total 13. With LQ that is a group check. Without it, it is a number of
+  players, or the same work done slowly alone.
+- **Each room has a line to read aloud at its door:** "A chill breeze blows
+  out from this room, and you can just make out a set of stairs leading up to
+  a stone slab". We send it to chat as you reach the doorway, so the room
+  announces itself before you step in.
+
+### The five rooms, and jobs for each
+
+**Fighting Pit.** A sunken arena under one hanging lantern.
+- Each player who drops in brings a champion up beside them, at most three.
+  When the first champion dies, they all vanish. Treasure lies on the pit
+  floor, and the trapdoor at the bottom is the way down.
+- A guardian that stays in the pit unless it is shot at, so shooting from
+  the rim is a choice with a cost.
+- A gate in the pit spews monsters until it is sealed. Sealing is an
+  attempt every few seconds, and a bad roll undoes it.
+- Prisoners in the cells beneath, freed for a reward.
+
+**Firechasm.** Lava, an old rope bridge, and a dragon statue on the far side.
+- The bridge is the hazard: `Crumbles` planks, and **LQ:** DEX or Athletics
+  to cross without slipping. A slip burns you, drops something you carry, or
+  leaves you swinging back to the side you started on.
+- **Throw the relic into the fire.** The room starts to collapse, a secret
+  door opens behind the dragon, and a boss-bar countdown runs.
+- **Destroy the bridge behind you.** Waves keep arriving on the near side
+  until its blocks are broken.
+- **Return the dragon's eye.** Set a gem in the statue's socket (an item
+  frame) and a trapdoor in the plinth opens on the hoard.
+- **Stop the engineer.** A mob on the far side runs for a lever, and you
+  have until the countdown ends to reach him.
+
+**Fountain of Light.** A glowing pool: water, light blocks, gargoyle heads.
+- **Pour in what you carried** and the water flows again, which opens the door.
+- **Cleanse it.** Remove the corrupted blocks in the basin. Each costs the
+  player who takes it health, and nobody may take two.
+- **Drink once.** Usually a full heal; rarely it burns you from inside. The
+  odds are posted beside it.
+- **Look once.** It shows something: the direction of the next level's lair,
+  or of the key room.
+- **Fill a bottle and carry it out.** Leaning on a gargoyle as you fill it
+  slides a door open.
+
+**Tomb Chamber.** Steps up to a stone slab.
+- **Lay relics on the lid**, gathered on the way. Each attempt may summon a
+  wave; once a try summons nothing, the spirit is laid.
+- **Lift the lid.** The boss rises, unless a party check (**LQ:** WIS)
+  pins it first.
+- **The key is in the tomb, and the chest is in the first room.** You walk
+  back through the cleared level to open it. This is Sable's portcullis and
+  key run in reverse, and rooms already cleared stay quiet on the way back.
+- **Break the tomb**, a block with a lot of health. While it stands, events
+  keep coming.
+
+**Idol Chamber.** Steps up to an idol at the far end.
+- **Rescue the captive before the rite.** A chance every minute that it is
+  too late, heard as screams down the corridors, and the room turns to
+  vengeance.
+- **Overturn the idol** as a party (**LQ:** a summed STR check). Smash it
+  and every monster on the level flees.
+- **Kill the shaman.** He keeps away from you and casts from range.
+- **Stop the summoning.** Kill the channeller before the timer ends, or he
+  becomes the boss.
+- **Wrest the sword from its hand** (**LQ:** STR). Failing, the idol strikes
+  you.
+
+### Smaller things from the same book
+
+- **Fleeing has a price.** Its Escaping table makes leaving mid-adventure a
+  gamble: lost gold, wounds, wandering in a circle back to your friends. That
+  suits a "flee" lever or a recall item.
+- **Monster tables are mixed groups**, such as a Minotaur with orcs and
+  archers, or bats, spiders and rats together. They read as warbands rather
+  than singletons.
+
 ## 3. Puzzles proven on vanilla clients
 
 Hypixel's Catacombs runs about ten puzzles for unmodded clients, all
