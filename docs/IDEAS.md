@@ -81,6 +81,25 @@ must be somewhere on this level", or with LQ the direction of the chest.
 - **LQ:** a STR check lifts the portcullis partway: a crawl gap under it, with
   a slower and riskier way through.
 
+**Portcullis trap** (Sable; S). The same portcullis, open, over a doorway
+or a corridor. It slams down once you have walked through, with a clang and
+dust, sealing the way back. It is the "blocked retreat" cycle in a single
+block.
+
+- **What is behind it:**
+  - an ambush, where the room wakes as the bars fall;
+  - a survival room: hold out until the timer runs out;
+  - nothing at all: just a longer way round.
+- **The way out is always named:** "The portcullis has fallen behind you.
+  A lever must raise it from somewhere ahead." A winch lever further on
+  raises it again, and once the room is clear a timer raises it anyway.
+- **Being under it as it falls** pushes you forward, never traps you
+  inside a block.
+- **In multiplayer** it splits the party. With LQ, a STR check heaves it up
+  so the others can roll under.
+- **Spotting it:** score marks on the floor where the bars land. With LQ, a
+  WIS notice sees it before you cross, as with plates.
+
 **Objective rooms** (Advanced HeroQuest's quest room; M–L). Each level's
 climax is a big, fancy, purpose-built room, not just a larger room of the
 usual kind: a throne room with a dais and banners, a flooded temple with an
