@@ -729,7 +729,30 @@ public final class LevelPlanner {
                     // higher, and a step up into a two-high doorway cannot be jumped: your head hits the
                     // lintel (Sable, at an open door he could not walk through).
                     level.setHeight(x, z, doorRoomFloor(level, x, z));
-                } else if (reg == LevelPlan.CORRIDOR) {
+                }
+            }
+        }
+        // Corridor cells, in a second pass so every doorway's height is known. One beside a doorway
+        // is held level with it, an apron: a stair next to a door cannot be climbed either way (Sable,
+        // seed 774, a stair outside a door that blocked it), so the first step must be a cell further on.
+        java.util.Set<Long> apron = new java.util.HashSet<>();
+        int[][] four = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        for (int x = -lim; x <= lim; x++) {
+            for (int z = -lim; z <= lim; z++) {
+                if (level.region(x, z) != LevelPlan.CORRIDOR || level.cell(x, z).isDoor()) {
+                    continue;
+                }
+                Integer door = null;
+                for (int[] d : four) {
+                    if (level.cell(x + d[0], z + d[1]).isDoor()) {
+                        door = level.height(x + d[0], z + d[1]);
+                        break;
+                    }
+                }
+                if (door != null) {
+                    level.setHeight(x, z, door);
+                    apron.add(key(x, z));
+                } else {
                     free.add(new int[] {x, z});
                     level.setHeight(x, z, 0);
                 }
@@ -759,7 +782,7 @@ public final class LevelPlanner {
                     if (reg >= 0) {
                         fixedSum[i] += level.room(reg).floor;
                         count[i]++;
-                    } else if (level.cell(x, z).isDoor()) {
+                    } else if (level.cell(x, z).isDoor() || apron.contains(key(x, z))) {
                         fixedSum[i] += level.height(x, z);
                         count[i]++;
                     } else if (reg == LevelPlan.CORRIDOR) {
