@@ -207,7 +207,8 @@ class BlueprintTest {
             if (t.kind().isTrap()) {
                 int below = bp.get(t.x(), t.y() - 1, t.z());
                 Part p = below == 0 ? null : Blueprint.part(below);
-                if (p != Part.FLOOR && p != Part.CORRIDOR_FLOOR && p != Part.FLOOR_ACCENT && p != Part.FLOOR_INLAY) {
+                if (t.kind() == Trigger.Kind.PIT ? p != Part.PIT_TILE
+                        : p != Part.FLOOR && p != Part.CORRIDOR_FLOOR && p != Part.FLOOR_ACCENT && p != Part.FLOOR_INLAY) {
                     out.add("trap at " + t.x() + "," + t.y() + "," + t.z() + " is not on a floor");
                 }
             }
@@ -332,7 +333,19 @@ class BlueprintTest {
                         continue;
                     }
                     int f = Blueprinter.floorY(plan, i) + level.height(x, z);
-                    if (!passable(bp.get(x, f, z)) || isVoid(bp.get(x, f - 1, z))) {
+                    if (!passable(bp.get(x, f, z))) {
+                        continue;
+                    }
+                    if (noFloor(bp.get(x, f - 1, z))) {
+                        // A one-block gap in a puzzle room: jump it, straight on, to floor at the same height.
+                        int jx = x + d[0];
+                        int jz = z + d[1];
+                        if (LevelPlan.inBounds(jx, jz) && !seen[jx + lim][jz + lim] && level.cell(jx, jz).isWalkable()
+                                && level.height(jx, jz) == level.height(x, z) && passable(bp.get(jx, f, jz))
+                                && !noFloor(bp.get(jx, f - 1, jz))) {
+                            seen[jx + lim][jz + lim] = true;
+                            queue.add(new int[] {jx, jz});
+                        }
                         continue;
                     }
                     seen[x + lim][z + lim] = true;
@@ -378,6 +391,7 @@ class BlueprintTest {
         int traps = 0;
         int shown = 0;
         int decoys = 0;
+        int pits = 0;
         for (long seed = 0; seed < 30; seed++) {
             DungeonPlan plan = Planner.plan(seed, 6);
             Blueprint bp = Blueprinter.blueprint(plan);
@@ -385,6 +399,12 @@ class BlueprintTest {
             for (Trigger t : bp.triggers()) {
                 int code = bp.get(t.x(), t.y(), t.z());
                 Part part = code == 0 ? Part.AIR : Blueprint.part(code);
+                if (t.kind() == Trigger.Kind.PIT) {
+                    pits++;
+                    int tile = bp.get(t.x(), t.y() - 1, t.z());
+                    assertTrue(tile != 0 && Blueprint.part(tile) == Part.PIT_TILE, "seed " + seed + ": a pit with no tile");
+                    continue;
+                }
                 if (t.kind().isTrap()) {
                     traps++;
                     // Every trap, step or not: one on a stair moves to flat floor or is left out.
@@ -411,12 +431,17 @@ class BlueprintTest {
                 }
             });
         }
-        System.out.println("traps: " + traps + " (" + shown + " with a plate or wire), " + decoys + " decoys over 30 dungeons");
+        System.out.println("traps: " + traps + " (" + shown + " with a plate or wire), " + pits + " pits, " + decoys + " decoys over 30 dungeons");
         assertTrue(shown == traps && traps > 900 && decoys >= traps * 0.8, traps + " traps, " + shown + " shown, " + decoys + " decoys");
     }
 
     private static boolean isVoid(int code) {
         return code != 0 && Blueprint.part(code) == Part.VOID;
+    }
+
+    /** No floor to stand on: the void, or the open air over a leap of faith's sunken void. */
+    private static boolean noFloor(int code) {
+        return code != 0 && (Blueprint.part(code) == Part.VOID || Blueprint.part(code) == Part.AIR);
     }
 
     /**
@@ -451,8 +476,19 @@ class BlueprintTest {
                         int x = c[0] + d[0];
                         int z = c[1] + d[1];
                         long k = ((long) x << 32) ^ (z & 0xffffffffL);
-                        if (!r.contains(x, z) || seen.contains(k) || extraVoid.contains(k)
-                                || isVoid(bp.get(x, f - 1, z)) || !passable(bp.get(x, f, z))) {
+                        if (!r.contains(x, z) || seen.contains(k) || !passable(bp.get(x, f, z))) {
+                            continue;
+                        }
+                        if (extraVoid.contains(k) || noFloor(bp.get(x, f - 1, z))) {
+                            // A gap: jump it if there is floor straight beyond.
+                            int jx = x + d[0];
+                            int jz = z + d[1];
+                            long jk = ((long) jx << 32) ^ (jz & 0xffffffffL);
+                            if (r.contains(jx, jz) && !seen.contains(jk) && !extraVoid.contains(jk)
+                                    && !noFloor(bp.get(jx, f - 1, jz)) && passable(bp.get(jx, f, jz))) {
+                                seen.add(jk);
+                                q.add(new int[] {jx, jz});
+                            }
                             continue;
                         }
                         seen.add(k);
@@ -465,7 +501,7 @@ class BlueprintTest {
                         if (!r.contains(x, z)) {
                             continue;
                         }
-                        voids += isVoid(bp.get(x, f - 1, z)) ? 1 : 0;
+                        voids += noFloor(bp.get(x, f - 1, z)) ? 1 : 0;
                         int code = bp.get(x, f, z);
                         boolean entrance = false;
                         boolean besideSeen = false;
@@ -501,19 +537,31 @@ class BlueprintTest {
     @Test
     void puzzleRoomsAreSolvable() {
         int rooms = 0;
+        java.util.Map<Part, Integer> kinds = new java.util.EnumMap<>(Part.class);
         for (long seed = 0; seed < 40; seed++) {
             DungeonPlan plan = Planner.plan(seed, 6);
             Blueprint bp = Blueprinter.blueprint(plan);
             List<String> problems = puzzleProblems(plan, bp, java.util.Set.of());
             assertTrue(problems.isEmpty(), "seed " + seed + ": " + problems);
+            bp.forEachColumn(c -> {
+                for (int code : c.codes()) {
+                    if (code != 0 && (Blueprint.part(code) == Part.PATH_HIDDEN || Blueprint.part(code) == Part.CRUMBLE
+                            || Blueprint.part(code) == Part.DRIPLEAF)) {
+                        kinds.merge(Blueprint.part(code), 1, Integer::sum);
+                    }
+                }
+            });
             for (LevelPlan level : plan.levels()) {
                 for (com.sablednah.crawlspace.plan.Room r : level.rooms) {
                     rooms += r.role == com.sablednah.crawlspace.plan.Role.PUZZLE ? 1 : 0;
                 }
             }
         }
-        System.out.println("puzzle rooms: " + rooms + " over 40 dungeons of 6 levels");
+        System.out.println("puzzle rooms: " + rooms + " over 40 dungeons of 6 levels; blocks: " + kinds);
         assertTrue(rooms >= 20, rooms + " puzzle rooms");
+        for (Part p : new Part[] {Part.PATH_HIDDEN, Part.CRUMBLE, Part.DRIPLEAF}) {
+            assertTrue(kinds.getOrDefault(p, 0) > 0, "no " + p + " in any puzzle room");
+        }
     }
 
     /** ...and that walk notices a doorway cut off: the void put on the first step in from a door. */

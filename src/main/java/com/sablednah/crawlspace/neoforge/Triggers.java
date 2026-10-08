@@ -115,6 +115,10 @@ public final class Triggers {
      */
     private static boolean disarm(ServerLevel level, ServerPlayer player, Site site, BlockPos trapPos) {
         Trigger t = triggerAt(site, trapPos);
+        if (t != null && t.kind() == Trigger.Kind.PIT_EDGE) {
+            trapPos = site.origin().offset(t.targets()[0][0], t.targets()[0][1], t.targets()[0][2]);
+            t = triggerAt(site, trapPos);
+        }
         if (t == null || !t.kind().isTrap()) {
             return false;
         }
@@ -139,7 +143,11 @@ public final class Triggers {
                 level.removeBlock(trapPos, false);
             }
             level.playSound(null, trapPos, SoundEvents.TRIPWIRE_CLICK_OFF, SoundSource.BLOCKS, 1f, 0.8f);
-            tell(player, "You disarm the " + (t.kind() == Trigger.Kind.DARTS ? "dart trap." : "gas trap."));
+            tell(player, t.kind() == Trigger.Kind.PIT ? "You wedge the loose stones: this floor will hold now."
+                    : "You disarm the " + (t.kind() == Trigger.Kind.DARTS ? "dart trap." : "gas trap."));
+        } else if (t.kind() == Trigger.Kind.PIT) {
+            Dungeons.at(level, trapPos).ifPresent(site -> pitfall(level, site, t));
+            tell(player, "You set it off! The floor cracks under your feet!");
         } else if (t.kind() == Trigger.Kind.DARTS) {
             darts(level, player, trapPos);
             tell(player, "You set it off! Darts fly from the wall!");
@@ -222,18 +230,22 @@ public final class Triggers {
             return;
         }
         Trigger t = triggerAt(here.site(), feet);
+        if (t != null && t.kind() == Trigger.Kind.PIT_EDGE) {
+            t = triggerAt(here.site(), here.site().origin().offset(t.targets()[0][0], t.targets()[0][1], t.targets()[0][2]));
+        }
         if (t == null || !t.kind().isTrap()) {
             return;
         }
+        BlockPos at = here.site().origin().offset(t.x(), t.y(), t.z());
         CrawlState state = CrawlState.of(level);
-        if (state.hasFired(feet)) {
+        if (state.hasFired(at)) {
             return;
         }
-        state.fire(feet);
-        if (t.kind() == Trigger.Kind.DARTS) {
-            darts(level, player, feet);
-        } else {
-            gas(level, player, feet);
+        state.fire(at);
+        switch (t.kind()) {
+            case DARTS -> darts(level, player, feet);
+            case GAS -> gas(level, player, feet);
+            default -> pitfall(level, here.site(), t);
         }
     }
 
@@ -419,18 +431,26 @@ public final class Triggers {
         int fx = feet.getX() - o.getX();
         int fy = feet.getY() - o.getY();
         int fz = feet.getZ() - o.getZ();
-        boolean onVoid = isVoid(bp.get(fx, fy, fz)) || isVoid(bp.get(fx, fy - 1, fz));
-        if (!onVoid) {
-            if (player.onGround()) {
-                int below = bp.get(fx, fy - 1, fz);
-                Trigger t = nearestPuzzle(site, fx, fy, fz);
-                if (t != null && below != 0) {
-                    LAST_SAFE.put(player.getUUID(), feet);
-                }
+        int below = bp.get(fx, fy - 1, fz);
+        com.sablednah.crawlspace.build.Part under = below == 0 ? null : com.sablednah.crawlspace.build.Blueprint.part(below);
+        if (player.onGround() && under != null) {
+            if (under == com.sablednah.crawlspace.build.Part.CRUMBLE && !level.getBlockState(feet.below()).isAir()) {
+                Crumbles.start(level, java.util.List.of(feet.below()), 5, 100, null);
             }
+            if (!unsafe(under)) {
+                LAST_SAFE.put(player.getUUID(), feet);
+            }
+        }
+        Trigger room = nearestPuzzle(site, fx, fy, fz);
+        // Fallen: in the void, on it, or below the paths of a puzzle room (through a crumbled block,
+        // off a tipped dripleaf, or into a leap of faith's sunken void).
+        boolean fell = isVoid(bp.get(fx, fy, fz)) || isVoid(below)
+                || room != null && fy < room.y() && fx >= room.targets()[0][0] && fx <= room.targets()[1][0]
+                        && fz >= room.targets()[0][2] && fz <= room.targets()[1][2];
+        if (!fell) {
             return false;
         }
-        Trigger centre = nearestPuzzle(site, fx, fy, fz);
+        Trigger centre = room;
         if (centre == null) {
             return false;
         }
@@ -450,6 +470,14 @@ public final class Triggers {
 
     private static boolean isVoid(int code) {
         return code != 0 && com.sablednah.crawlspace.build.Blueprint.part(code) == com.sablednah.crawlspace.build.Part.VOID;
+    }
+
+    /** Floor that is no place to be put back on: it is about to go, or already has. */
+    private static boolean unsafe(com.sablednah.crawlspace.build.Part p) {
+        return switch (p) {
+            case VOID, AIR, CRUMBLE, DRIPLEAF, PIT_TILE -> true;
+            default -> false;
+        };
     }
 
     /** The restart point of the puzzle room around a blueprint position: within its level, the nearest. */
@@ -479,8 +507,18 @@ public final class Triggers {
         if (e.getDimension() != net.minecraft.world.level.Level.END || !(e.getEntity().level() instanceof ServerLevel level)) {
             return;
         }
-        if (Dungeons.at(level, e.getEntity().blockPosition()).isPresent()) {
-            e.setCanceled(true);
+        if (Dungeons.at(level, e.getEntity().blockPosition()).isEmpty()) {
+            return;
+        }
+        e.setCanceled(true);
+        // A thrown item that misses the path comes back to whoever threw it: how a leap of faith is found.
+        if (e.getEntity() instanceof net.minecraft.world.entity.item.ItemEntity item
+                && item.getOwner() instanceof ServerPlayer thrower && thrower.level() == level
+                && thrower.distanceToSqr(item) < 32 * 32) {
+            level.sendParticles(net.minecraft.core.particles.ParticleTypes.PORTAL, item.getX(), item.getY() + 0.3, item.getZ(), 12, 0.1, 0.2, 0.1, 0.3);
+            item.teleportTo(thrower.getX(), thrower.getY() + 0.5, thrower.getZ());
+            item.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+            level.playSound(null, thrower.blockPosition(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.4f, 1.6f);
         }
     }
 
@@ -541,6 +579,51 @@ public final class Triggers {
         level.addFreshEntity(cloud);
         level.playSound(null, feet, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 1f, 0.6f);
         tell(player, "Hiss. Poison gas seeps from the floor: step out of the cloud!");
+    }
+
+    /**
+     * A pit trap goes: its nine tiles crack and crumble away together, fast,
+     * into the spikes. A perception mod may let whoever is on it leap clear,
+     * back to the last solid floor they stood on. Once anyone who fell has
+     * landed, a ladder appears up one wall so nobody is stuck down there.
+     */
+    private static void pitfall(ServerLevel level, Site site, Trigger t) {
+        BlockPos o = site.origin();
+        java.util.List<BlockPos> tiles = new java.util.ArrayList<>();
+        for (int[] c : t.targets()) {
+            tiles.add(o.offset(c[0], c[1] - 1, c[2]));
+        }
+        BlockPos centre = o.offset(t.x(), t.y(), t.z());
+        for (ServerPlayer p : level.players()) {
+            if (p.blockPosition().closerThan(centre, 6)) {
+                tell(p, "The floor cracks under your feet!");
+            }
+        }
+        Crumbles.start(level, tiles, 3, -1, () -> {
+            for (ServerPlayer p : level.players()) {
+                BlockPos f = p.blockPosition();
+                if (p.isCreative() || p.isSpectator() || Math.abs(f.getX() - centre.getX()) > 1
+                        || Math.abs(f.getZ() - centre.getZ()) > 1 || Math.abs(f.getY() - centre.getY()) > 1) {
+                    continue;
+                }
+                BlockPos safe = LAST_SAFE.get(p.getUUID());
+                boolean clear = safe != null && safe.closerThan(f, 4)
+                        && com.sablednah.crawlspace.api.CrawlSpaceApi.perception().map(q -> q.recovers(p, t.level())).orElse(false);
+                if (clear) {
+                    p.teleportTo(level, safe.getX() + 0.5, safe.getY(), safe.getZ() + 0.5, java.util.Set.of(), p.getYRot(), p.getXRot(), false);
+                    tell(p, "You leap clear as the floor falls away!");
+                } else {
+                    tell(p, "The floor gives way!");
+                }
+            }
+            Crumbles.later(level, 40, () -> {
+                net.minecraft.world.level.block.state.BlockState ladder = net.minecraft.world.level.block.Blocks.LADDER.defaultBlockState()
+                        .setValue(net.minecraft.world.level.block.LadderBlock.FACING, Direction.SOUTH);
+                for (int dy = 1; dy <= 4; dy++) {
+                    level.setBlock(centre.offset(0, -dy, -1), ladder, 3);
+                }
+            });
+        });
     }
 
     private static void tell(ServerPlayer player, String text) {
