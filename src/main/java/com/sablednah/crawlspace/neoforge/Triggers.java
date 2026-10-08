@@ -448,7 +448,10 @@ public final class Triggers {
         // next column. Standing ON it counts only where a datapack made the void a solid block.
         boolean fell = isVoid(bp.get(fx, fy, fz))
                 || isVoid(below) && !level.getBlockState(feet.below()).is(net.minecraft.world.level.block.Blocks.END_PORTAL)
-                || room != null && fy < room.y() && fx >= room.targets()[0][0] && fx <= room.targets()[1][0]
+                // By height, not block: a dripleaf's top is a sixteenth below the path, so standing on one
+                // put the feet in the layer below, and that sent Sable back before the leaf ever tipped.
+                || room != null && player.getY() < o.getY() + room.y() - 0.5
+                        && fx >= room.targets()[0][0] && fx <= room.targets()[1][0]
                         && fz >= room.targets()[0][2] && fz <= room.targets()[1][2];
         if (!fell) {
             return false;
