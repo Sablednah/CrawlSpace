@@ -326,6 +326,11 @@ public final class CrawlCommands {
                         public boolean disarms(ServerPlayer player, int depth) {
                             return roll();
                         }
+
+                        @Override
+                        public boolean recovers(ServerPlayer player, int depth) {
+                            return roll();
+                        }
                     });
             default -> {
                 fail(ctx.getSource(), "always, never, half or off.");

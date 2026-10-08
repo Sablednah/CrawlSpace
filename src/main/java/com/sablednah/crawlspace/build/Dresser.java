@@ -50,6 +50,9 @@ final class Dresser {
         boolean built = !theme.equals("Old Mines") && !theme.equals("Caverns");
 
         for (Room r : level.rooms) {
+            if (r.role == com.sablednah.crawlspace.plan.Role.PUZZLE) {
+                continue; // the maze is the whole room: nothing goes on the paths, and nothing on the void
+            }
             List<Prop> props = new ArrayList<>();
             List<int[]> perim = perimeter(level, r, reserved, dice);
             int f = Blueprinter.floorAt(plan, i, r.centerX(), r.centerZ());

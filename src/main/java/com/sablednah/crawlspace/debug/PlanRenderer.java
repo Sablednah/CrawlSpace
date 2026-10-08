@@ -203,6 +203,7 @@ public final class PlanRenderer {
             case SHRINE -> new Color(0x9f, 0xc4, 0xd8);
             case GUARD -> new Color(0xc8, 0xb6, 0xa8);
             case HALL -> new Color(0xd4, 0xcc, 0xbc);
+            case PUZZLE -> new Color(0x4a, 0x2f, 0x6e);
             default -> new Color(0xcf, 0xc9, 0xbd);
         };
     }

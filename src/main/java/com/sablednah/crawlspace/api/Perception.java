@@ -31,4 +31,17 @@ public interface Perception {
      * sneak and use its floor tile. A failure springs the trap on them.
      */
     boolean disarms(ServerPlayer player, int depth);
+
+    /**
+     * Whether this player catches themselves stepping off a puzzle room's
+     * maze, asked each time they touch the void. On a pass they are put back
+     * on the last path block they stood on; on a fail, or with no answer, the
+     * void sends them to the room's restart block at its centre.
+     *
+     * <p>Optional: a mod that registered before this existed keeps working,
+     * and nobody catches themselves.</p>
+     */
+    default boolean recovers(ServerPlayer player, int depth) {
+        return false;
+    }
 }

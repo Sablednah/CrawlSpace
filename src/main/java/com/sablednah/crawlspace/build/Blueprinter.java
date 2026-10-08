@@ -215,6 +215,7 @@ public final class Blueprinter {
             }
         }
         steps(bp, plan, i);
+        puzzles(bp, plan, i);
         triggers(bp, plan, i);
         java.util.Set<Integer> dark = Dresser.dress(bp, plan, i);
         lights(bp, plan, i, dark);
@@ -270,6 +271,7 @@ public final class Blueprinter {
                 case TREASURE, KEY -> 0.75;
                 case SECRET -> 0.6;
                 case SHRINE -> 0.4;
+                case PUZZLE -> 0; // the maze is the danger; a mob on the void would be sent nowhere
                 default -> Math.min(0.95, 0.6 + 0.05 * i);
             };
             if (!dice.chance(chance)) {
@@ -446,7 +448,7 @@ public final class Blueprinter {
                     int cx = x + dx;
                     int cz = z + dz;
                     Cell c = level.cell(cx, cz);
-                    if (c != Cell.FLOOR && c != Cell.CORRIDOR) {
+                    if (c != Cell.FLOOR && c != Cell.CORRIDOR || inPuzzle(level, cx, cz)) {
                         continue;
                     }
                     int code = bp.get(cx, floorAt(plan, i, cx, cz), cz);
@@ -489,8 +491,159 @@ public final class Blueprinter {
         }
     }
 
+    /** Whether (x, z) is in a puzzle room: no trap, decoy or prop belongs there. */
+    static boolean inPuzzle(LevelPlan level, int x, int z) {
+        Room r = level.room(level.region(x, z));
+        return r != null && r.role == Role.PUZZLE;
+    }
+
+    /**
+     * Each puzzle room's maze: a random spanning tree over every other cell,
+     * grown from the centre, so every path cell is reachable from it and every
+     * branch that is not on the way somewhere is a dead end. Each doorway is
+     * joined to the tree by the shortest way in, and the deepest dead end left
+     * holds the hoard chest. Every floor cell not on a path becomes the void,
+     * one block down, where the floor block was, so it reads as sunken.
+     */
+    private static void puzzles(Blueprint bp, DungeonPlan plan, int i) {
+        LevelPlan level = plan.levels().get(i);
+        for (Room r : level.rooms) {
+            if (r.role == Role.PUZZLE) {
+                maze(bp, plan, i, r, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x3A2EL));
+            }
+        }
+    }
+
+    private static final int[][] DIRS4 = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+
+    private static void maze(Blueprint bp, DungeonPlan plan, int i, Room r, com.sablednah.crawlspace.plan.Dice dice) {
+        LevelPlan level = plan.levels().get(i);
+        int cx = r.centerX();
+        int cz = r.centerZ();
+        java.util.function.BiPredicate<Integer, Integer> floor = (x, z) -> r.contains(x, z) && level.cell(x, z) == Cell.FLOOR;
+        java.util.Set<Long> path = new java.util.HashSet<>();
+        java.util.Map<Long, Integer> depth = new java.util.HashMap<>();
+        java.util.Map<Long, Long> parent = new java.util.HashMap<>();
+        // Depth-first, so the paths wind; a stack rather than recursion, so a big room cannot overflow.
+        java.util.Deque<int[]> stack = new java.util.ArrayDeque<>();
+        stack.push(new int[] {cx, cz});
+        path.add(key(cx, cz));
+        depth.put(key(cx, cz), 0);
+        while (!stack.isEmpty()) {
+            int[] c = stack.peek();
+            java.util.List<int[]> next = new java.util.ArrayList<>();
+            for (int[] d : DIRS4) {
+                int nx = c[0] + 2 * d[0];
+                int nz = c[1] + 2 * d[1];
+                if (floor.test(nx, nz) && floor.test(c[0] + d[0], c[1] + d[1]) && !path.contains(key(nx, nz))) {
+                    next.add(new int[] {nx, nz, d[0], d[1]});
+                }
+            }
+            if (next.isEmpty()) {
+                stack.pop();
+                continue;
+            }
+            int[] n = next.get(dice.nextInt(next.size()));
+            path.add(key(c[0] + n[2], c[1] + n[3]));
+            path.add(key(n[0], n[1]));
+            depth.put(key(n[0], n[1]), depth.get(key(c[0], c[1])) + 2);
+            parent.put(key(n[0], n[1]), key(c[0], c[1]));
+            stack.push(new int[] {n[0], n[1]});
+        }
+        // Every way in: a room cell beside a walkable cell outside the room. Joined by the shortest way.
+        java.util.Set<Long> entrance = new java.util.HashSet<>();
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (!floor.test(x, z)) {
+                    continue;
+                }
+                for (int[] d : DIRS4) {
+                    int ox = x + d[0];
+                    int oz = z + d[1];
+                    if (!r.contains(ox, oz) && level.cell(ox, oz).isWalkable()) {
+                        entrance.addAll(joinPath(x, z, path, floor));
+                    }
+                }
+            }
+        }
+        path.addAll(entrance);
+        // The chest: the deepest node of the tree that is a dead end and not on a way in.
+        long chest = Long.MIN_VALUE;
+        int best = -1;
+        for (java.util.Map.Entry<Long, Integer> e : depth.entrySet()) {
+            long k = e.getKey();
+            int x = (int) (k >> 32);
+            int z = (int) k;
+            int ways = 0;
+            for (int[] d : DIRS4) {
+                ways += path.contains(key(x + d[0], z + d[1])) ? 1 : 0;
+            }
+            if (ways == 1 && !entrance.contains(k) && e.getValue() > best) {
+                best = e.getValue();
+                chest = k;
+            }
+        }
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (!floor.test(x, z)) {
+                    continue;
+                }
+                int f = floorAt(plan, i, x, z);
+                if (x == cx && z == cz) {
+                    bp.set(x, f - 1, z, Part.RESTART, 0, i);
+                } else if (!path.contains(key(x, z))) {
+                    bp.set(x, f - 1, z, Part.VOID, 0, i);
+                }
+            }
+        }
+        int f = floorAt(plan, i, cx, cz);
+        bp.addTrigger(new Trigger(Trigger.Kind.PUZZLE, cx, f, cz, i, new int[0][]));
+        if (chest != Long.MIN_VALUE) {
+            int x = (int) (chest >> 32);
+            int z = (int) chest;
+            long from = parent.getOrDefault(chest, key(cx, cz));
+            int facing = com.sablednah.crawlspace.build.Dresser.facingOf((int) (from >> 32) - x, (int) from - z);
+            bp.set(x, floorAt(plan, i, x, z), z, Part.HOARD_CHEST, facing, i);
+        }
+    }
+
+    /** The cells from (x, z) to the nearest path cell, through room floor, breadth first; empty if none. */
+    private static java.util.List<Long> joinPath(int x, int z, java.util.Set<Long> path,
+            java.util.function.BiPredicate<Integer, Integer> floor) {
+        java.util.Map<Long, Long> came = new java.util.HashMap<>();
+        java.util.ArrayDeque<long[]> q = new java.util.ArrayDeque<>();
+        long start = key(x, z);
+        q.add(new long[] {x, z});
+        came.put(start, start);
+        while (!q.isEmpty()) {
+            long[] c = q.poll();
+            long k = key((int) c[0], (int) c[1]);
+            if (path.contains(k)) {
+                java.util.List<Long> out = new java.util.ArrayList<>();
+                for (long at = k; at != start; at = came.get(at)) {
+                    out.add(at);
+                }
+                out.add(start);
+                return out;
+            }
+            for (int[] d : DIRS4) {
+                int nx = (int) c[0] + d[0];
+                int nz = (int) c[1] + d[1];
+                long nk = key(nx, nz);
+                if (!came.containsKey(nk) && floor.test(nx, nz)) {
+                    came.put(nk, k);
+                    q.add(new long[] {nx, nz});
+                }
+            }
+        }
+        return java.util.List.of();
+    }
+
     /** No door, stair, pit or pool within one cell, and no trigger of this level within two. */
     private static boolean clearAround(Blueprint bp, LevelPlan level, int i, int x, int z) {
+        if (inPuzzle(level, x, z)) {
+            return false;
+        }
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 Cell n = level.cell(x + dx, z + dz);

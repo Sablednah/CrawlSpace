@@ -52,6 +52,7 @@ public final class CrawlSpace {
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onTarget);
         NeoForge.EVENT_BUS.addListener(Triggers::onUse);
         NeoForge.EVENT_BUS.addListener(Triggers::onBreak);
+        NeoForge.EVENT_BUS.addListener(Triggers::onTravel);
         NeoForge.EVENT_BUS.addListener(Triggers::onTick);
         NeoForge.EVENT_BUS.addListener(Triggers::onLogout);
         NeoForge.EVENT_BUS.addListener(Triggers::onSpawnCheck);
