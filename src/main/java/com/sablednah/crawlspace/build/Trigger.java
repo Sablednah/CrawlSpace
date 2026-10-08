@@ -26,11 +26,18 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         BOSS,
         /** Not a trigger: a plate or wire that does nothing, kept here so dressing leaves it alone. */
         DECOY,
-        /** A puzzle room's restart point, on its centre block: where the void sends you. */
-        PUZZLE;
+        /**
+         * A puzzle room's restart point, on its centre block: where the void sends you.
+         * Targets: the room's floor bounds, {minX, y, minZ} and {maxX, y, maxZ}.
+         */
+        PUZZLE,
+        /** A pit trap, at the middle of its 3x3 floor; targets are all nine tiles. */
+        PIT,
+        /** Not a trap of its own: one of a pit trap's eight outer tiles; its target is the middle. */
+        PIT_EDGE;
 
         public boolean isTrap() {
-            return this == DARTS || this == GAS;
+            return this == DARTS || this == GAS || this == PIT;
         }
 
         public boolean isEncounter() {

@@ -147,5 +147,13 @@ public enum Part {
     /** The void around a puzzle room's maze, in place of a floor block. Touch it and you are sent back. */
     VOID,
     /** The block at a puzzle room's centre that the void sends you back to; a floor block. */
-    RESTART
+    RESTART,
+    /** A leap-of-faith path block: solid, and invisible (a barrier) over the void below. */
+    PATH_HIDDEN,
+    /** A path block that cracks and gives way a moment after you step on it, then re-forms. */
+    CRUMBLE,
+    /** A big dripleaf path block: tips you off if you stand on it; facing is the way it points. */
+    DRIPLEAF,
+    /** A pit trap's floor tile: crumbles away under you, into the spikes below. */
+    PIT_TILE
 }

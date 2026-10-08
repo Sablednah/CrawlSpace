@@ -41,9 +41,11 @@ public final class CrawlSpace {
                 e.addListener(com.sablednah.crawlspace.neoforge.ThemeData.ID, com.sablednah.crawlspace.neoforge.ThemeData.INSTANCE));
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post e) -> {
             Builds.tick();
+            com.sablednah.crawlspace.neoforge.Crumbles.tick();
             Bosses.tick(e.getServer().overworld().getGameTime());
         });
         NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e) -> {
+            com.sablednah.crawlspace.neoforge.Crumbles.clear();
             Builds.clear();
             Bosses.clear();
         });
