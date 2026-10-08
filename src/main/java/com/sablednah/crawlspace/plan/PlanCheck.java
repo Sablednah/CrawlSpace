@@ -81,6 +81,20 @@ public final class PlanCheck {
         if (step > 1) {
             out.add("a walkable step of " + step + " blocks");
         }
+        // No step beside a doorway: the stair it would need cannot be climbed next to a door, either way.
+        for (int x = -lim + 1; x < lim; x++) {
+            for (int z = -lim + 1; z < lim; z++) {
+                if (!level.cell(x, z).isDoor()) {
+                    continue;
+                }
+                for (int[] d : FOUR) {
+                    Cell n = level.cell(x + d[0], z + d[1]);
+                    if (n == Cell.CORRIDOR && level.height(x + d[0], z + d[1]) != level.height(x, z)) {
+                        out.add("a step beside the doorway at " + x + "," + z);
+                    }
+                }
+            }
+        }
 
         int[] start = level.stairsUp.get(0);
         boolean[][] all = reach(level, start, true);

@@ -444,7 +444,10 @@ public final class Triggers {
         Trigger room = nearestPuzzle(site, fx, fy, fz);
         // Fallen: in the void, on it, or below the paths of a puzzle room (through a crumbled block,
         // off a tipped dripleaf, or into a leap of faith's sunken void).
-        boolean fell = isVoid(bp.get(fx, fy, fz)) || isVoid(below)
+        // In the void, or below the paths: never just standing near an edge with your centre over the
+        // next column. Standing ON it counts only where a datapack made the void a solid block.
+        boolean fell = isVoid(bp.get(fx, fy, fz))
+                || isVoid(below) && !level.getBlockState(feet.below()).is(net.minecraft.world.level.block.Blocks.END_PORTAL)
                 || room != null && fy < room.y() && fx >= room.targets()[0][0] && fx <= room.targets()[1][0]
                         && fz >= room.targets()[0][2] && fz <= room.targets()[1][2];
         if (!fell) {
