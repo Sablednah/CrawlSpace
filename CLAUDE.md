@@ -257,6 +257,55 @@ Athletics check sends you to the block you last touched instead.
   `always` caught and `never` went to the centre.
 - `PLANNER_VERSION` is 5: puzzle rooms change what a seed builds.
 
+**Harder with depth (Sable, 2026-10-08: "i dont mind jumps in the puzzle
+room").** Jumps are allowed **inside puzzle rooms only**; everywhere else,
+nothing needs one. Each room picks, from its own dice:
+- **Leap of faith,** from level 3 (35%). Every floor cell shows `VOID` one
+  block lower (f-2) over a floor at f-3. Path cells are `PATH_HIDDEN`, a
+  barrier at f-1, and the rest are explicit air. Thrown items that miss come
+  back: `onTravel` moves an `ItemEntity` that hits the void to its thrower.
+  On the rig a diamond stayed on the path and an emerald returned. It needs
+  the two layers below the room free (`roomFree`), else it is a plain maze.
+- **Otherwise a maze,** with three hazards placed with odds that rise with
+  depth (all zero on level 1). A **gap**: a tree edge's middle cell made
+  void, so a straight one-block jump. A **`CRUMBLE`** block: stone brick,
+  cracked, cobblestone, gone at 5 ticks a stage, re-formed 100 ticks later,
+  so a room can never be left unsolvable. A **`DRIPLEAF`**: a big dripleaf
+  on moss, vanilla's tilt. The centre and its four neighbours, the ways in,
+  the chest and the cells beside it are never hazards. A gap beside the
+  chest left nowhere to stand to open it, and the test caught that.
+- **"Fallen" in a puzzle room** means below the path layer inside its bounds
+  (the PUZZLE trigger's targets), as well as in or on the void. That one
+  rule covers crumbled holes, tipped dripleaf and the leap's open air.
+- `LAST_SAFE` is now recorded anywhere in a dungeon: the last block stood on
+  whose floor is not void, air, crumble, dripleaf or a pit tile.
+
+## Pit traps (Sable, 2026-10-08)
+
+Stone brick that cracks and crumbles in a few steps, then is gone, over
+dripstone spikes; with LegendQuest, a check to jump clear.
+
+- **From the trap list, not the planner.** In `Blueprinter.triggers`, a trap
+  on room floor becomes a pit half the time (`PIT_CHANCE`, own dice), if it
+  fits. The 5x5 round it must be flat floor of one room, with nothing of the
+  dungeon's in the six layers below. Otherwise it stays darts or gas. Tests:
+  934 plate traps plus 53 pits, the same 987 in total as before.
+- **The pit** has 9 `PIT_TILE`s at f-1, air at f-2 and f-3, `STALAGMITE` at
+  f-4 on floor at f-5, and a 5x5 ring of wall from f-5 to f-2. The leak test
+  proves it sealed. **Four deep, not three:** from three, the spikes cost 1
+  health on the rig, and from four, 4 (two hearts).
+- **Triggers:** a `PIT` at the middle, whose targets are the nine tiles, and
+  a `PIT_EDGE` on each outer tile, pointing at the middle. Stepping on any
+  tile fires it. Only the middle is a trap, for hints and noticing. Disarm
+  by sneak-using a tile: success wedges it safe, failure sets it off.
+- **Collapse** (`Crumbles`, 3 ticks a stage, never re-formed). Anyone on the
+  patch may `recovers` back to `LAST_SAFE`; the rig showed "always" working.
+  Forty ticks later a ladder goes up the north wall, so nobody is stuck: no
+  jump is needed to get out.
+- `Crumbles` is an in-memory scheduler, also used for the puzzle blocks, with
+  `later(...)` for delayed jobs. A restart leaves a crumble at whatever stage
+  it had reached.
+
 ## Datapacks (2026-10-07)
 
 `ThemeData` (a `ResourceManagerReloadListener`, registered on

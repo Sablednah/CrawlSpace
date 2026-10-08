@@ -3,7 +3,10 @@
 ## 0.2.0 — unreleased
 
 - **Puzzle rooms.** Some levels turn a plain room into a maze of one-wide paths over the void. Step off the path and the void throws you back to a restart block at the centre. Paths lead to every doorway, and the deepest dead end holds a hoard chest. Nothing on the way needs a jump.
-- **With LegendQuest** (2.9.1 or newer), stepping off is an Athletics (Strength) check: pass and you catch yourself on the block you last stood on.
+- **Deeper puzzle rooms get harder.** From level 2, paths have gaps to jump, crumbling stone bricks that give way a moment after you step on them (and re-form a few seconds later), and big dripleaf that tips you off if you stand still.
+- **Leap of faith** (level 3 and deeper): the whole floor shows void, and the path over it is invisible. Throw things to find it: what lands on the path stays put; what falls in comes back to you.
+- **Pit traps.** A 3x3 patch of stone brick in a room cracks and crumbles under you in about half a second, into a four-deep pit of dripstone spikes. A ladder appears so you can climb out. Spotted, hinted and disarmed like the other traps.
+- **With LegendQuest** (2.9.1 or newer), stepping off a puzzle path, or standing on a pit as it goes, is an Athletics (Strength) check: pass and you are back on the block you last stood on.
 - `CrawlSpaceApi`: `Perception.recovers(player, depth)`, optional, for that check. Mods that registered before it keep working.
 - Datapacks: the roles `puzzle_void` (end portal by default) and `puzzle_restart` (crying obsidian).
 

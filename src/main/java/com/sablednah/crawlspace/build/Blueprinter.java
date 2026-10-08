@@ -399,6 +399,8 @@ public final class Blueprinter {
         }
         // Its own stream, so adding plates moved nothing else in a dungeon.
         com.sablednah.crawlspace.plan.Dice look = com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x7A9F1L);
+        // And pits theirs: a trap in a room may become a crumbling pit where there is room below for one.
+        com.sablednah.crawlspace.plan.Dice pits = com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x917FL);
         for (int[] t : level.traps) {
             Cell c = level.cell(t[0], t[1]);
             if (c != Cell.FLOOR && c != Cell.CORRIDOR) {
@@ -410,6 +412,9 @@ public final class Blueprinter {
                 continue; // no flat floor near it to hold a plate: a trap nobody could see is left out
             }
             int f = floorAt(plan, i, at[0], at[1]);
+            if (level.cell(at[0], at[1]) == Cell.FLOOR && pits.chance(PIT_CHANCE) && pitfall(bp, level, i, at[0], f, at[1])) {
+                continue;
+            }
             bp.addTrigger(new Trigger(kind, at[0], f, at[1], i, new int[0][]));
             trapLook(bp, level, i, at[0], f, at[1], false, look);
         }
@@ -491,6 +496,72 @@ public final class Blueprinter {
         }
     }
 
+    /** How often a trap in a room becomes a crumbling pit, where one fits. */
+    static final double PIT_CHANCE = 0.5;
+
+    /**
+     * A pit trap: a 3x3 patch of floor tiles that crumble away under whoever
+     * stands on them, over a pit four deep with dripstone spikes, walled in
+     * so it cannot open into a cave. Four, because from three the fall onto
+     * the spikes cost one point of health on the rig; from four it is about
+     * three hearts. Needs the 5x5 round it to be room floor, and nothing of
+     * the dungeon's in the six layers below. Returns false, changing nothing,
+     * where it does not fit.
+     */
+    private static boolean pitfall(Blueprint bp, LevelPlan level, int i, int cx, int f, int cz) {
+        if (f - 6 < bp.minY) {
+            return false; // the bottom of the world, or of the blueprint, is too near
+        }
+        int region = level.region(cx, cz);
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                int x = cx + dx;
+                int z = cz + dz;
+                if (level.cell(x, z) != Cell.FLOOR || level.region(x, z) != region || level.height(x, z) != level.height(cx, cz)) {
+                    return false;
+                }
+                int top = bp.get(x, f, z);
+                if (top != 0 && Blueprint.part(top) != Part.AIR) {
+                    return false;
+                }
+                int under = bp.get(x, f - 1, z);
+                if (under == 0 || Blueprint.part(under) != Part.FLOOR) {
+                    return false;
+                }
+                for (int y = f - 6; y <= f - 2; y++) {
+                    if (bp.get(x, y, z) != 0) {
+                        return false;
+                    }
+                }
+            }
+        }
+        int[][] tiles = new int[9][];
+        int k = 0;
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                int x = cx + dx;
+                int z = cz + dz;
+                if (Math.abs(dx) <= 1 && Math.abs(dz) <= 1) {
+                    bp.set(x, f - 1, z, Part.PIT_TILE, 0, i);
+                    bp.set(x, f - 2, z, Part.AIR, 0, i);
+                    bp.set(x, f - 3, z, Part.AIR, 0, i);
+                    bp.set(x, f - 4, z, Part.STALAGMITE, 0, i);
+                    bp.set(x, f - 5, z, Part.FLOOR, 0, i);
+                    tiles[k++] = new int[] {x, f, z};
+                } else {
+                    bp.fill(x, z, f - 5, f - 2, Part.WALL, i);
+                }
+            }
+        }
+        bp.addTrigger(new Trigger(Trigger.Kind.PIT, cx, f, cz, i, tiles));
+        for (int[] t : tiles) {
+            if (t[0] != cx || t[2] != cz) {
+                bp.addTrigger(new Trigger(Trigger.Kind.PIT_EDGE, t[0], f, t[2], i, new int[][] {{cx, f, cz}}));
+            }
+        }
+        return true;
+    }
+
     /** Whether (x, z) is in a puzzle room: no trap, decoy or prop belongs there. */
     static boolean inPuzzle(LevelPlan level, int x, int z) {
         Room r = level.room(level.region(x, z));
@@ -524,6 +595,8 @@ public final class Blueprinter {
         java.util.Set<Long> path = new java.util.HashSet<>();
         java.util.Map<Long, Integer> depth = new java.util.HashMap<>();
         java.util.Map<Long, Long> parent = new java.util.HashMap<>();
+        // The cells between two junctions: a straight run of three, where a gap can go.
+        java.util.Set<Long> mids = new java.util.HashSet<>();
         // Depth-first, so the paths wind; a stack rather than recursion, so a big room cannot overflow.
         java.util.Deque<int[]> stack = new java.util.ArrayDeque<>();
         stack.push(new int[] {cx, cz});
@@ -545,6 +618,7 @@ public final class Blueprinter {
             }
             int[] n = next.get(dice.nextInt(next.size()));
             path.add(key(c[0] + n[2], c[1] + n[3]));
+            mids.add(key(c[0] + n[2], c[1] + n[3]));
             path.add(key(n[0], n[1]));
             depth.put(key(n[0], n[1]), depth.get(key(c[0], c[1])) + 2);
             parent.put(key(n[0], n[1]), key(c[0], c[1]));
@@ -583,21 +657,64 @@ public final class Blueprinter {
                 chest = k;
             }
         }
+        int f = floorAt(plan, i, cx, cz);
+        // Which puzzle. Deeper levels may be a leap of faith (from level 3), and an ordinary maze
+        // grows gaps to jump (from level 2), crumbling blocks and dripleaf (from level 2).
+        boolean leap = i >= 2 && dice.chance(LEAP_CHANCE) && f - 3 >= bp.minY && roomFree(bp, r, floor, f - 3, f - 2);
+        double gaps = leap ? 0 : Math.min(0.35, 0.08 * (i - 0.5));
+        double crumble = leap ? 0 : Math.min(0.25, 0.06 * (i - 0.5));
+        double leaves = leap ? 0 : Math.min(0.15, 0.04 * (i - 0.5));
+        long chestKey = chest;
+        java.util.function.Predicate<Long> fixed = k -> {
+            int x = (int) (k >> 32);
+            int z = (int) (long) k;
+            // The centre, its four neighbours, the ways in, the chest and the cells beside it stay plain
+            // stone: a gap beside the chest would leave nowhere to stand and open it.
+            int chx = (int) (chestKey >> 32);
+            int chz = (int) chestKey;
+            return entrance.contains(k) || Math.abs(x - cx) + Math.abs(z - cz) <= 1
+                    || chestKey != Long.MIN_VALUE && Math.abs(x - chx) + Math.abs(z - chz) <= 1;
+        };
+        for (long k : mids) {
+            if (!fixed.test(k) && dice.chance(gaps)) {
+                path.remove(k);
+            }
+        }
         for (int x = r.minX(); x <= r.maxX(); x++) {
             for (int z = r.minZ(); z <= r.maxZ(); z++) {
                 if (!floor.test(x, z)) {
                     continue;
                 }
-                int f = floorAt(plan, i, x, z);
+                long k = key(x, z);
                 if (x == cx && z == cz) {
                     bp.set(x, f - 1, z, Part.RESTART, 0, i);
-                } else if (!path.contains(key(x, z))) {
+                    if (leap) {
+                        bp.set(x, f - 2, z, Part.VOID, 0, i);
+                        bp.set(x, f - 3, z, Part.FLOOR, 0, i);
+                    }
+                } else if (leap) {
+                    // Everything shows void, a block lower; the path is invisible over it.
+                    bp.set(x, f - 1, z, path.contains(k) ? Part.PATH_HIDDEN : Part.AIR, 0, i);
+                    bp.set(x, f - 2, z, Part.VOID, 0, i);
+                    bp.set(x, f - 3, z, Part.FLOOR, 0, i);
+                } else if (!path.contains(k)) {
                     bp.set(x, f - 1, z, Part.VOID, 0, i);
+                } else if (!fixed.test(k) && dice.chance(crumble)) {
+                    bp.set(x, f - 1, z, Part.CRUMBLE, 0, i);
+                } else if (!fixed.test(k) && f - 2 >= bp.minY && roomFree(bp, x, z, f - 2) && dice.chance(leaves)) {
+                    int facing = 0;
+                    for (int d = 0; d < 4; d++) {
+                        if (path.contains(key(x + DIRS4[d][0], z + DIRS4[d][1]))) {
+                            facing = com.sablednah.crawlspace.build.Dresser.facingOf(DIRS4[d][0], DIRS4[d][1]);
+                        }
+                    }
+                    bp.set(x, f - 1, z, Part.DRIPLEAF, facing, i);
+                    bp.set(x, f - 2, z, Part.MOSS_FLOOR, 0, i);
                 }
             }
         }
-        int f = floorAt(plan, i, cx, cz);
-        bp.addTrigger(new Trigger(Trigger.Kind.PUZZLE, cx, f, cz, i, new int[0][]));
+        int[][] bounds = {{r.minX(), f, r.minZ()}, {r.maxX(), f, r.maxZ()}};
+        bp.addTrigger(new Trigger(Trigger.Kind.PUZZLE, cx, f, cz, i, bounds));
         if (chest != Long.MIN_VALUE) {
             int x = (int) (chest >> 32);
             int z = (int) chest;
@@ -605,6 +722,29 @@ public final class Blueprinter {
             int facing = com.sablednah.crawlspace.build.Dresser.facingOf((int) (from >> 32) - x, (int) from - z);
             bp.set(x, floorAt(plan, i, x, z), z, Part.HOARD_CHEST, facing, i);
         }
+    }
+
+    /** How often a puzzle room from level 3 down is a leap of faith. */
+    static final double LEAP_CHANCE = 0.35;
+
+    /** Whether the dungeon has set nothing under the room's floor in layers y0..y1. */
+    private static boolean roomFree(Blueprint bp, Room r, java.util.function.BiPredicate<Integer, Integer> floor, int y0, int y1) {
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (floor.test(x, z)) {
+                    for (int y = y0; y <= y1; y++) {
+                        if (bp.get(x, y, z) != 0) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean roomFree(Blueprint bp, int x, int z, int y) {
+        return bp.get(x, y, z) == 0;
     }
 
     /** The cells from (x, z) to the nearest path cell, through room floor, breadth first; empty if none. */
