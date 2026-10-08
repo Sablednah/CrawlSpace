@@ -35,7 +35,9 @@ public final class CrawlSpace {
 
     public CrawlSpace(IEventBus modBus, ModContainer container) {
         CrawlWorldgen.register(modBus);
-        container.registerConfig(ModConfig.Type.SERVER, CrawlConfig.SPEC);
+        // SERVER became SYNCED in FML 12.0.8 (NeoForge 26.3.0.37-beta). The file name is given, because the default
+        // follows the type, and "crawlspace-synced.toml" would leave every existing server on default settings.
+        container.registerConfig(ModConfig.Type.SYNCED, CrawlConfig.SPEC, "crawlspace-server.toml");
         NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent e) -> CrawlCommands.register(e.getDispatcher()));
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.AddServerReloadListenersEvent e) ->
                 e.addListener(com.sablednah.crawlspace.neoforge.ThemeData.ID, com.sablednah.crawlspace.neoforge.ThemeData.INSTANCE));
