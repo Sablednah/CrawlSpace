@@ -202,7 +202,7 @@ public final class CrawlCommands {
         }
         LevelPlan level = last.plan().levels().get(index - 1);
         double[] spot = switch (what) {
-            case "lever", "trap", "decoy", "secretdoor", "locked" -> Tour.findTrigger(level, last.built().blueprint(), what);
+            case "lever", "trap", "pit", "decoy", "secretdoor", "locked" -> Tour.findTrigger(level, last.built().blueprint(), what);
             default -> Tour.find(level, what, level.index * 31L + System.nanoTime() % 7);
         };
         if (spot == null) {

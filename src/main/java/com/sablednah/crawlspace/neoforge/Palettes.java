@@ -292,6 +292,9 @@ public final class Palettes {
             m.put("trap_wire", Mix.of(Blocks.TRIPWIRE, 1));
             m.put("puzzle_void", Mix.of(Blocks.END_PORTAL, 1));
             m.put("puzzle_restart", Mix.of(Blocks.CRYING_OBSIDIAN, 1));
+            m.put("puzzle_hidden", Mix.of(Blocks.BARRIER, 1));
+            m.put("puzzle_crumble", Mix.of(Blocks.STONE_BRICKS, 1));
+            m.put("pit_tile", Mix.of(Blocks.STONE_BRICKS, 1));
             DEFAULT_SKINS.put(theme, m);
         }
         STYLES.forEach((style, st) -> {
@@ -496,6 +499,10 @@ public final class Palettes {
             case DECOY_WIRE -> trapBlock(theme, true);
             case VOID -> b.apply("puzzle_void");
             case RESTART -> b.apply("puzzle_restart");
+            case PATH_HIDDEN -> b.apply("puzzle_hidden");
+            case CRUMBLE -> b.apply("puzzle_crumble");
+            case PIT_TILE -> b.apply("pit_tile");
+            case DRIPLEAF -> Blocks.BIG_DRIPLEAF.defaultBlockState().setValue(net.minecraft.world.level.block.BigDripleafBlock.FACING, dir);
             default -> b.apply(part.name().toLowerCase(java.util.Locale.ROOT));
         };
     }
