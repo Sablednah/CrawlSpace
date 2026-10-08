@@ -27,6 +27,9 @@ caverns, deep halls.
   Break one or sneak-use it to try to disarm it, and it might go off in your
   face. Secret walls open onto treasure, and levers open locked iron doors.
   Pits drop you to the level below.
+- **Puzzle rooms and pit traps.** Mazes over the void, with gaps, crumbling
+  stones and dripleaf deeper down, and a leap of faith you find by throwing
+  things; and floors that crumble into dripstone spikes.
 - **Loot worth the trip.** Five tiers by depth, with Mending, rare books,
   armour trim templates and trimmed, enchanted armour.
 

@@ -40,6 +40,8 @@ Every level is planned fresh. Rooms of every shape loop round and cross each oth
 - **Every lair has a named boss** with a boss bar. Its minions never turn on it, so it will be waiting for you.
 - **Traps under pressure plates and tripwires** fire darts or poison gas, and some plates are decoys. Faint red sparks give the real ones away. Break a plate or sneak-use it to try to disarm it, but it might go off in your face.
 - **Secret walls** hide treasure rooms, and **levers** open the iron doors that lock off part of each level.
+- **Puzzle rooms**: a maze of narrow paths over the void, with a chest at the end of one. Step off and the void throws you back to the start. Deeper down, the paths have gaps to jump, stones that crumble under you and dripleaf that tips you off, and the deepest are a leap of faith: an invisible path you can only find by throwing things onto it.
+- **Pit traps**: a patch of stone brick that cracks and crumbles away under you, into a pit of dripstone spikes.
 - **Loot improves with depth**: Mending books, rare enchantments, armour trim templates, the netherite upgrade, and trimmed, enchanted armour.
 
 ![A cavern pool with its spawner](https://raw.githubusercontent.com/Sablednah/CrawlSpace/main/docs/images/cavern-pool.jpg)
@@ -48,7 +50,7 @@ Every level is planned fresh. Rooms of every shape loop round and cross each oth
 
 ## Play it with LegendQuest
 
-With **LegendQuest** (2.9.0 or newer) installed, your character finds the traps. A trap's plate stays hidden until a Wisdom check spots it, harder the deeper you are, and disarming is a Dexterity check. Dwarves are good with traps. You see your roll when you spot something, and nothing at all when you don't.
+With **LegendQuest** (2.9.1 or newer) installed, your character finds the traps. A trap's plate stays hidden until a Wisdom check spots it, harder the deeper you are, and disarming is a Dexterity check. Dwarves are good with traps. Slipping off a puzzle path or standing on a crumbling pit is an Athletics check to catch yourself. You see your roll when you spot something, and nothing at all when you don't.
 
 ![Planned, not tiled: every level of one dungeon](https://raw.githubusercontent.com/Sablednah/CrawlSpace/main/docs/images/plan-sheet.png)
 
@@ -69,4 +71,4 @@ CrawlSpace runs on the server. Players with an unmodded client can join and play
 - **CityWorld**: dungeons generate in CityWorld worlds, and cities keep clear of the entrance.
 - **Other RPG mods** can supply their own checks through `CrawlSpaceApi`.
 
-Minecraft 1.21.11, 26.1.2, 26.2 and 26.3 on NeoForge. MIT licensed.
+Minecraft 1.21.11, 26.1.2, 26.2 and 26.3 on NeoForge. On 26.3, version 0.2.0 and later need NeoForge 26.3.0.58-beta or newer. MIT licensed.
