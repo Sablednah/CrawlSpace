@@ -108,6 +108,14 @@ That keeps a whole dungeon within vanilla's structure reach (pieces have to
 stay within about 8 chunks of the start chunk; **re-verify against 1.21.11
 source when building the worldgen**).
 
+- **No step beside a doorway.** A stair next to a door cannot be climbed
+  in either direction (Sable, seed 774: a stair outside a door blocked it).
+  `solveHeights` holds every corridor cell beside a doorway level with it
+  (an apron), as a fixed value in the Laplace solve, so the ramp starts a
+  cell further out. `PlanCheck` rejects any corridor cell beside a doorway
+  at a different height. Before, 26 such rises appeared in the first 42
+  test dungeons.
+
 ## How it is built (`build` + `neoforge`)
 
 Level `i`'s floor is at `-top - i * 12` relative to the ground at the tower.
@@ -275,8 +283,17 @@ nothing needs one. Each room picks, from its own dice:
   the chest and the cells beside it are never hazards. A gap beside the
   chest left nowhere to stand to open it, and the test caught that.
 - **"Fallen" in a puzzle room** means below the path layer inside its bounds
-  (the PUZZLE trigger's targets), as well as in or on the void. That one
-  rule covers crumbled holes, tipped dripleaf and the leap's open air.
+  (the PUZZLE trigger's targets), or inside a void block. That rule covers
+  crumbled holes, tipped dripleaf and the leap's open air. Standing *on* the
+  void counts only where a datapack made it solid.
+- **The maze void is sunk a block** (air at f-1, `VOID` at f-2, floor at
+  f-3, and floor under every path block at f-2), where the two layers below
+  the room are free. With the void in the floor layer, a player at a path's
+  edge had their *centre* over the next column, and the check sent them
+  back: Sable could not cross a room, though the leap of faith, whose void
+  was already sunk, was fine. On the rig, standing with the centre 0.1 over
+  the void column now holds, and stepping off still sends you to the centre.
+  Where there is no room below, the void keeps the floor layer.
 - `LAST_SAFE` is now recorded anywhere in a dungeon: the last block stood on
   whose floor is not void, air, crumble, dripleaf or a pit tile.
 
