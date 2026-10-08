@@ -60,6 +60,46 @@ route. Several of the ideas below come almost free once this exists:
 | **Sub-levels and side portals** | Greyhawk, Undermountain, DCSS portal vaults | A rare secret leads to a 5–8 room pocket (a forgotten library, a flooded ossuary) with better loot. A timed variant announces itself ("You hear rushing water") and collapses when a boss-bar countdown runs out. | M–L |
 | **Multi-level room** | Jaquays, Dyson Logos | A tall cavern spanning two levels, with balconies, so you see the next level's monsters before you reach it. | M–L |
 
+## 2a. Sable's additions (2026-10-09)
+
+**Portcullis and key** (S–M). A portcullis of iron bars closes a corridor or a
+room, and its key lies in a chest somewhere else on the level. It is a second
+kind of lock beside the lever and iron door, and it fits the cycle types above
+(the key is on the long arc). Use the portcullis while holding the key and it
+rises a row at a time, with a chain sound; the key is used up. Use it without
+the key and the action bar says where the key might be, for example "The key
+must be somewhere on this level", or with LQ the direction of the chest.
+
+- **The key is a vanilla item**: a `trial_key` or tripwire hook given a name
+  ("Crypt Key"), lore ("Opens the portcullis on level 2") and a
+  `crawlspace:key` tag in `custom_data`. The mod matches the tag, not the name,
+  so a key renamed on an anvil does not open anything.
+- **A key from another level** opens nothing, and the message says which level
+  it belongs to.
+- **Lose the key** (lava, despawn) and a spare turns up in the KEY room's
+  chest, so the level is never left unwinnable.
+- **LQ:** a STR check lifts the portcullis partway: a crawl gap under it, with
+  a slower and riskier way through.
+
+**Objective rooms** (Advanced HeroQuest's quest room; M–L). Each level's
+climax is a big, fancy, purpose-built room, not just a larger room of the
+usual kind: a throne room with a dais and banners, a flooded temple with an
+island altar, a mine's great hall with a broken lift, or a crypt's ossuary
+nave. It holds the lair boss or the stairs down, and the level's best loot.
+
+- **What sets it apart:**
+  - two to three times the size of a normal room;
+  - two storeys, with galleries;
+  - columns, a raised dais, its own lighting;
+  - a grand double doorway, so you know it on sight.
+- **How it is built:** each theme has a few hand-built templates
+  (structure NBT in the datapack, with block substitution so one template
+  has variants), or a procedural "grand" builder taking columns, dais and
+  galleries as parameters.
+- **Where it goes:** the planner reserves its footprint first, then routes
+  the level to it. It is the natural target for foreshadowing windows, and
+  for the boss's deliberate summon.
+
 ## 3. Puzzles proven on vanilla clients
 
 Hypixel's Catacombs runs about ten puzzles for unmodded clients, all
