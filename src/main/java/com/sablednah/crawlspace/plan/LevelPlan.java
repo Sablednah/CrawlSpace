@@ -39,6 +39,8 @@ public final class LevelPlan {
     public final List<int[]> pits = new ArrayList<>();
     /** Hidden trap tiles, as {x, z, TrapKind ordinal}. */
     public final List<int[]> traps = new ArrayList<>();
+    /** Its mood: what it is announced as, and what that changed. */
+    public Feeling feeling = Feeling.NONE;
     /** How many tries the planner needed. 1 is the healthy figure. */
     public int attempts;
 

@@ -359,6 +359,82 @@ public final class Bestiary {
         return capitalise(spec.name());
     }
 
+    /**
+     * A hunted level's hunter: one of the theme's monsters as a two-affix
+     * elite, bigger, with a long reach, let loose in the room furthest from
+     * where {@code player} arrived and set on them.
+     */
+    static void hunter(ServerLevel level, Site site, int li, net.minecraft.world.entity.player.Player player) {
+        com.sablednah.crawlspace.plan.LevelPlan lp = site.built().plan().levels().get(li);
+        String theme = lp.theme.name();
+        BlockPos o = site.origin();
+        com.sablednah.crawlspace.plan.Room far = null;
+        double best = -1;
+        for (com.sablednah.crawlspace.plan.Room r : lp.rooms) {
+            if (r.role == com.sablednah.crawlspace.plan.Role.PUZZLE || r.role == com.sablednah.crawlspace.plan.Role.SECRET) {
+                continue;
+            }
+            double d = player.distanceToSqr(o.getX() + r.centerX() + 0.5, player.getY(), o.getZ() + r.centerZ() + 0.5);
+            if (d > best) {
+                best = d;
+                far = r;
+            }
+        }
+        if (far == null) {
+            return;
+        }
+        RandomSource random = level.getRandom();
+        // Plain floor in that room, nearest its middle: the middle itself may be a stairwell, a pillar or a pool.
+        BlockPos pos = null;
+        for (int d = 0; d <= Math.max(far.w, far.h) && pos == null; d++) {
+            for (int dx = -d; dx <= d && pos == null; dx++) {
+                for (int dz = -d; dz <= d && pos == null; dz++) {
+                    int x = far.centerX() + dx;
+                    int z = far.centerZ() + dz;
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) == d && lp.cell(x, z) == com.sablednah.crawlspace.plan.Cell.FLOOR
+                            && lp.region(x, z) == far.id) {
+                        int y = o.getY() + com.sablednah.crawlspace.build.Blueprinter.floorY(site.built().plan(), li) + lp.height(x, z);
+                        BlockPos c = new BlockPos(o.getX() + x, y, o.getZ() + z);
+                        if (level.getBlockState(c).isAir() && level.getBlockState(c.above()).isAir() && !level.getBlockState(c.below()).isAir()) {
+                            pos = c;
+                        }
+                    }
+                }
+            }
+        }
+        if (pos == null) {
+            return;
+        }
+        Entity e = common(theme, random).create(level, EntitySpawnReason.EVENT);
+        if (!(e instanceof Mob mob)) {
+            return;
+        }
+        mob.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+        mob.addTag(Powers.NOROLL);
+        mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.EVENT, null);
+        arm(mob, li + 2, random);
+        Powers.elite(mob, Math.max(li, 3), random, 2);
+        modify(mob, Attributes.SCALE, "hunter_scale", 0.35, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        modify(mob, Attributes.MAX_HEALTH, "hunter_health", 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        AttributeInstance range = mob.getAttribute(Attributes.FOLLOW_RANGE);
+        if (range != null) {
+            range.setBaseValue(96);
+        }
+        mob.setHealth(mob.getMaxHealth());
+        if (mob.getCustomName() != null) {
+            mob.setCustomName(Component.literal(mob.getCustomName().getString().replace(
+                    mob.getType().getDescription().getString(), "Hunter")).withStyle(ChatFormatting.DARK_RED));
+        }
+        mob.addTag(KIN);
+        mob.addTag(Powers.HUNTER);
+        mob.setPersistenceRequired();
+        level.addFreshEntityWithPassengers(mob);
+        mob.setTarget(player);
+        Powers.track(level, mob);
+        CrawlSpace.LOGGER.info("CrawlSpace: a hunter, {}, is loose on level {} of the dungeon at {}, set on {}",
+                mob.getDisplayName().getString(), li + 1, o, player.getName().getString());
+    }
+
     /** How many bosses a theme has, for the command's help. */
     static int bossCount(String theme) {
         return bosses.getOrDefault(theme, List.of()).size();

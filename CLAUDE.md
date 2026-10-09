@@ -555,6 +555,47 @@ dependency: CrawlSpace works alone.
 - **`/crawlspace summon boss <theme> [which]` and `/crawlspace summon elite
   [depth]`** make one where you stand, to try them out.
 
+## Feelings (2026-10-09)
+
+A level's mood (Shattered Pixel Dungeon's level feelings), `plan/Feeling`,
+chosen in `Planner` **before** the level is planned, from its own dice
+(`Dice(seed, level, 0xFEE1)`), because some feelings change the plan:
+- **HOLLOW:** up to two secret rooms at 0.8, not one at 0.45, plus a shortcut
+  more, with secret shortcuts at 0.6, not 0.25.
+- **DAMP:** pools in ROOM, GUARD and TREASURE rooms too, at 0.85.
+- **DARK:** lanterns only at the stairs (and the lair), and loot a tier
+  better (`Site.afterPlace`).
+- **CROWDED:** encounters 0.3 likelier and two monsters more.
+- **TRAPPED:** twice the traps, up to 24.
+- **HUNTED:** a hunter (below).
+
+Never the first level; from the second, `Feeling.chance` is 0.3 plus 0.05 a
+level, up to 0.55.
+- **Arrival:** the first time a player reaches a level this session,
+  `Arrivals` sends a title, "Level 3: Sunken Halls", with the feeling's
+  message as subtitle. `/crawlspace info` lists each level's feeling.
+- **The hunter** (`Bestiary.hunter`):
+  - Let loose on a HUNTED level's first arrival, ever, recorded in
+    `CrawlState` under a marker key no block uses.
+  - It is one of the theme's monsters as a two-affix elite, renamed "...
+    Hunter" in dark red, scale 1.35, double health, follow range 96.
+  - It appears on clear floor in the room furthest from the player. A room's
+    middle can be a stairwell or pillar, and on the rig two hunters spawned
+    there were never seen again.
+  - **It stalks** (`Powers.stalk`, every 20 s). More than 32 blocks from
+    anyone on its level, it moves out of sight to the room nearest them (at
+    least 14 away, and at least 16 closer than it was) and roars there, so it
+    is heard coming and from where. Left to its own pathfinding, a hunter 81
+    blocks off through winding corridors drifted further away. With stalking,
+    it reached the player within about 30 s.
+- **Measured over 360 levels (`feelingsChangeTheirLevels`):**
+  - Hollow: 2.7 secret doors a level, against 1.0 for none.
+  - Trapped: 12.9 traps, against 5.1.
+  - Damp: 268 pool cells, against 32.
+  - Dark: no lantern away from the stairs.
+  - Every feeling turned up at least 18 times.
+- `PLANNER_VERSION` 7.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the

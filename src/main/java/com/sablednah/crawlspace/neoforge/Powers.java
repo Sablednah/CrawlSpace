@@ -90,6 +90,8 @@ public final class Powers {
     public static final String NOROLL = "zombiemod.noroll";
     /** Made small or large by us: sonic booms are scaled by size. */
     static final String SCALED = "crawlspace_scaled";
+    /** A hunted level's hunter: it stalks, room by room, toward whoever is on its level. */
+    static final String HUNTER = "crawlspace_hunter";
     /** A summoned minion: it carries no loot and its summoner counts it. */
     static final String SPAWN = "crawlspace_spawn";
 
@@ -98,6 +100,7 @@ public final class Powers {
         final UUID id;
         long nextBlink;
         long nextSummon;
+        long nextStalk;
         final List<UUID> minions = new ArrayList<>();
 
         State(ServerLevel level, UUID id) {
@@ -124,13 +127,17 @@ public final class Powers {
      * mod already named (a ZombieMod genus) is left as it is.
      */
     static boolean elite(Mob mob, int depth, RandomSource random) {
+        return elite(mob, depth, random, depth >= 3 && random.nextDouble() < 0.35 ? 2 : 1);
+    }
+
+    /** ...with exactly {@code count} affixes: a hunted level's hunter has two. */
+    static boolean elite(Mob mob, int depth, RandomSource random, int count) {
         if (mob.hasCustomName()) {
             return false;
         }
         List<Affix> pool = new ArrayList<>(List.of(Affix.values()));
         List<Affix> got = new ArrayList<>();
-        got.add(pool.remove(random.nextInt(pool.size())));
-        if (depth >= 3 && random.nextDouble() < 0.35) {
+        for (int k = 0; k < count && !pool.isEmpty(); k++) {
             got.add(pool.remove(random.nextInt(pool.size())));
         }
         StringBuilder name = new StringBuilder();
@@ -172,7 +179,7 @@ public final class Powers {
 
     private static boolean needsTicking(Mob mob) {
         for (String t : mob.getTags()) {
-            if (t.startsWith(POWER) || t.equals(Affix.BLINKING.tag()) || t.equals(Bosses.TAG)) {
+            if (t.startsWith(POWER) || t.equals(Affix.BLINKING.tag()) || t.equals(Bosses.TAG) || t.equals(HUNTER)) {
                 return true;
             }
         }
@@ -214,12 +221,76 @@ public final class Powers {
             if (tags.contains(Bosses.TAG) && !tags.contains(ENRAGED) && mob.getHealth() <= mob.getMaxHealth() / 2) {
                 enrage(s.level, mob, s);
             }
+            if (tags.contains(HUNTER) && now >= s.nextStalk) {
+                s.nextStalk = now + 400;
+                stalk(s.level, mob);
+            }
             if (mob.getType() == EntityType.WARDEN) {
                 // A warden calm for long enough digs back into the ground and is gone; ours live here.
                 mob.getBrain().setMemoryWithExpiry(net.minecraft.world.entity.ai.memory.MemoryModuleType.DIG_COOLDOWN,
                         net.minecraft.util.Unit.INSTANCE, 1200L);
             }
         }
+    }
+
+    /**
+     * A hunter more than 32 blocks from anyone on its level moves, out of
+     * sight, into a room nearer them, and growls there, so it is heard coming
+     * and from which way. Measured on the rig: left to its own pathfinding, a
+     * hunter 81 blocks off through winding corridors never closed the gap.
+     * Within 32, its own AI does the rest.
+     */
+    private static void stalk(ServerLevel level, Mob mob) {
+        Site site = Dungeons.at(level, mob.blockPosition()).orElse(null);
+        if (site == null) {
+            return;
+        }
+        int li = Arrivals.levelAt(site, mob.blockPosition());
+        if (li < 0) {
+            return;
+        }
+        ServerPlayer prey = null;
+        double best = Double.MAX_VALUE;
+        for (ServerPlayer p : level.players()) {
+            if (p.isCreative() || p.isSpectator() || Arrivals.levelAt(site, p.blockPosition()) != li || !site.contains(p.blockPosition())) {
+                continue;
+            }
+            double d = p.distanceToSqr(mob);
+            if (d < best) {
+                best = d;
+                prey = p;
+            }
+        }
+        if (prey == null) {
+            return;
+        }
+        mob.setTarget(prey);
+        double now = Math.sqrt(best);
+        if (now <= 32) {
+            return;
+        }
+        com.sablednah.crawlspace.plan.LevelPlan lp = site.built().plan().levels().get(li);
+        net.minecraft.core.BlockPos o = site.origin();
+        net.minecraft.core.BlockPos to = null;
+        double toD = Double.MAX_VALUE;
+        for (com.sablednah.crawlspace.plan.Room r : lp.rooms) {
+            if (r.role == com.sablednah.crawlspace.plan.Role.PUZZLE || r.role == com.sablednah.crawlspace.plan.Role.SECRET) {
+                continue;
+            }
+            int y = o.getY() + com.sablednah.crawlspace.build.Blueprinter.floorY(site.built().plan(), li) + lp.height(r.centerX(), r.centerZ());
+            net.minecraft.core.BlockPos c = new net.minecraft.core.BlockPos(o.getX() + r.centerX(), y, o.getZ() + r.centerZ());
+            double d = Math.sqrt(prey.distanceToSqr(c.getX() + 0.5, c.getY(), c.getZ() + 0.5));
+            if (d >= 14 && d <= now - 16 && d < toD
+                    && level.noCollision(mob, mob.getBoundingBox().move(c.getX() + 0.5 - mob.getX(), c.getY() - mob.getY(), c.getZ() + 0.5 - mob.getZ()))) {
+                toD = d;
+                to = c;
+            }
+        }
+        if (to == null) {
+            return;
+        }
+        mob.teleportTo(to.getX() + 0.5, to.getY(), to.getZ() + 0.5);
+        level.playSound(null, to, SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 2.5f, 0.6f);
     }
 
     /** To just behind its target, in a puff of portal: the way an enderman goes. */

@@ -370,6 +370,9 @@ public final class Triggers {
         if (here.site() == null) {
             return;
         }
+        if (player.tickCount % 20 == 0 && here.site().planner() == Site.PLANNER_VERSION) {
+            Arrivals.tick(level, player, here.site(), feet);
+        }
         if (player.tickCount % 20 == 0) {
             final Site site = here.site();
             if (CrawlConfig.hints()) {
@@ -715,6 +718,7 @@ public final class Triggers {
         LAST_SAFE.remove(e.getEntity().getUUID());
         NOTICED.remove(e.getEntity().getUUID());
         PREV.remove(e.getEntity().getUUID());
+        Arrivals.forget(e.getEntity().getUUID());
     }
 
     private static Trigger triggerAt(Site site, BlockPos pos) {

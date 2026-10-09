@@ -506,6 +506,60 @@ class BlueprintTest {
         assertTrue(found > 5, "only " + found + " pit rooms in 40 dungeons");
     }
 
+    /**
+     * Feelings do what they say: over many levels, hollow ones have more
+     * secret doors, trapped ones more traps, damp ones more pools, and a dark
+     * level hangs lanterns only round its stairs. And every feeling turns up.
+     */
+    @Test
+    void feelingsChangeTheirLevels() {
+        java.util.Map<com.sablednah.crawlspace.plan.Feeling, int[]> seen = new java.util.EnumMap<>(com.sablednah.crawlspace.plan.Feeling.class);
+        for (long seed = 0; seed < 60; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 6);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            for (int i = 0; i < plan.levels().size(); i++) {
+                LevelPlan level = plan.levels().get(i);
+                int[] n = seen.computeIfAbsent(level.feeling, k -> new int[5]);
+                n[0]++;
+                for (int x = -LevelPlan.RADIUS; x <= LevelPlan.RADIUS; x++) {
+                    for (int z = -LevelPlan.RADIUS; z <= LevelPlan.RADIUS; z++) {
+                        com.sablednah.crawlspace.plan.Cell c = level.cell(x, z);
+                        n[1] += c == com.sablednah.crawlspace.plan.Cell.DOOR_SECRET ? 1 : 0;
+                        n[3] += c == com.sablednah.crawlspace.plan.Cell.POOL ? 1 : 0;
+                    }
+                }
+                n[2] += level.traps.size();
+                if (level.feeling == com.sablednah.crawlspace.plan.Feeling.DARK) {
+                    final int li = i;
+                    bp.forEachColumn(col -> {
+                        for (int k = 0; k < col.codes().length; k++) {
+                            int code = col.codes()[k];
+                            if (code != 0 && Blueprint.part(code) == Part.LIGHT && Blueprint.level(code) == li) {
+                                com.sablednah.crawlspace.plan.Room r = level.room(level.region(col.x(), col.z()));
+                                assertTrue(r != null && (r.role == com.sablednah.crawlspace.plan.Role.ENTRY
+                                        || r.role == com.sablednah.crawlspace.plan.Role.EXIT
+                                        || r.role == com.sablednah.crawlspace.plan.Role.LAIR),
+                                        "a lantern on a dark level away from the stairs at " + col.x() + "," + col.z());
+                            }
+                        }
+                    });
+                }
+            }
+        }
+        StringBuilder b = new StringBuilder();
+        seen.forEach((f, n) -> b.append(f).append(": ").append(n[0]).append(" levels, ")
+                .append(String.format("%.1f secret doors, %.1f traps, %.1f pool cells a level%n", n[1] / (double) n[0], n[2] / (double) n[0], n[3] / (double) n[0])));
+        System.out.println(b);
+        for (com.sablednah.crawlspace.plan.Feeling f : com.sablednah.crawlspace.plan.Feeling.values()) {
+            assertTrue(seen.containsKey(f) && seen.get(f)[0] >= 5, f + " turned up too seldom: " + b);
+        }
+        java.util.function.ToDoubleBiFunction<com.sablednah.crawlspace.plan.Feeling, Integer> per = (f, k) -> seen.get(f)[k] / (double) seen.get(f)[0];
+        com.sablednah.crawlspace.plan.Feeling none = com.sablednah.crawlspace.plan.Feeling.NONE;
+        assertTrue(per.applyAsDouble(com.sablednah.crawlspace.plan.Feeling.HOLLOW, 1) > 1.5 * per.applyAsDouble(none, 1), b.toString());
+        assertTrue(per.applyAsDouble(com.sablednah.crawlspace.plan.Feeling.TRAPPED, 2) > 1.5 * per.applyAsDouble(none, 2), b.toString());
+        assertTrue(per.applyAsDouble(com.sablednah.crawlspace.plan.Feeling.DAMP, 3) > 2 * per.applyAsDouble(none, 3), b.toString());
+    }
+
     /** Somewhere to stand: two clear blocks over something solid. */
     private static boolean stands(Blueprint bp, int x, int y, int z) {
         int under = bp.get(x, y - 1, z);
