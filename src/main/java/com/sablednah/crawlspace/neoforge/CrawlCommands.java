@@ -205,6 +205,7 @@ public final class CrawlCommands {
         double[] spot = switch (what) {
             case "lever", "trap", "pit", "decoy", "secretdoor", "locked", "portcullis", "droptrap", "winch", "oneway", "onewaydoor" -> Tour.findTrigger(level, last.built().blueprint(), what);
             case "window" -> Tour.findWindow(level, last.built().blueprint());
+            case "arena" -> Tour.findArena(level, last.built().blueprint());
             default -> Tour.find(level, what, level.index * 31L + System.nanoTime() % 7);
         };
         if (spot == null) {

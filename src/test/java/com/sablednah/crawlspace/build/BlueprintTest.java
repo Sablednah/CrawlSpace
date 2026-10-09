@@ -403,6 +403,87 @@ class BlueprintTest {
         assertTrue(windows > 30, "only " + windows + " window bars in 30 dungeons");
     }
 
+    /**
+     * The finale arena: on the bottom level the lair's middle is a pit, and a
+     * player on its gallery, at the doorways' height, can walk down into it
+     * and back up by the flights alone, never climbing a block without a stair.
+     */
+    @Test
+    void finaleArenasCanBeWalkedInto() {
+        int arenas = 0;
+        for (long seed = 0; seed < 40; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 4);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            int last = plan.levels().size() - 1;
+            LevelPlan level = plan.levels().get(last);
+            for (com.sablednah.crawlspace.plan.Room r : level.rooms) {
+                if (r.role != com.sablednah.crawlspace.plan.Role.LAIR) {
+                    continue;
+                }
+                int f = Blueprinter.floorY(plan, last) + level.height(r.centerX(), r.centerZ());
+                int pit = bp.get(r.centerX(), f - 1, r.centerZ());
+                if (pit == 0 || Blueprint.part(pit) != Part.AIR) {
+                    continue; // a plain lair
+                }
+                arenas++;
+                // Walk from every gallery cell at door level.
+                java.util.Set<String> seen = new java.util.HashSet<>();
+                java.util.ArrayDeque<int[]> q = new java.util.ArrayDeque<>();
+                for (int x = r.minX(); x <= r.maxX(); x++) {
+                    for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                        if (r.contains(x, z) && stands(bp, x, f, z)) {
+                            q.add(new int[] {x, f, z});
+                            seen.add(x + "," + f + "," + z);
+                        }
+                    }
+                }
+                boolean down = false;
+                while (!q.isEmpty()) {
+                    int[] c = q.poll();
+                    down |= c[1] == f - 5;
+                    for (int[] d : SIX) {
+                        if (d[1] != 0) {
+                            continue;
+                        }
+                        for (int dy = -1; dy <= 1; dy++) {
+                            int x = c[0] + d[0];
+                            int y = c[1] + dy;
+                            int z = c[2] + d[2];
+                            if (!r.contains(x, z) || !stands(bp, x, y, z) || !seen.add(x + "," + y + "," + z)) {
+                                continue;
+                            }
+                            int under = bp.get(x, y - 1, z);
+                            if (dy == 1 && (under == 0 || Blueprint.part(under) != Part.STEP)) {
+                                seen.remove(x + "," + y + "," + z);
+                                continue; // a block up with no stair: nobody climbs that
+                            }
+                            q.add(new int[] {x, y, z});
+                        }
+                    }
+                }
+                assertTrue(down, "seed " + seed + ": the finale arena cannot be walked into");
+            }
+        }
+        System.out.println("finale arenas: " + arenas + " in 40 dungeons");
+        assertTrue(arenas > 15, "only " + arenas + " finale arenas in 40 dungeons");
+    }
+
+    /** Somewhere to stand: two clear blocks over something solid. */
+    private static boolean stands(Blueprint bp, int x, int y, int z) {
+        int under = bp.get(x, y - 1, z);
+        if (under == 0 || Blueprint.part(under) == Part.AIR || Blueprint.part(under) == Part.RAILING) {
+            return false;
+        }
+        for (int k = 0; k < 2; k++) {
+            int c = bp.get(x, y + k, z);
+            if (c != 0 && Blueprint.part(c) != Part.AIR && Blueprint.part(c) != Part.CARPET && Blueprint.part(c) != Part.CHAIN
+                    && Blueprint.part(c) != Part.LIGHT && Blueprint.part(c) != Part.COBWEB && Blueprint.part(c) != Part.BANNER) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /** One-way doors exist, and each has its lever on its own side: inside the room further from the entry. */
     @Test
     void onewayDoorsOpenFromTheFarSide() {

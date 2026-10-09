@@ -26,6 +26,18 @@ public final class Blueprint {
     private final Map<Long, Column> columns = new HashMap<>();
     private final Map<Long, Trigger> triggers = new HashMap<>();
     private boolean compact;
+    /** Per level, the cells of a finale arena's pit: no trigger, decoy or prop belongs there. */
+    private final Map<Integer, java.util.Set<Long>> arenas = new HashMap<>();
+
+    public void markArena(int level, java.util.Set<Long> cells) {
+        arenas.put(level, cells);
+    }
+
+    /** Whether (x, z) on {@code level} is in a finale arena's pit; keys are (x << 32) ^ z. */
+    public boolean inArena(int level, int x, int z) {
+        java.util.Set<Long> a = arenas.get(level);
+        return a != null && a.contains(((long) x << 32) ^ (z & 0xffffffffL));
+    }
 
     public Blueprint(int minY, int maxY) {
         this.minY = minY;

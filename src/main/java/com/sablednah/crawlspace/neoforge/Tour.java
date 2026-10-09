@@ -22,7 +22,7 @@ final class Tour {
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
             "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle",
-            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window");
+            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena");
 
     private Tour() {
     }
@@ -85,6 +85,24 @@ final class Tour {
                 Cell mid = level.cell(t.x() + d[0] / 2, t.z() + d[1] / 2);
                 if (c.isWalkable() && mid.isWalkable() && !c.isDoor()) {
                     return new double[] {t.x() + d[0] + 0.5, t.z() + d[1] + 0.5, yaw(-d[0], -d[1])};
+                }
+            }
+        }
+        return null;
+    }
+
+    /** On the gallery of a finale arena, at a corner of the pit, facing across it. */
+    static double[] findArena(LevelPlan level, com.sablednah.crawlspace.build.Blueprint bp) {
+        for (Room r : level.rooms) {
+            if (r.role != com.sablednah.crawlspace.plan.Role.LAIR) {
+                continue;
+            }
+            for (int[] c : new int[][] {{1, 1}, {-1, 1}, {1, -1}, {-1, -1}}) {
+                int x = r.centerX() + c[0] * (r.w / 2 - 1);
+                int z = r.centerZ() + c[1] * (r.h / 2 - 1);
+                if (r.contains(x, z) && !bp.inArena(level.index, x, z)
+                        && bp.inArena(level.index, x - 2 * c[0], z - 2 * c[1])) {
+                    return new double[] {x + 0.5, z + 0.5, yaw(-c[0], -c[1])};
                 }
             }
         }

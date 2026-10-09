@@ -427,6 +427,43 @@ TREASURE, KEY or SHRINE room, the two wall cells between them become
 - **Seen on the rig** (seed 9, level 1, `goto 1 window`): the room's
   furniture shows through.
 
+## The finale arena (Sable, 2026-10-09)
+
+The reason to reach the bottom. On the bottom level, the LAIR becomes a
+sunken arena (`Blueprinter.arenaPlan` / `arena`), after Warhammer Quest's
+objective rooms (the Fighting Pit).
+- **Shape.** Room cells with the whole 5x5 round them in the room are the
+  pit; the rest is a gallery two cells wide at the doorways' height. The pit
+  floor is `ARENA_DEPTH` (5) lower, so the arena stands eleven high. Under
+  the gallery is solid wall down to the pit floor.
+- **Flights.** Two straight flights of five `STEP`s, each facing back up on
+  solid fill, from opposite edges where they fit, else one. A lair with a
+  pillar or pool in the pit, a pit under 25 cells, or no room for a flight
+  stays a plain lair: 23 of 40 four-level dungeons got one.
+- **No railing.** The lair's furniture lines the gallery's outer ring, so a
+  railing on the inner ring closed the gallery off (the dressing test caught
+  it). The fall is five blocks, about a heart, and sneaking stops it.
+- **Contents.** A second hoard chest goes at the pit cell furthest from the
+  flights (with a TREASURE trigger), and a chandelier hangs over the middle.
+  The boss and its followers stand in the pit: on the first rig run the boss
+  woke on the gallery, beside the player.
+- **Order.** The pit is settled before the triggers (`Blueprint.markArena`),
+  so `clearAround` and `flatSpot` keep traps, decoys and winches off it. Before
+  that, the pit erased a winch and a decoy placed there. The dressing runs as
+  usual and its props in the pit are cleared with it.
+- **Deeper.** The blueprint and the site's lowest block reach `BELOW` (10)
+  under the bottom level's floor, not 4, and `Site.fit` keeps that clear of
+  bedrock.
+- **Tested:** `finaleArenasCanBeWalkedInto` walks from the gallery to the pit
+  floor, climbing only by stairs.
+- **Testing aid:** `/crawlspace goto <bottom level> arena` stands you on the
+  gallery's inner corner.
+- **Seen on the rig** (seed 4, two levels): the pit, both flights, and the
+  furniture round the gallery. With the boss moved into the pit, three of its
+  group were still there 8 s after waking, and the rest, the Bone Warden
+  among them, had climbed a flight and reached the player on the gallery. They
+  hunt; the pit is where they start, not a cage.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the

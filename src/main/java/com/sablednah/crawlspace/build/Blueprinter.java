@@ -30,6 +30,14 @@ public final class Blueprinter {
     public static final int COVER = 3;
     /** Inside the tower, floor to roof. */
     public static final int TOWER_HEIGHT = 7;
+    /**
+     * How far the blueprint reaches below the bottom level's floor: its floor
+     * block (3, with the heights' spread), and the finale arena sunk under it.
+     */
+    public static final int BELOW = 4 + 6;
+    /** How far the finale arena's floor sinks below the lair's gallery. */
+    static final int ARENA_DEPTH = 5;
+
     /** The highest a blueprint goes above the ground: the tallest tower design and its finial. */
     public static final int TOP = Towers.MAX_HEIGHT + 2;
     /**
@@ -82,7 +90,7 @@ public final class Blueprinter {
     /** @param style the entrance's biome style, which picks the tower's design */
     public static Blueprint blueprint(DungeonPlan plan, String style) {
         int levels = plan.levels().size();
-        Blueprint bp = new Blueprint(floorY(plan, levels - 1) - 4, TOP);
+        Blueprint bp = new Blueprint(floorY(plan, levels - 1) - BELOW, TOP);
         for (int i = 0; i < levels; i++) {
             level(bp, plan, i);
         }
@@ -224,10 +232,25 @@ public final class Blueprinter {
         }
         steps(bp, plan, i);
         puzzles(bp, plan, i);
+        // The finale's pit is settled first, so no trigger, decoy or winch is put where it will be.
+        ArenaPlan finale = null;
+        if (i == plan.levels().size() - 1) {
+            for (Room r : level.rooms) {
+                if (r.role == Role.LAIR && finale == null) {
+                    finale = arenaPlan(level, r);
+                }
+            }
+            if (finale != null) {
+                bp.markArena(i, finale.cells());
+            }
+        }
         triggers(bp, plan, i);
         java.util.Set<Integer> dark = Dresser.dress(bp, plan, i);
         windows(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x3E7DL));
         lights(bp, plan, i, dark);
+        if (finale != null) {
+            arena(bp, plan, i, finale);
+        }
         encounters(bp, plan, i);
         ambushes(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0xA4B5L));
     }
@@ -293,6 +316,10 @@ public final class Blueprinter {
                         continue;
                     }
                     int f = floorAt(plan, i, x, z);
+                    // Down to whatever there is to stand on: the finale's arena floor is below the gallery's.
+                    while (f > bp.minY + 1 && bp.get(x, f - 1, z) != 0 && Blueprint.part(bp.get(x, f - 1, z)) == Part.AIR) {
+                        f--;
+                    }
                     int here = bp.get(x, f, z);
                     int above = bp.get(x, f + 1, z);
                     if ((here == 0 || Blueprint.part(here) == Part.AIR || Blueprint.part(here) == Part.CARPET
@@ -309,6 +336,16 @@ public final class Blueprinter {
                 int[] t = spots.get(k);
                 spots.set(k, spots.get(j));
                 spots.set(j, t);
+            }
+            // In a finale arena they wait in the pit, the boss first, not on the gallery beside whoever walks in.
+            java.util.List<int[]> pit = new java.util.ArrayList<>();
+            for (int[] sp : spots) {
+                if (bp.inArena(i, sp[0], sp[2])) {
+                    pit.add(sp);
+                }
+            }
+            if (!pit.isEmpty()) {
+                spots = pit;
             }
             int n = Math.min(spots.size(), r.role == Role.LAIR ? 4 + i / 2 : 2 + i / 2 + dice.nextInt(3));
             Trigger.Kind kind = r.role == Role.LAIR ? Trigger.Kind.BOSS : Trigger.Kind.ENCOUNTER;
@@ -475,7 +512,7 @@ public final class Blueprinter {
                     int cx = x + dx;
                     int cz = z + dz;
                     Cell c = level.cell(cx, cz);
-                    if (c != Cell.FLOOR && c != Cell.CORRIDOR || inPuzzle(level, cx, cz)) {
+                    if (c != Cell.FLOOR && c != Cell.CORRIDOR || inPuzzle(level, cx, cz) || bp.inArena(i, cx, cz)) {
                         continue;
                     }
                     int code = bp.get(cx, floorAt(plan, i, cx, cz), cz);
@@ -545,6 +582,153 @@ public final class Blueprinter {
                 }
             }
         }
+    }
+
+    /**
+     * The finale: the bottom level's lair as a sunken arena, the reason to
+     * reach the bottom (Sable, 2026-10-09; Warhammer Quest's objective room,
+     * the Fighting Pit). A gallery two cells wide runs round the walls at the
+     * doorways' height; inside it the floor drops
+     * {@link #ARENA_DEPTH} blocks, so the arena stands eleven high. Two straight
+     * flights go down from opposite sides, and a second hoard waits at the
+     * arena's far end. The lair's dressing is round its walls, on the gallery,
+     * and stays; its boss wakes in the pit. A lair with pillars or a pool, or
+     * too small for a flight and room to land, stays a plain lair.
+     */
+    /** A finale arena worked out: its room, the pit's cells, and its flights as {start x, z, dx, dz}. */
+    record ArenaPlan(Room room, java.util.Set<Long> cells, java.util.List<int[]> flights) {
+    }
+
+    /** The arena a lair would take, or null if it is too small or has a pillar or pool where the pit would go. */
+    static ArenaPlan arenaPlan(LevelPlan level, Room r) {
+        java.util.Set<Long> arena = new java.util.HashSet<>();
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                boolean inner = true;
+                for (int dx = -2; dx <= 2 && inner; dx++) {
+                    for (int dz = -2; dz <= 2 && inner; dz++) {
+                        inner = r.contains(x + dx, z + dz);
+                    }
+                }
+                if (inner) {
+                    if (level.cell(x, z) != Cell.FLOOR) {
+                        return null; // a pillar or a pool where the pit would go
+                    }
+                    arena.add(key(x, z));
+                }
+            }
+        }
+        // The flights: from a gallery cell straight into the arena, five steps down and at least two to land.
+        java.util.List<int[]> runs = new java.util.ArrayList<>(); // {start x, z, dx, dz}
+        for (int[] d : DIRS4) {
+            int[] best = null;
+            int bestOff = Integer.MAX_VALUE;
+            for (long k : arena) {
+                int x = (int) (k >> 32);
+                int z = (int) k;
+                if (arena.contains(key(x - d[0], z - d[1]))) {
+                    continue; // not on the arena's edge facing this way
+                }
+                boolean fits = true;
+                for (int n = 0; n < ARENA_DEPTH + 2 && fits; n++) {
+                    fits = arena.contains(key(x + n * d[0], z + n * d[1]));
+                }
+                int off = Math.abs(d[0] == 0 ? x - r.centerX() : z - r.centerZ());
+                if (fits && off < bestOff) {
+                    bestOff = off;
+                    best = new int[] {x, z, d[0], d[1]};
+                }
+            }
+            if (best != null) {
+                runs.add(best);
+            }
+        }
+        // Two flights facing each other if there are, else whatever single one fits.
+        java.util.List<int[]> chosen = new java.util.ArrayList<>();
+        for (int[] a : runs) {
+            for (int[] b : runs) {
+                if (chosen.isEmpty() && a[2] == -b[2] && a[3] == -b[3] && a != b) {
+                    chosen.add(a);
+                    chosen.add(b);
+                }
+            }
+        }
+        if (chosen.isEmpty() && !runs.isEmpty()) {
+            chosen.add(runs.get(0));
+        }
+        if (chosen.isEmpty() || arena.size() < 25) {
+            return null;
+        }
+        return new ArenaPlan(r, arena, chosen);
+    }
+
+    private static void arena(Blueprint bp, DungeonPlan plan, int i, ArenaPlan a) {
+        LevelPlan level = plan.levels().get(i);
+        Room r = a.room();
+        java.util.Set<Long> arena = a.cells();
+        java.util.List<int[]> chosen = a.flights();
+        int f = floorAt(plan, i, r.centerX(), r.centerZ());
+        int h = clearHeight(level, r.centerX(), r.centerZ());
+        int bottom = f - ARENA_DEPTH - 1; // the arena's floor block
+        java.util.Set<Long> flight = new java.util.HashSet<>();
+        for (int[] run : chosen) {
+            for (int n = 0; n < ARENA_DEPTH; n++) {
+                flight.add(key(run[0] + n * run[2], run[1] + n * run[3]));
+            }
+        }
+        // The pit: arena floor at the bottom, air to the ceiling. The dressing's props in it go with it.
+        for (long k : arena) {
+            int x = (int) (k >> 32);
+            int z = (int) k;
+            bp.set(x, bottom, z, Part.FLOOR, 0, i);
+            bp.fill(x, z, bottom + 1, f + h - 1, Part.AIR, i);
+        }
+        // The gallery stands on solid wall down to the arena floor.
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (r.contains(x, z) && !arena.contains(key(x, z))) {
+                    bp.fill(x, z, bottom, f - 2, Part.WALL, i);
+                }
+            }
+        }
+        // The flights: each step a stair facing back up, on solid fill.
+        for (int[] run : chosen) {
+            int facing = facingOf(-run[2], -run[3]);
+            for (int n = 0; n < ARENA_DEPTH; n++) {
+                int x = run[0] + n * run[2];
+                int z = run[1] + n * run[3];
+                int y = f - 1 - n;
+                if (y - 1 >= bottom) {
+                    bp.fill(x, z, bottom, y - 1, Part.WALL, i);
+                }
+                bp.set(x, y, z, Part.STEP, facing, i);
+            }
+        }
+        // No railing round the pit: the lair's furniture lines the gallery's outer ring, and a railing on
+        // the inner one closed the gallery off. The fall is five blocks, about a heart, and sneaking stops it.
+        // The finale's hoard: the arena cell furthest from the flights.
+        long far = 0;
+        int farD = -1;
+        for (long k : arena) {
+            if (flight.contains(k)) {
+                continue;
+            }
+            int x = (int) (k >> 32);
+            int z = (int) k;
+            int d = Integer.MAX_VALUE;
+            for (int[] run : chosen) {
+                d = Math.min(d, Math.abs(x - run[0]) + Math.abs(z - run[1]));
+            }
+            if (d > farD) {
+                farD = d;
+                far = k;
+            }
+        }
+        int hx = (int) (far >> 32);
+        int hz = (int) far;
+        bp.set(hx, bottom + 1, hz, Part.HOARD_CHEST, facingOf(Integer.signum(r.centerX() - hx), Integer.signum(r.centerZ() - hz)), i);
+        bp.addTrigger(new Trigger(Trigger.Kind.TREASURE, hx, bottom + 1, hz, i, new int[0][]));
+        hang(bp, plan, i, r.centerX(), r.centerZ());
     }
 
     /** How often a room worth seeing early gets a window on to a corridor that passes it. */
@@ -1079,7 +1263,7 @@ public final class Blueprinter {
 
     /** No door, stair, pit or pool within one cell, and no trigger of this level within two. */
     private static boolean clearAround(Blueprint bp, LevelPlan level, int i, int x, int z) {
-        if (inPuzzle(level, x, z)) {
+        if (inPuzzle(level, x, z) || bp.inArena(i, x, z)) {
             return false;
         }
         for (int dx = -1; dx <= 1; dx++) {

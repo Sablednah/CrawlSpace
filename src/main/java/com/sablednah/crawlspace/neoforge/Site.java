@@ -89,7 +89,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
             DungeonPlan plan = Planner.plan(seed, n);
             int top = Blueprinter.requiredTop(plan, surface);
             // The lowest block is level n-1's floor block, 3 under its lowest floor; keep it clear of the bedrock layers.
-            int lowest = origin.getY() - top - (n - 1) * plan.levelSpacing() - 4;
+            int lowest = origin.getY() - top - (n - 1) * plan.levelSpacing() - Blueprinter.BELOW;
             if (lowest >= worldMinY + 6) {
                 Site site = new Site(seed, n, top, style, origin, PLANNER_VERSION);
                 synchronized (CACHE) {
@@ -167,7 +167,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
 
     /** The lowest block the dungeon sets, in world y. */
     public int bottomY() {
-        return origin.getY() - top - (levels - 1) * Planner.LEVEL_SPACING - 4;
+        return origin.getY() - top - (levels - 1) * Planner.LEVEL_SPACING - Blueprinter.BELOW;
     }
 
     public CompoundTag save() {
