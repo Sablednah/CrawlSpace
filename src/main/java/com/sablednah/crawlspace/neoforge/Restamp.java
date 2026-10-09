@@ -114,7 +114,9 @@ public final class Restamp {
                 }
                 int[] codes = col.codes();
                 for (int i = 0; i < codes.length; i++) {
-                    if (codes[i] == 0) {
+                    // The shell and the open air only. Dressing (chests, barrels, spawners, props) is left as it is:
+                    // another mod may have made it its own, as Lootr does with every chest that has a loot table.
+                    if (codes[i] == 0 || !Blueprint.part(codes[i]).shell() && Blueprint.part(codes[i]) != com.sablednah.crawlspace.build.Part.AIR) {
                         continue;
                     }
                     pos.set(x, o.getY() + col.y0() + i, z);
@@ -127,7 +129,6 @@ public final class Restamp {
                         continue;
                     }
                     level.setBlock(pos, want, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
-                    site.afterPlace(built, level, pos.immutable(), codes[i], level.getRandom());
                     fixed++;
                 }
             }
