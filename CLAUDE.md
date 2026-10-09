@@ -506,6 +506,55 @@ CrawlSpace's chests and barrels are placed with one, never pre-filled.
     barrels `lootr:lootr_barrel`, and `/crawlspace breaches` read 0.
 - Lootr has NeoForge builds for 1.21.11, 26.1.2, 26.2 and 26.3.
 
+## Elites, bosses and powers (Sable, 2026-10-09)
+
+**`neoforge/Powers`**, after ZombieMod's design (abilities that run beside a
+mob's own AI, kept on the mob as tags and picked up again on
+`EntityJoinLevelEvent`). It copies the pattern, not the code, and has no
+dependency: CrawlSpace works alone.
+- **Elites:** a room's ordinary monster may roll one affix, or two from level
+  4 down (`eliteChance`: 5% plus 3.5% a level, at most 30%, at most two a
+  room). The affixes are Venomous, Frenzied, Armoured, Hulking, Blinking,
+  Burning, Splitting and Vampiric. The prefix goes in the nameplate
+  ("Vampiric Burning Skeleton"), coloured by the affix, or light purple for
+  two. Elites get +25% health, drop two items from their depth's chest loot
+  and give 12 XP; bosses give 60.
+- **Bosses:** each theme has a list, and a lair takes one by
+  `Dice(seed, level, 0xB055)`. Every boss enrages at half health: faster,
+  harder hits, a roar, "X is enraged!", and a summoner calls a burst.
+  - **The Brood Queen** (Caverns): a silverfish at scale 5, speed x0.45,
+    births silverfish. Two blocks wide, so she cannot leave her lair through
+    a door.
+  - **The Gnawing Mite** (Old Mines): an endermite at scale 4 that blinks to
+    you and sheds endermites.
+  - **The Wardling Matriarch** (Deep Halls): a warden at 0.6 with at most
+    three Wardlings at 0.4. Woken, they are angered at the nearest player,
+    because wardens are blind and a still player is silent to them. Sonic
+    boom damage is scaled by size squared: it is fixed in vanilla, so a
+    Wardling's would otherwise hit as hard as a warden's. The `DIG_COOLDOWN`
+    memory is renewed so they never dig back into the ground.
+  - **Measured:** at damage 10 and 5 the pack took 200 health in 20 s; at 6
+    and 3 with three Wardlings, a still player in iron lost about 3 a second.
+  - A datapack `"boss"` still replaces a theme's list with one boss.
+- **Dungeon monsters never change blocks** (`EntityMobGriefingEvent`), except
+  creepers, whose blasts the explosion filter handles. A silverfish merging
+  into a wall would vanish into it and swap a protected block for infested
+  stone. On the rig, after the Queen and her brood had roamed the arena, no
+  infested stone was found.
+- **ZombieMod** (its session, 2026-10-09):
+  - A direct `Mob.finalizeSpawn` call fires no NeoForge event, and
+    ZombieMod rolls its types only in `FinalizeSpawnEvent`.
+  - So a room's ordinary monsters now go through
+    `EventHooks.finalizeMobSpawn`, and ZombieMod (or any mod) may make them
+    its own; one that comes back named is not made an elite too.
+  - Bosses, their packs, minions and splits keep the direct call and carry
+    `zombiemod.noroll` (`Powers.NOROLL`), ZombieMod's generic opt-out tag.
+  - Mobs' tags are `getTags()` on 1.21.11 and `entityTags()` on 26.1+.
+- **Bosses notice you from 40 blocks.** An endermite's own 16 left the Gnawing
+  Mite blind to a player across a big room.
+- **`/crawlspace summon boss <theme> [which]` and `/crawlspace summon elite
+  [depth]`** make one where you stand, to try them out.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the
