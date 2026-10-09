@@ -136,21 +136,20 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
         int li = Math.max(0, Blueprint.level(code));
         int tier = Math.min(5, 1 + li / 2);
         String table = switch (part) {
-            case KEY_CHEST -> "chests/supplies";
             case CHEST -> "chests/tier" + tier;
             case HOARD_CHEST -> "chests/tier" + Math.min(5, tier + 1);
             case BARREL -> "chests/supplies";
             default -> null;
         };
-        if (table != null) {
+        if (part == Part.KEY_CHEST && level.getBlockEntity(pos) instanceof net.minecraft.world.Container chest) {
+            // Only the key, and no loot table: a per-player loot mod (Lootr) takes over containers that have
+            // one, and the key must stay a real item in a plain chest that everyone shares.
+            String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();
+            chest.setItem(13, Keys.make(this, li, theme));
+        } else if (table != null) {
             net.minecraft.world.RandomizableContainer.setBlockEntityLootTable(level, random, pos,
                     net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,
                             net.minecraft.resources.Identifier.fromNamespaceAndPath("crawlspace", table)));
-            // The key sits in the middle; the loot table fills the slots round it when the chest is first opened.
-            if (part == Part.KEY_CHEST && level.getBlockEntity(pos) instanceof net.minecraft.world.Container chest) {
-                String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();
-                chest.setItem(13, Keys.make(this, li, theme));
-            }
         } else if (part == Part.SPAWNER
                 && level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner) {
             String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();

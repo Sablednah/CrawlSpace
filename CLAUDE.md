@@ -490,6 +490,22 @@ pit room).
   - `goto` answers for the dungeon you are standing in, so a wrong
     teleport sends it to another dungeon.
 
+## Lootr: per-player loot (Sable, 2026-10-09: "no need to re-invent the wheel")
+
+Per-player loot is Lootr's job, and CrawlSpace works with it rather than
+doing its own. Lootr takes over every container that has a loot table, and
+CrawlSpace's chests and barrels are placed with one, never pre-filled.
+- **The key chest has no loot table**, only the key, so Lootr leaves it a
+  plain chest that everyone shares: one key, one portcullis.
+- **`Restamp` touches only the shell and the open air, never the dressing,**
+  so a chest another mod has made its own is not put back.
+- **Seen on the rig (1.21.11, Lootr 1.21.11-1.20.34.104):**
+  - Command-built: treasure chests became `lootr:lootr_chest`, and the key
+    room's chest stayed `minecraft:chest` with the key.
+  - A freshly generated dungeon: chests became Lootr chests, guard and lair
+    barrels `lootr:lootr_barrel`, and `/crawlspace breaches` read 0.
+- Lootr has NeoForge builds for 1.21.11, 26.1.2, 26.2 and 26.3.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the
