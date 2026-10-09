@@ -113,7 +113,10 @@ public final class Protection {
         if (dig != null) {
             continueDig(level, player, dig, now);
         }
-        if (site != null && CrawlConfig.protectRepair() && player.tickCount % REPAIR_EVERY == 0) {
+        // Only from inside: Dungeons.at answers for the whole footprint, a box some 240 blocks across and
+        // down to the bottom level, and a miner in a mineshaft or cave in that box must not have the
+        // tunnels round him filled in where they happen to cross a wall position.
+        if (inside && CrawlConfig.protectRepair() && player.tickCount % REPAIR_EVERY == 0) {
             repair(level, site, feet);
         }
     }
