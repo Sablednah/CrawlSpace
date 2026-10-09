@@ -181,6 +181,7 @@ final class Router {
         stub(db, h, painted);
         brush(centres, h, painted);
         door(da, link.kind == LinkKind.LOCKED ? Cell.DOOR_LOCKED
+                : link.kind == LinkKind.ONEWAY ? Cell.DOOR_ONEWAY
                 : link.kind == LinkKind.SECRET ? Cell.DOOR_SECRET
                 : link.kind == LinkKind.OPEN ? Cell.ARCH : Cell.DOOR);
         door(db, link.kind == LinkKind.OPEN ? Cell.ARCH : Cell.DOOR);

@@ -185,7 +185,7 @@ public final class Palettes {
 
     /** Parts whose look depends on their neighbours: set again once the chunk around them is in. */
     public static boolean connects(Part part) {
-        return part == Part.RAILING || part == Part.SUPPORT || part == Part.COVE || part == Part.STATUE
+        return part == Part.RAILING || part == Part.SUPPORT || part == Part.COVE || part == Part.STATUE || part == Part.PORTCULLIS || part == Part.WINDOW_BARS
                 || part == Part.TOWER_STAIR || part == Part.TOWER_CORBEL || part == Part.TOWER_WINDOW;
     }
 
@@ -295,6 +295,9 @@ public final class Palettes {
             m.put("puzzle_hidden", Mix.of(Blocks.BARRIER, 1));
             m.put("puzzle_crumble", Mix.of(Blocks.STONE_BRICKS, 1));
             m.put("pit_tile", Mix.of(Blocks.STONE_BRICKS, 1));
+            m.put("portcullis", Mix.of(Blocks.IRON_BARS, 1));
+            m.put("window_bars", Mix.of(Blocks.IRON_BARS, 1));
+            m.put("portcullis_sill", m.get("floor_inlay"));
             DEFAULT_SKINS.put(theme, m);
         }
         STYLES.forEach((style, st) -> {
@@ -428,6 +431,7 @@ public final class Palettes {
             case TOWER_PILLAR -> t.apply("pillar");
             case TOWER_ROOF -> t.apply("roof");
             case LOCKED_LOWER, LOCKED_UPPER -> door(Blocks.IRON_DOOR, dir, part == Part.LOCKED_UPPER);
+            case ONEWAY_LOWER, ONEWAY_UPPER -> door(Blocks.IRON_DOOR, dir, part == Part.ONEWAY_UPPER);
             case DOOR_LOWER, DOOR_UPPER -> door(block(s, "door", hash), dir, part == Part.DOOR_UPPER);
             case STEP -> with(b.apply("step"), StairBlock.FACING, dir);
             case LIGHT -> with(b.apply("light"), LanternBlock.HANGING, true);
@@ -502,6 +506,15 @@ public final class Palettes {
             case PATH_HIDDEN -> b.apply("puzzle_hidden");
             case CRUMBLE -> b.apply("puzzle_crumble");
             case PIT_TILE -> b.apply("pit_tile");
+            case PORTCULLIS -> b.apply("portcullis");
+            case WINDOW_BARS -> b.apply("window_bars");
+            case PORTCULLIS_GAP -> Blocks.AIR.defaultBlockState();
+            // With hints on, the sill gives the trap away; otherwise it is the corridor's floor.
+            case PORTCULLIS_SILL -> b.apply(CrawlConfig.hints() ? "portcullis_sill" : "corridor_floor");
+            case KEY_CHEST -> Blocks.CHEST.defaultBlockState().setValue(net.minecraft.world.level.block.ChestBlock.FACING, dir);
+            case WINCH -> Blocks.LEVER.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.LeverBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR)
+                    .setValue(net.minecraft.world.level.block.LeverBlock.FACING, dir);
             case DRIPLEAF -> Blocks.BIG_DRIPLEAF.defaultBlockState().setValue(net.minecraft.world.level.block.BigDripleafBlock.FACING, dir);
             default -> b.apply(part.name().toLowerCase(java.util.Locale.ROOT));
         };

@@ -20,7 +20,8 @@ class BlueprintTest {
     /** Parts a player, water or a mob could pass through. */
     private static boolean open(Part p) {
         return switch (p) {
-            case AIR, WATER, DOOR_LOWER, DOOR_UPPER, LOCKED_LOWER, LOCKED_UPPER, TOWER_DOOR_LOWER, TOWER_DOOR_UPPER, STEP, LIGHT, LEVER -> true;
+            case AIR, WATER, DOOR_LOWER, DOOR_UPPER, LOCKED_LOWER, LOCKED_UPPER, TOWER_DOOR_LOWER, TOWER_DOOR_UPPER, STEP, LIGHT, LEVER,
+                    PORTCULLIS_GAP, ONEWAY_LOWER, ONEWAY_UPPER -> true;
             default -> false;
         };
     }
@@ -250,6 +251,7 @@ class BlueprintTest {
     static List<String> triggerProblems(DungeonPlan plan, Blueprint bp) {
         List<String> out = new ArrayList<>();
         java.util.Set<String> aimed = new java.util.HashSet<>();
+        java.util.Set<Integer> keyed = new java.util.HashSet<>();
         for (Trigger t : bp.triggers()) {
             if (t.kind() == Trigger.Kind.LEVER) {
                 for (int[] d : t.targets()) {
@@ -270,12 +272,57 @@ class BlueprintTest {
             if (t.kind() == Trigger.Kind.SECRET && Blueprint.part(bp.get(t.x(), t.y(), t.z())) != Part.SECRET_WALL) {
                 out.add("secret trigger on something that is not a secret wall");
             }
+            if (t.kind() == Trigger.Kind.ONEWAY) {
+                for (int[] d : t.targets()) {
+                    aimed.add(d[0] + "," + d[1] + "," + d[2]);
+                }
+                if (Blueprint.part(bp.get(t.x(), t.y(), t.z())) != Part.LEVER) {
+                    out.add("one-way trigger with no lever at " + t.x() + "," + t.y() + "," + t.z());
+                }
+            }
+            if (t.kind() == Trigger.Kind.PORTCULLIS) {
+                aimed.add(t.x() + "," + t.y() + "," + t.z());
+                keyed.add(t.level());
+            }
+            if (t.kind() == Trigger.Kind.WINCH && Blueprint.part(bp.get(t.x(), t.y(), t.z())) != Part.WINCH) {
+                out.add("winch trigger with no winch at " + t.x() + "," + t.y() + "," + t.z() + " (" + Blueprint.part(bp.get(t.x(), t.y(), t.z())) + ")");
+            }
+            if (t.kind() == Trigger.Kind.PORTCULLIS_TRAP || t.kind() == Trigger.Kind.WINCH) {
+                for (int[] b : t.targets()) {
+                    if (Blueprint.part(bp.get(b[0], b[1], b[2])) != Part.PORTCULLIS_GAP) {
+                        out.add(t.kind() + " aimed at " + b[0] + "," + b[1] + "," + b[2] + ", which is no portcullis gap");
+                    }
+                }
+            }
+        }
+        // Every keyed level has its key chest.
+        java.util.Set<Integer> chests = new java.util.HashSet<>();
+        bp.forEachColumn(col -> {
+            for (int i = 0; i < col.codes().length; i++) {
+                if (col.codes()[i] != 0 && Blueprint.part(col.codes()[i]) == Part.KEY_CHEST) {
+                    chests.add(Blueprint.level(col.codes()[i]));
+                }
+            }
+        });
+        for (int lv : keyed) {
+            if (!chests.contains(lv)) {
+                out.add("level " + lv + " has a keyed portcullis and no key chest");
+            }
         }
         bp.forEachColumn(col -> {
             for (int i = 0; i < col.codes().length; i++) {
                 if (col.codes()[i] != 0 && Blueprint.part(col.codes()[i]) == Part.LOCKED_LOWER
                         && !aimed.contains(col.x() + "," + (col.y0() + i) + "," + col.z())) {
                     out.add("locked door at " + col.x() + "," + (col.y0() + i) + "," + col.z() + " has no lever");
+                }
+                if (col.codes()[i] != 0 && Blueprint.part(col.codes()[i]) == Part.ONEWAY_LOWER
+                        && !aimed.contains(col.x() + "," + (col.y0() + i) + "," + col.z())) {
+                    out.add("one-way door at " + col.x() + "," + (col.y0() + i) + "," + col.z() + " has no lever");
+                }
+                boolean lowerBar = col.codes()[i] != 0 && Blueprint.part(col.codes()[i]) == Part.PORTCULLIS
+                        && (i == 0 || col.codes()[i - 1] == 0 || Blueprint.part(col.codes()[i - 1]) != Part.PORTCULLIS);
+                if (lowerBar && !aimed.contains(col.x() + "," + (col.y0() + i) + "," + col.z())) {
+                    out.add("portcullis at " + col.x() + "," + (col.y0() + i) + "," + col.z() + " has no trigger");
                 }
             }
         });
@@ -297,6 +344,246 @@ class BlueprintTest {
             }
         }
         assertTrue(levers > 10 && traps > 100, "levers " + levers + ", traps " + traps);
+    }
+
+    @Test
+    void portcullisesAreWired() {
+        int keyed = 0;
+        int dropping = 0;
+        int winches = 0;
+        for (long seed = 0; seed < 30; seed++) {
+            Blueprint bp = Blueprinter.blueprint(Planner.plan(seed, 6));
+            for (Trigger t : bp.triggers()) {
+                keyed += t.kind() == Trigger.Kind.PORTCULLIS ? 1 : 0;
+                dropping += t.kind() == Trigger.Kind.PORTCULLIS_TRAP ? 1 : 0;
+                winches += t.kind() == Trigger.Kind.WINCH ? 1 : 0;
+            }
+        }
+        assertTrue(keyed > 10 && dropping > 10 && winches >= dropping * 9 / 10,
+                "keyed " + keyed + ", dropping " + dropping + ", winches " + winches);
+    }
+
+    /**
+     * Windows: each is a pair of bars at eye level with a room's air on one side
+     * and a corridor's air on the other, in a straight line, so you can see
+     * through. Several in 30 dungeons.
+     */
+    @Test
+    void windowsSeeThrough() {
+        int windows = 0;
+        for (long seed = 0; seed < 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 6);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            java.util.List<int[]> bars = new ArrayList<>();
+            bp.forEachColumn(col -> {
+                for (int i = 0; i < col.codes().length; i++) {
+                    if (col.codes()[i] != 0 && Blueprint.part(col.codes()[i]) == Part.WINDOW_BARS) {
+                        bars.add(new int[] {col.x(), col.y0() + i, col.z()});
+                    }
+                }
+            });
+            for (int[] b : bars) {
+                boolean through = false;
+                for (int[] d : SIX) {
+                    if (d[1] != 0) {
+                        continue;
+                    }
+                    int a1 = bp.get(b[0] + d[0], b[1], b[2] + d[2]);
+                    int a2 = bp.get(b[0] + 2 * d[0], b[1], b[2] + 2 * d[2]);
+                    int back = bp.get(b[0] - d[0], b[1], b[2] - d[2]);
+                    boolean airAhead = a1 != 0 && Blueprint.part(a1) == Part.AIR
+                            || a1 != 0 && Blueprint.part(a1) == Part.WINDOW_BARS && a2 != 0 && Blueprint.part(a2) == Part.AIR;
+                    boolean airBehind = back != 0 && (Blueprint.part(back) == Part.AIR || Blueprint.part(back) == Part.WINDOW_BARS);
+                    through |= airAhead && airBehind;
+                }
+                assertTrue(through, "seed " + seed + ": window bars at " + b[0] + "," + b[1] + "," + b[2] + " see nothing");
+                windows++;
+            }
+        }
+        assertTrue(windows > 30, "only " + windows + " window bars in 30 dungeons");
+    }
+
+    /**
+     * The finale arena: on the bottom level the lair's middle is a pit, and a
+     * player on its gallery, at the doorways' height, can walk down into it
+     * and back up by the flights alone, never climbing a block without a stair.
+     */
+    @Test
+    void finaleArenasCanBeWalkedInto() {
+        int arenas = 0;
+        for (long seed = 0; seed < 40; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 4);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            int last = plan.levels().size() - 1;
+            LevelPlan level = plan.levels().get(last);
+            for (com.sablednah.crawlspace.plan.Room r : level.rooms) {
+                if (r.role != com.sablednah.crawlspace.plan.Role.LAIR) {
+                    continue;
+                }
+                int f = Blueprinter.floorY(plan, last) + level.height(r.centerX(), r.centerZ());
+                int pit = bp.get(r.centerX(), f - 1, r.centerZ());
+                if (pit == 0 || Blueprint.part(pit) != Part.AIR) {
+                    continue; // a plain lair
+                }
+                arenas++;
+                // Walk from every gallery cell at door level.
+                java.util.Set<String> seen = new java.util.HashSet<>();
+                java.util.ArrayDeque<int[]> q = new java.util.ArrayDeque<>();
+                for (int x = r.minX(); x <= r.maxX(); x++) {
+                    for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                        if (r.contains(x, z) && stands(bp, x, f, z)) {
+                            q.add(new int[] {x, f, z});
+                            seen.add(x + "," + f + "," + z);
+                        }
+                    }
+                }
+                boolean down = false;
+                while (!q.isEmpty()) {
+                    int[] c = q.poll();
+                    down |= c[1] == f - 5;
+                    for (int[] d : SIX) {
+                        if (d[1] != 0) {
+                            continue;
+                        }
+                        for (int dy = -1; dy <= 1; dy++) {
+                            int x = c[0] + d[0];
+                            int y = c[1] + dy;
+                            int z = c[2] + d[2];
+                            if (!r.contains(x, z) || !stands(bp, x, y, z) || !seen.add(x + "," + y + "," + z)) {
+                                continue;
+                            }
+                            int under = bp.get(x, y - 1, z);
+                            if (dy == 1 && (under == 0 || Blueprint.part(under) != Part.STEP)) {
+                                seen.remove(x + "," + y + "," + z);
+                                continue; // a block up with no stair: nobody climbs that
+                            }
+                            q.add(new int[] {x, y, z});
+                        }
+                    }
+                }
+                assertTrue(down, "seed " + seed + ": the finale arena cannot be walked into");
+            }
+        }
+        System.out.println("finale arenas: " + arenas + " in 40 dungeons");
+        assertTrue(arenas > 15, "only " + arenas + " finale arenas in 40 dungeons");
+    }
+
+    /**
+     * Rooms you can only fall into: a pool under a pit from the level above,
+     * and a one-way door whose lever is inside. Several in 40 dungeons.
+     */
+    @Test
+    void pitRoomsAreReachedFromAbove() {
+        int found = 0;
+        for (long seed = 0; seed < 40; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 4);
+            for (int i = 1; i < plan.levels().size(); i++) {
+                LevelPlan lower = plan.levels().get(i);
+                LevelPlan upper = plan.levels().get(i - 1);
+                for (com.sablednah.crawlspace.plan.Link l : lower.links) {
+                    com.sablednah.crawlspace.plan.Room r = l.kind == com.sablednah.crawlspace.plan.LinkKind.ONEWAY
+                            ? com.sablednah.crawlspace.plan.Planner.onewayRoom(lower, l) : null;
+                    if (r == null) {
+                        continue;
+                    }
+                    int links = 0;
+                    for (com.sablednah.crawlspace.plan.Link m : lower.links) {
+                        links += m.a == r || m.b == r ? 1 : 0;
+                    }
+                    if (links != 1) {
+                        continue; // a one-way shortcut into a room with other doors, not a pit room
+                    }
+                    boolean pitAbove = false;
+                    for (int[] p : upper.pits) {
+                        pitAbove |= r.contains(p[0], p[1]) && lower.cell(p[0], p[1]) == com.sablednah.crawlspace.plan.Cell.POOL;
+                    }
+                    assertTrue(pitAbove, "seed " + seed + ": a sealed room on level " + i + " with no pit into it");
+                    found++;
+                }
+            }
+        }
+        System.out.println("pit rooms: " + found + " in 40 dungeons");
+        assertTrue(found > 5, "only " + found + " pit rooms in 40 dungeons");
+    }
+
+    /** Somewhere to stand: two clear blocks over something solid. */
+    private static boolean stands(Blueprint bp, int x, int y, int z) {
+        int under = bp.get(x, y - 1, z);
+        if (under == 0 || Blueprint.part(under) == Part.AIR || Blueprint.part(under) == Part.RAILING) {
+            return false;
+        }
+        for (int k = 0; k < 2; k++) {
+            int c = bp.get(x, y + k, z);
+            if (c != 0 && Blueprint.part(c) != Part.AIR && Blueprint.part(c) != Part.CARPET && Blueprint.part(c) != Part.CHAIN
+                    && Blueprint.part(c) != Part.LIGHT && Blueprint.part(c) != Part.COBWEB && Blueprint.part(c) != Part.BANNER) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** One-way doors exist, and each has its lever on its own side: inside the room further from the entry. */
+    @Test
+    void onewayDoorsOpenFromTheFarSide() {
+        int doors = 0;
+        for (long seed = 0; seed < 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 6);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            for (Trigger t : bp.triggers()) {
+                if (t.kind() != Trigger.Kind.ONEWAY) {
+                    continue;
+                }
+                doors++;
+                LevelPlan level = plan.levels().get(t.level());
+                com.sablednah.crawlspace.plan.Link link = null;
+                com.sablednah.crawlspace.plan.Room own = null;
+                for (com.sablednah.crawlspace.plan.Link l : level.links) {
+                    if (l.kind != com.sablednah.crawlspace.plan.LinkKind.ONEWAY) {
+                        continue;
+                    }
+                    com.sablednah.crawlspace.plan.Room r = com.sablednah.crawlspace.plan.Planner.onewayRoom(level, l);
+                    int[] d = r == null ? null : r == l.a ? l.doorA : l.doorB;
+                    if (d != null && d[0] == t.targets()[0][0] && d[1] == t.targets()[0][2]) {
+                        link = l;
+                        own = r;
+                    }
+                }
+                assertTrue(link != null, "seed " + seed + ": a one-way lever with no one-way link");
+                assertEquals(own.id, level.region(t.x(), t.z()), "seed " + seed + ": the lever is not in the door's own room");
+            }
+        }
+        assertTrue(doors > 15, "only " + doors + " one-way doors in 30 dungeons");
+    }
+
+    /** ...and the wiring check notices a keyed level whose key chest is missing. */
+    @Test
+    void noticesAMissingKeyChest() {
+        for (long seed = 0; seed < 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 4);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            int[] chest = null;
+            for (int x = -120; x <= 120 && chest == null; x++) {
+                for (int z = -120; z <= 120 && chest == null; z++) {
+                    Blueprint.Column col = bp.column(x, z);
+                    if (col == null) {
+                        continue;
+                    }
+                    for (int i = 0; i < col.codes().length; i++) {
+                        if (col.codes()[i] != 0 && Blueprint.part(col.codes()[i]) == Part.KEY_CHEST) {
+                            chest = new int[] {x, col.y0() + i, z, Blueprint.level(col.codes()[i])};
+                        }
+                    }
+                }
+            }
+            if (chest == null) {
+                continue;
+            }
+            assertTrue(triggerProblems(plan, bp).isEmpty());
+            bp.set(chest[0], chest[1], chest[2], Part.AIR, 0, chest[3]);
+            assertFalse(triggerProblems(plan, bp).isEmpty());
+            return;
+        }
+        throw new AssertionError("no seed had a keyed portcullis to test with");
     }
 
     /** ...and that check notices a locked door nobody can open. */
@@ -323,7 +610,8 @@ class BlueprintTest {
         }
         return switch (Blueprint.part(code)) {
             case AIR, CARPET, MOSS, RAIL, WATER, DOOR_LOWER, LOCKED_LOWER, SECRET_WALL, LIGHT, BANNER, WALL_TORCH, CHAIN, STEP, LANDING,
-                    RUG, PLANT, MUSHROOM, VINE, ROOTS, TABLE_TOP, TRAP_PLATE, TRAP_WIRE, DECOY_PLATE, DECOY_WIRE -> true;
+                    RUG, PLANT, MUSHROOM, VINE, ROOTS, TABLE_TOP, TRAP_PLATE, TRAP_WIRE, DECOY_PLATE, DECOY_WIRE,
+                    PORTCULLIS, PORTCULLIS_GAP, ONEWAY_LOWER, LEVER, WINCH -> true; // a lever has no collision
             default -> false;
         };
     }
@@ -458,6 +746,13 @@ class BlueprintTest {
                     pits++;
                     int tile = bp.get(t.x(), t.y() - 1, t.z());
                     assertTrue(tile != 0 && Blueprint.part(tile) == Part.PIT_TILE, "seed " + seed + ": a pit with no tile");
+                    continue;
+                }
+                if (t.kind() == Trigger.Kind.PORTCULLIS_TRAP) {
+                    // No plate: its tell is the sill under the arch.
+                    int[] door = t.targets()[0];
+                    int sill = bp.get(door[0], door[1] - 1, door[2]);
+                    assertTrue(sill != 0 && Blueprint.part(sill) == Part.PORTCULLIS_SILL, "seed " + seed + ": a portcullis with no sill");
                     continue;
                 }
                 if (t.kind().isTrap()) {

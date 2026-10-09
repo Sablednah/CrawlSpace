@@ -21,7 +21,8 @@ final class Tour {
 
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
-            "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle");
+            "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle",
+            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena");
 
     private Tour() {
     }
@@ -38,12 +39,35 @@ final class Tour {
             case "trap" -> null;
             case "decoy" -> com.sablednah.crawlspace.build.Trigger.Kind.DECOY;
             case "pit" -> com.sablednah.crawlspace.build.Trigger.Kind.PIT;
+            case "portcullis" -> com.sablednah.crawlspace.build.Trigger.Kind.PORTCULLIS;
+            case "droptrap" -> com.sablednah.crawlspace.build.Trigger.Kind.PORTCULLIS_TRAP;
+            case "winch" -> com.sablednah.crawlspace.build.Trigger.Kind.WINCH;
+            case "oneway", "onewaydoor" -> com.sablednah.crawlspace.build.Trigger.Kind.ONEWAY;
             default -> throw new IllegalArgumentException(what);
         };
         for (com.sablednah.crawlspace.build.Trigger t : bp.triggers()) {
             boolean match = kind == null ? t.kind().isTrap() : t.kind() == kind;
             if (!match || t.level() != level.index) {
                 continue;
+            }
+            if (what.equalsIgnoreCase("onewaydoor")) {
+                // On the near side, two out from the door, facing it: where it will not open.
+                int[] door = t.targets()[0];
+                for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    if (level.region(door[0] + d[0], door[2] + d[1]) >= 0) {
+                        int ox = door[0] - 2 * d[0];
+                        int oz = door[2] - 2 * d[1];
+                        return new double[] {ox + 0.5, oz + 0.5, yaw(d[0], d[1])};
+                    }
+                }
+                continue;
+            }
+            if (what.equalsIgnoreCase("droptrap")) {
+                // Outside the arch, two out, facing in: a walk in springs it.
+                int[] door = t.targets()[0];
+                int ox = 2 * door[0] - t.x();
+                int oz = 2 * door[2] - t.z();
+                return new double[] {ox + 0.5, oz + 0.5, yaw(t.x() - ox, t.z() - oz)};
             }
             if (what.equalsIgnoreCase("locked") && t.targets().length > 0) {
                 // In front of the first door the lever works: the door cell's open neighbour.
@@ -65,6 +89,44 @@ final class Tour {
             }
         }
         return null;
+    }
+
+    /** On the gallery of a finale arena, at a corner of the pit, facing across it. */
+    static double[] findArena(LevelPlan level, com.sablednah.crawlspace.build.Blueprint bp) {
+        for (Room r : level.rooms) {
+            if (r.role != com.sablednah.crawlspace.plan.Role.LAIR) {
+                continue;
+            }
+            for (int[] c : new int[][] {{1, 1}, {-1, 1}, {1, -1}, {-1, -1}}) {
+                int x = r.centerX() + c[0] * (r.w / 2 - 1);
+                int z = r.centerZ() + c[1] * (r.h / 2 - 1);
+                if (r.contains(x, z) && !bp.inArena(level.index, x, z)
+                        && bp.inArena(level.index, x - 2 * c[0], z - 2 * c[1])) {
+                    return new double[] {x + 0.5, z + 0.5, yaw(-c[0], -c[1])};
+                }
+            }
+        }
+        return null;
+    }
+
+    /** In the corridor outside one of the level's windows, two back, looking through it. */
+    static double[] findWindow(LevelPlan level, com.sablednah.crawlspace.build.Blueprint bp) {
+        double[][] out = {null};
+        bp.forEachColumn(col -> {
+            for (int i = 0; i < col.codes().length && out[0] == null; i++) {
+                int code = col.codes()[i];
+                if (code == 0 || com.sablednah.crawlspace.build.Blueprint.part(code) != com.sablednah.crawlspace.build.Part.WINDOW_BARS
+                        || com.sablednah.crawlspace.build.Blueprint.level(code) != level.index) {
+                    continue;
+                }
+                for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    if (level.cell(col.x() + d[0], col.z() + d[1]) == Cell.CORRIDOR) {
+                        out[0] = new double[] {col.x() + 2 * d[0] + 0.5, col.z() + 2 * d[1] + 0.5, yaw(-d[0], -d[1])};
+                    }
+                }
+            }
+        });
+        return out[0];
     }
 
     /** {x, z, yaw} in dungeon coordinates (block centres), or null. */
