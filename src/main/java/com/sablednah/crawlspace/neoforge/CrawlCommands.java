@@ -324,7 +324,8 @@ public final class CrawlCommands {
         }
         StringBuilder b = new StringBuilder("Seed " + last.plan().seed() + ", tower at " + last.origin().toShortString() + ".");
         for (LevelPlan l : last.plan().levels()) {
-            b.append("\n  ").append(l.index + 1).append(": ").append(l.theme.name()).append(", ")
+            b.append("\n  ").append(l.index + 1).append(": ").append(l.theme.name())
+                    .append(l.feeling == com.sablednah.crawlspace.plan.Feeling.NONE ? "" : " (" + l.feeling.name().toLowerCase() + ")").append(", ")
                     .append(l.rooms.size()).append(" rooms, ").append(l.stairsDown.size()).append(" stair(s) down, ")
                     .append(l.pits.size()).append(" pit(s)");
         }

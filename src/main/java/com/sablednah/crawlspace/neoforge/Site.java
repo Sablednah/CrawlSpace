@@ -32,8 +32,8 @@ import net.minecraft.world.level.block.state.BlockState;
 public record Site(long seed, int levels, int top, String style, BlockPos origin, int planner) {
 
     /** Bump whenever a planner or blueprint change would alter an existing seed's dungeon. */
-    public static final int PLANNER_VERSION = 6; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
-                                                 // 6: portcullises
+    public static final int PLANNER_VERSION = 7; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
+                                                 // 6: portcullises and the layout push; 7: feelings
 
     /**
      * A plan and its blueprint, built once and shared by every chunk that asks.
@@ -134,7 +134,9 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
             net.minecraft.util.RandomSource random) {
         Part part = Blueprint.part(code);
         int li = Math.max(0, Blueprint.level(code));
-        int tier = Math.min(5, 1 + li / 2);
+        // A dark level's loot is a tier better: the dark is the price.
+        boolean dark = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).feeling == com.sablednah.crawlspace.plan.Feeling.DARK;
+        int tier = Math.min(5, 1 + li / 2 + (dark ? 1 : 0));
         String table = switch (part) {
             case CHEST -> "chests/tier" + tier;
             case HOARD_CHEST -> "chests/tier" + Math.min(5, tier + 1);

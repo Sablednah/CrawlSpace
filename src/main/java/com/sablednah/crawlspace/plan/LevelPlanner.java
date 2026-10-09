@@ -52,10 +52,15 @@ public final class LevelPlanner {
      * @param bottom  the last level: its far room is the final lair, with no stair further down
      */
     public static LevelPlan plan(long seed, int index, int[] arrival, Theme theme, boolean bottom) {
+        return plan(seed, index, arrival, theme, bottom, Feeling.NONE);
+    }
+
+    /** @param feeling the level's mood, which some of its planning follows (a hollow level's secrets, a damp one's pools) */
+    public static LevelPlan plan(long seed, int index, int[] arrival, Theme theme, boolean bottom, Feeling feeling) {
         List<String> lastProblems = List.of();
         for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
             Dice dice = Dice.of(seed, index, attempt);
-            LevelPlan level = tryPlan(dice, index, arrival, theme, attempt, bottom);
+            LevelPlan level = tryPlan(dice, index, arrival, theme, attempt, bottom, feeling);
             if (level == null) {
                 continue;
             }
@@ -75,8 +80,10 @@ public final class LevelPlanner {
                 + " after " + ATTEMPTS + " attempts; last problems: " + lastProblems);
     }
 
-    private static LevelPlan tryPlan(Dice dice, int index, int[] arrival, Theme theme, int attempt, boolean bottom) {
+    private static LevelPlan tryPlan(Dice dice, int index, int[] arrival, Theme theme, int attempt, boolean bottom, Feeling feeling) {
         LevelPlan level = new LevelPlan(index, theme);
+        level.feeling = feeling;
+        boolean hollow = feeling == Feeling.HOLLOW;
         int depth = Math.min(index, 8);
 
         // ---- Topology ----
@@ -118,7 +125,7 @@ public final class LevelPlanner {
         // Branches: chains of one or two rooms hanging off loop rooms other than the entry.
         List<Room[]> branches = new ArrayList<>(); // {parent, child}
         boolean keyPlaced = false;
-        boolean secretPlaced = false;
+        int secrets = 0;
         for (int b = 0; b < branchCount; b++) {
             Room parent = loop.get(1 + dice.nextInt(loopSize - 1));
             int length = dice.chance(0.35) ? 2 : 1;
@@ -130,9 +137,9 @@ public final class LevelPlanner {
                 } else if (lock && !keyPlaced) {
                     role = Role.KEY;
                     keyPlaced = true;
-                } else if (!secretPlaced && dice.chance(0.45)) {
+                } else if (secrets < (hollow ? 2 : 1) && dice.chance(hollow ? 0.8 : 0.45)) {
                     role = Role.SECRET;
-                    secretPlaced = true;
+                    secrets++;
                 } else {
                     role = dice.chance(0.5) ? Role.TREASURE : Role.SHRINE;
                 }
@@ -235,7 +242,7 @@ public final class LevelPlanner {
 
         // ---- Shortcuts ----
         int shortcuts = dice.between(1, 2 + depth / 3);
-        addShortcuts(level, dice, shortcuts);
+        addShortcuts(level, dice, shortcuts + (hollow ? 1 : 0), hollow ? 0.6 : 0.25);
 
         // ---- Styles ----
         double[] styleWeights = theme.styleWeights();
@@ -493,7 +500,7 @@ public final class LevelPlanner {
     static final double ONEWAY_CHANCE = 0.35;
 
     /** Links rooms that are close on the map but at least three steps apart in the graph. */
-    private static void addShortcuts(LevelPlan level, Dice dice, int count) {
+    private static void addShortcuts(LevelPlan level, Dice dice, int count, double secretChance) {
         if (count <= 0) {
             return;
         }
@@ -526,7 +533,7 @@ public final class LevelPlanner {
             int hb = fromEntry.getOrDefault(pair[1], -1);
             boolean oneway = ha >= 0 && hb >= 0 && ha != hb && dice.chance(ONEWAY_CHANCE);
             LinkKind kind = oneway ? LinkKind.ONEWAY
-                    : dice.chance(0.25) ? LinkKind.SECRET : dice.chance(0.5) ? LinkKind.DOOR : LinkKind.OPEN;
+                    : dice.chance(secretChance) ? LinkKind.SECRET : dice.chance(0.5) ? LinkKind.DOOR : LinkKind.OPEN;
             Room a = oneway && hb > ha ? pair[1] : pair[0];
             level.links.add(new Link(a, a == pair[0] ? pair[1] : pair[0], kind, false));
         }
@@ -556,6 +563,9 @@ public final class LevelPlanner {
      */
     static void traps(LevelPlan level, Dice dice) {
         int want = Math.min(12, 2 + level.index + dice.between(0, 2));
+        if (level.feeling == Feeling.TRAPPED) {
+            want = Math.min(24, want * 2);
+        }
         List<int[]> spots = new ArrayList<>();
         int lim = LevelPlan.RADIUS - 1;
         for (int x = -lim; x <= lim; x++) {
@@ -610,8 +620,11 @@ public final class LevelPlanner {
                 level.stairsDown.add(new int[] {cx, cz});
             } else if (r.shape == Shape.HALL && Math.min(r.w, r.h) >= 9) {
                 pillars(level, r, dice);
-            } else if ((r.role == Role.SHRINE || r.shape == Shape.CAVE) && Math.min(r.w, r.h) >= 9
-                    && dice.chance(r.role == Role.SHRINE ? 0.5 + level.theme.poolChance() : level.theme.poolChance())) {
+            } else if ((r.role == Role.SHRINE || r.shape == Shape.CAVE
+                        || level.feeling == Feeling.DAMP && (r.role == Role.ROOM || r.role == Role.GUARD || r.role == Role.TREASURE))
+                    && Math.min(r.w, r.h) >= 9
+                    && dice.chance(level.feeling == Feeling.DAMP ? 0.85
+                        : r.role == Role.SHRINE ? 0.5 + level.theme.poolChance() : level.theme.poolChance())) {
                 pool(level, r, dice);
             }
         }
