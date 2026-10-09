@@ -21,6 +21,8 @@ public enum Cell {
     DOOR_LOCKED,
     /** A door that looks like wall until found. */
     DOOR_SECRET,
+    /** An iron door opened only by a lever on its own side: a shortcut back, opened from the far end. */
+    DOOR_ONEWAY,
     /** A solid column inside a room, floor to ceiling. */
     PILLAR,
     /** The spiral stair arriving from the level above. */
@@ -40,12 +42,12 @@ public enum Cell {
     /** Somewhere a player can stand and walk on to a neighbour. */
     public boolean isWalkable() {
         return switch (this) {
-            case FLOOR, CORRIDOR, DOOR, ARCH, DOOR_LOCKED, DOOR_SECRET, STAIR_UP, STAIR_DOWN, POOL -> true;
+            case FLOOR, CORRIDOR, DOOR, ARCH, DOOR_LOCKED, DOOR_SECRET, DOOR_ONEWAY, STAIR_UP, STAIR_DOWN, POOL -> true;
             default -> false;
         };
     }
 
     public boolean isDoor() {
-        return this == DOOR || this == ARCH || this == DOOR_LOCKED || this == DOOR_SECRET;
+        return this == DOOR || this == ARCH || this == DOOR_LOCKED || this == DOOR_SECRET || this == DOOR_ONEWAY;
     }
 }

@@ -175,6 +175,7 @@ public final class PlanRenderer {
             case DOOR -> DOOR;
             case ARCH -> CORRIDOR.darker();
             case DOOR_LOCKED -> LOCKED;
+            case DOOR_ONEWAY -> LOCKED.darker();
             case DOOR_SECRET -> SECRET;
             case PILLAR -> PILLAR;
             case STAIR_UP -> STAIR_UP;
