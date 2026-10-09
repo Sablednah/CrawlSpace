@@ -44,6 +44,8 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         PORTCULLIS_TRAP,
         /** A lever that raises a dropped portcullis; the targets are its bars. */
         WINCH,
+        /** A vault's pedestal; the targets are all three pedestals, its own first among them for the group's first. */
+        VAULT,
         /** Hidden floor tiles, as the plan's {@code TrapKind}s of the same names. */
         ALARM,
         WEBS,

@@ -458,6 +458,7 @@ public final class Blueprinter {
                 if (spot != null) {
                     bp.addTrigger(new Trigger(Trigger.Kind.TREASURE, spot[0], floorAt(plan, i, spot[0], spot[1]), spot[1], i, new int[0][]));
                 }
+                vault(bp, plan, i, r, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x7A017L));
             }
         }
         // Its own stream, so adding plates moved nothing else in a dungeon.
@@ -745,6 +746,68 @@ public final class Blueprinter {
         bp.set(hx, bottom + 1, hz, Part.HOARD_CHEST, facingOf(Integer.signum(r.centerX() - hx), Integer.signum(r.centerZ() - hz)), i);
         bp.addTrigger(new Trigger(Trigger.Kind.TREASURE, hx, bottom + 1, hz, i, new int[0][]));
         hang(bp, plan, i, r.centerX(), r.centerZ());
+    }
+
+    /** How often a treasure room from the second level down is a vault: take one of three. */
+    static final double VAULT_CHANCE = 0.4;
+
+    /**
+     * A vault (Brogue's reward rooms; Pixel Dungeon's crystal choice): three
+     * pedestals in a row along one wall, two apart, an item floating over each
+     * once someone comes near. Take one and the others are caged. Needs three
+     * floor cells by the wall, clear above, away from the doorways.
+     */
+    private static void vault(Blueprint bp, DungeonPlan plan, int i, Room r, com.sablednah.crawlspace.plan.Dice dice) {
+        LevelPlan level = plan.levels().get(i);
+        if (i < 1 || !dice.chance(VAULT_CHANCE)) {
+            return;
+        }
+        for (int[] d : DIRS4) {
+            // Cells with this wall at their back: the room's edge facing d.
+            java.util.List<int[]> row = new java.util.ArrayList<>();
+            for (int x = r.minX(); x <= r.maxX(); x++) {
+                for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                    if (r.contains(x, z) && level.cell(x, z) == Cell.FLOOR && level.cell(x + d[0], z + d[1]) == Cell.WALL
+                            && !nearDoor(level, x, z)) {
+                        int f = floorAt(plan, i, x, z);
+                        int c = bp.get(x, f, z);
+                        int c2 = bp.get(x, f + 1, z);
+                        if ((c == 0 || Blueprint.part(c) == Part.AIR) && (c2 == 0 || Blueprint.part(c2) == Part.AIR)
+                                && bp.triggerAt(x, f, z) == null) {
+                            row.add(new int[] {x, z});
+                        }
+                    }
+                }
+            }
+            // Three of them in a line, two apart.
+            for (int[] a : row) {
+                int sx = d[1] != 0 ? 2 : 0;
+                int sz = d[0] != 0 ? 2 : 0;
+                int[] b = null;
+                int[] c = null;
+                for (int[] o : row) {
+                    if (o[0] == a[0] + sx && o[1] == a[1] + sz) {
+                        b = o;
+                    }
+                    if (o[0] == a[0] + 2 * sx && o[1] == a[1] + 2 * sz) {
+                        c = o;
+                    }
+                }
+                if (b == null || c == null) {
+                    continue;
+                }
+                int[][] three = {a, b, c};
+                int[][] targets = new int[3][];
+                for (int k = 0; k < 3; k++) {
+                    targets[k] = new int[] {three[k][0], floorAt(plan, i, three[k][0], three[k][1]), three[k][1]};
+                }
+                for (int[] t : targets) {
+                    bp.set(t[0], t[1], t[2], Part.PEDESTAL, 0, i);
+                    bp.addTrigger(new Trigger(Trigger.Kind.VAULT, t[0], t[1], t[2], i, targets));
+                }
+                return;
+            }
+        }
     }
 
     /** How often a room worth seeing early gets a window on to a corridor that passes it. */

@@ -22,7 +22,7 @@ final class Tour {
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
             "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle",
-            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena");
+            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena", "vault");
 
     private Tour() {
     }
@@ -43,11 +43,24 @@ final class Tour {
             case "droptrap" -> com.sablednah.crawlspace.build.Trigger.Kind.PORTCULLIS_TRAP;
             case "winch" -> com.sablednah.crawlspace.build.Trigger.Kind.WINCH;
             case "oneway", "onewaydoor" -> com.sablednah.crawlspace.build.Trigger.Kind.ONEWAY;
+            case "vault" -> com.sablednah.crawlspace.build.Trigger.Kind.VAULT;
             default -> throw new IllegalArgumentException(what);
         };
         for (com.sablednah.crawlspace.build.Trigger t : bp.triggers()) {
             boolean match = kind == null ? t.kind().isTrap() : t.kind() == kind;
             if (!match || t.level() != level.index) {
+                continue;
+            }
+            if (what.equalsIgnoreCase("vault")) {
+                // Two in front of the middle pedestal, facing it.
+                int[] mid = t.targets()[1];
+                for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    int fx = mid[0] + 2 * d[0];
+                    int fz = mid[2] + 2 * d[1];
+                    if (level.cell(fx, fz) == Cell.FLOOR && level.region(fx, fz) == level.region(mid[0], mid[2])) {
+                        return new double[] {fx + 0.5, fz + 0.5, yaw(-d[0], -d[1])};
+                    }
+                }
                 continue;
             }
             if (what.equalsIgnoreCase("onewaydoor")) {

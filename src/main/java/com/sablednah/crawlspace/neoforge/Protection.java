@@ -79,6 +79,13 @@ public final class Protection {
             return false;
         }
         int code = codeAt(site, pos);
+        if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.IRON_BARS) && current(site)) {
+            // A vault's cage, over a pedestal: it is what keeps the choice a choice.
+            int under = codeAt(site, pos.below());
+            if (under != 0 && Blueprint.part(under) == Part.PEDESTAL) {
+                return true;
+            }
+        }
         if (code != 0 && Blueprint.part(code) == Part.PORTCULLIS_GAP) {
             // A dropped portcullis holds; raised, its archway is air and there is nothing to hold.
             return level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.IRON_BARS);
