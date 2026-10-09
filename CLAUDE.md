@@ -596,6 +596,41 @@ level, up to 0.55.
   - Every feeling turned up at least 18 times.
 - `PLANNER_VERSION` 7.
 
+## More traps (2026-10-10)
+
+`plan/TrapKind` is a weighted list by depth (`TrapKind.roll`):
+
+| Trap | From level | Weight |
+|---|---|---|
+| darts | 1 | 4 |
+| gas | 3 | 3 |
+| alarm | 2 | 2 |
+| webs | 2 | 2 |
+| rockfall | 3 | 2 |
+| frost | 3 | 1 |
+| fire | 4 | 1 |
+| ambush | 4 | 1 |
+
+Each new kind is a `Trigger.Kind` of the same name, a trap like the others:
+it has a plate or wire and decoys, and is hinted, noticed and disarmed, and a
+disarm names it ("You disarm the web trap."). Their effects are in
+`Triggers.spring`.
+- **Alarm:** a bell, and every sleeping encounter on that level within 24
+  wakes, its monsters set on you.
+- **Webs:** cobwebs in the 3x3 round you, plus slowness.
+- **Rockfall:** pointed dripstone, as falling blocks with no item drop, from
+  the ceiling over you and some of the cells round you.
+- **Frost:** `setTicksFrozen` past the freeze threshold, slowness and
+  snowflakes.
+- **Fire:** you are set alight and fire is put on the floor round you.
+- **Ambush:** `Bestiary.ambush`, two or three of the level's monsters a few
+  blocks off on standable floor, through the spawn event, set on you.
+
+Seen on the rig: webs placed 10 cobwebs, frost froze the player for 208
+ticks, fire lit the player and 4 floor blocks, the ambush brought 2 monsters
+and the alarm woke 6. `/crawlspace trap <kind>` springs one where you stand
+in a dungeon. `PLANNER_VERSION` 8.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the

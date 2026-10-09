@@ -57,6 +57,11 @@ public final class CrawlCommands {
                                                 StringArgumentType.getString(ctx, "what"))))))
                 .then(Commands.literal("info").executes(CrawlCommands::info))
                 .then(Commands.literal("breaches").executes(CrawlCommands::breaches))
+                .then(Commands.literal("trap")
+                        .then(Commands.argument("kind", StringArgumentType.word())
+                                .suggests((c, b) -> SharedSuggestionProvider.suggest(java.util.Arrays.stream(
+                                        com.sablednah.crawlspace.plan.TrapKind.values()).map(k -> k.name().toLowerCase()), b))
+                                .executes(ctx -> trap(ctx, StringArgumentType.getString(ctx, "kind")))))
                 .then(Commands.literal("summon")
                         .then(Commands.literal("elite")
                                 .executes(ctx -> summon(ctx, null, 0, 3))
@@ -299,6 +304,24 @@ public final class CrawlCommands {
                         .append(", e.g. at ").append(example.get(e.getKey()).toShortString()));
         say(src, b.toString());
         return counts[1];
+    }
+
+    /** Springs a trap of a kind where you stand in a dungeon: to try one without finding it. */
+    private static int trap(CommandContext<CommandSourceStack> ctx, String kind) throws CommandSyntaxException {
+        CommandSourceStack src = ctx.getSource();
+        com.sablednah.crawlspace.build.Trigger.Kind k;
+        try {
+            k = com.sablednah.crawlspace.build.Trigger.Kind.valueOf(kind.toUpperCase());
+            com.sablednah.crawlspace.plan.TrapKind.valueOf(k.name());
+        } catch (IllegalArgumentException e) {
+            fail(src, "No trap called " + kind + ".");
+            return 0;
+        }
+        if (!Triggers.springHere(src.getLevel(), src.getPlayerOrException(), k)) {
+            fail(src, "Stand inside a dungeon to spring one.");
+            return 0;
+        }
+        return 1;
     }
 
     /** A boss and its pack, or an elite, where you stand: to try them without finding their lair. */

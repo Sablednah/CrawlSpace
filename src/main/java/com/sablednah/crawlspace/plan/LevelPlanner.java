@@ -590,7 +590,7 @@ public final class LevelPlanner {
                 i--;
                 continue;
             }
-            TrapKind kind = level.index >= 2 && dice.chance(0.35) ? TrapKind.GAS : TrapKind.DARTS;
+            TrapKind kind = TrapKind.roll(dice, level.index);
             level.traps.add(new int[] {s[0], s[1], kind.ordinal()});
         }
     }
