@@ -563,18 +563,30 @@ public final class Blueprinter {
     private static void onewayLevers(Blueprint bp, DungeonPlan plan, int i) {
         LevelPlan level = plan.levels().get(i);
         for (Link l : level.links) {
-            if (l.kind != com.sablednah.crawlspace.plan.LinkKind.ONEWAY || l.doorA == null) {
+            Room room = l.kind == com.sablednah.crawlspace.plan.LinkKind.ONEWAY
+                    ? com.sablednah.crawlspace.plan.Planner.onewayRoom(level, l) : null;
+            if (room == null) {
                 continue;
             }
-            int[] d = l.doorA;
+            int[] d = room == l.a ? l.doorA : l.doorB;
             int ix = d[0] - d[2];
             int iz = d[1] - d[3];
             int f = floorAt(plan, i, d[0], d[1]);
-            // Beside the cell inside the doorway, on either hand; else that cell itself.
-            int[][] spots = {{ix + d[3], iz + d[2]}, {ix - d[3], iz - d[2]}, {ix, iz}};
+            // Beside the cell inside the doorway, on either hand; else that cell itself; else, where a pool
+            // came down by the door, the room's floor nearest it.
+            java.util.List<int[]> spots = new java.util.ArrayList<>(java.util.List.of(
+                    new int[] {ix + d[3], iz + d[2]}, new int[] {ix - d[3], iz - d[2]}, new int[] {ix, iz}));
+            java.util.List<int[]> rest = new java.util.ArrayList<>();
+            for (int x = room.minX(); x <= room.maxX(); x++) {
+                for (int z = room.minZ(); z <= room.maxZ(); z++) {
+                    rest.add(new int[] {x, z});
+                }
+            }
+            rest.sort(java.util.Comparator.comparingInt(c -> Math.abs(c[0] - ix) + Math.abs(c[1] - iz)));
+            spots.addAll(rest);
             for (int[] s : spots) {
                 int code = bp.get(s[0], f, s[1]);
-                if (level.cell(s[0], s[1]) == Cell.FLOOR && level.region(s[0], s[1]) == l.a.id
+                if (level.cell(s[0], s[1]) == Cell.FLOOR && level.region(s[0], s[1]) == room.id
                         && level.height(s[0], s[1]) == level.height(d[0], d[1]) && (code == 0 || Blueprint.part(code) == Part.AIR)) {
                     bp.set(s[0], f, s[1], Part.LEVER, facingOf(-d[2], -d[3]), i);
                     bp.addTrigger(new Trigger(Trigger.Kind.ONEWAY, s[0], f, s[1], i, new int[][] {{d[0], f, d[1]}}));

@@ -468,6 +468,44 @@ class BlueprintTest {
         assertTrue(arenas > 15, "only " + arenas + " finale arenas in 40 dungeons");
     }
 
+    /**
+     * Rooms you can only fall into: a pool under a pit from the level above,
+     * and a one-way door whose lever is inside. Several in 40 dungeons.
+     */
+    @Test
+    void pitRoomsAreReachedFromAbove() {
+        int found = 0;
+        for (long seed = 0; seed < 40; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 4);
+            for (int i = 1; i < plan.levels().size(); i++) {
+                LevelPlan lower = plan.levels().get(i);
+                LevelPlan upper = plan.levels().get(i - 1);
+                for (com.sablednah.crawlspace.plan.Link l : lower.links) {
+                    com.sablednah.crawlspace.plan.Room r = l.kind == com.sablednah.crawlspace.plan.LinkKind.ONEWAY
+                            ? com.sablednah.crawlspace.plan.Planner.onewayRoom(lower, l) : null;
+                    if (r == null) {
+                        continue;
+                    }
+                    int links = 0;
+                    for (com.sablednah.crawlspace.plan.Link m : lower.links) {
+                        links += m.a == r || m.b == r ? 1 : 0;
+                    }
+                    if (links != 1) {
+                        continue; // a one-way shortcut into a room with other doors, not a pit room
+                    }
+                    boolean pitAbove = false;
+                    for (int[] p : upper.pits) {
+                        pitAbove |= r.contains(p[0], p[1]) && lower.cell(p[0], p[1]) == com.sablednah.crawlspace.plan.Cell.POOL;
+                    }
+                    assertTrue(pitAbove, "seed " + seed + ": a sealed room on level " + i + " with no pit into it");
+                    found++;
+                }
+            }
+        }
+        System.out.println("pit rooms: " + found + " in 40 dungeons");
+        assertTrue(found > 5, "only " + found + " pit rooms in 40 dungeons");
+    }
+
     /** Somewhere to stand: two clear blocks over something solid. */
     private static boolean stands(Blueprint bp, int x, int y, int z) {
         int under = bp.get(x, y - 1, z);
@@ -498,14 +536,20 @@ class BlueprintTest {
                 doors++;
                 LevelPlan level = plan.levels().get(t.level());
                 com.sablednah.crawlspace.plan.Link link = null;
+                com.sablednah.crawlspace.plan.Room own = null;
                 for (com.sablednah.crawlspace.plan.Link l : level.links) {
-                    if (l.kind == com.sablednah.crawlspace.plan.LinkKind.ONEWAY && l.doorA != null
-                            && l.doorA[0] == t.targets()[0][0] && l.doorA[1] == t.targets()[0][2]) {
+                    if (l.kind != com.sablednah.crawlspace.plan.LinkKind.ONEWAY) {
+                        continue;
+                    }
+                    com.sablednah.crawlspace.plan.Room r = com.sablednah.crawlspace.plan.Planner.onewayRoom(level, l);
+                    int[] d = r == null ? null : r == l.a ? l.doorA : l.doorB;
+                    if (d != null && d[0] == t.targets()[0][0] && d[1] == t.targets()[0][2]) {
                         link = l;
+                        own = r;
                     }
                 }
                 assertTrue(link != null, "seed " + seed + ": a one-way lever with no one-way link");
-                assertEquals(link.a.id, level.region(t.x(), t.z()), "seed " + seed + ": the lever is not in the door's own room");
+                assertEquals(own.id, level.region(t.x(), t.z()), "seed " + seed + ": the lever is not in the door's own room");
             }
         }
         assertTrue(doors > 15, "only " + doors + " one-way doors in 30 dungeons");

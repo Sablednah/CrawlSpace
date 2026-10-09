@@ -464,6 +464,32 @@ objective rooms (the Fighting Pit).
   among them, had climbed a flight and reached the player on the gallery. They
   hunt; the pit is where they start, not a cage.
 
+## Rooms you can only fall into (2026-10-09)
+
+`Planner.pitRoom`, after `extraRoutes`, on its own dice (`PIT_ROOM_CHANCE`
+0.6 per pair of levels). A room with a single door on the lower level (not
+entry, exit, key, secret, lair or puzzle) gets a 3x3 pit above it from a
+room on the upper level, with a pool to land in. Its one door becomes a
+one-way door with the lever inside. From the corridor it is an iron door that
+will not open, and from inside it is the way out (Shattered Pixel Dungeon's
+pit room).
+- The pool needs only a ring of floor round it below; the pit above needs a
+  5x5 to walk round it. Kept only if both levels still pass the check.
+- **The one-way door may be either end of a link** (`Planner.onewayRoom`:
+  whichever door cell is `DOOR_ONEWAY`). A branch child's door is its
+  `doorB`. Where the pool comes down by the door, the lever goes on the
+  room's nearest floor.
+- **Test:** `pitRoomsAreReachedFromAbove`, 7 in 40 four-level dungeons.
+- **Seen on the rig** (seed 48, two levels): dropped 13 blocks through the
+  pit into the shrine's pool. Its door was shut from outside, the lever was
+  two blocks from the landing, and it opened the door: "The iron door swings
+  open: a way back."
+- **Rig gotchas:**
+  - `/crawlspace info`'s first line, with the tower position, is not in the
+    client log. The tower is 6 blocks south of where the build was made.
+  - `goto` answers for the dungeon you are standing in, so a wrong
+    teleport sends it to another dungeon.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the

@@ -7,6 +7,7 @@
 - No building over a puzzle room's void.
 - **Portcullises.** On some levels the locked door is a portcullis, and its key is in a chest in the key room: a named key that opens that level's portcullis and no other. Deeper down, a portcullis may slam shut behind you as you walk into a room. A winch inside raises it, and it lifts on its own after a couple of minutes. The scored sill under the arch gives it away, and with LegendQuest you can spot it and jam it like any other trap.
 - **One-way doors.** Some shortcuts are an iron door with its lever on one side only: you find the way back from the far end and open it from there. From the near side it will not open, and says so.
+- **Rooms you can only fall into.** Some rooms have no way in but a pit from the level above: from outside, an iron door that will not open; drop in, and a lever by the door lets you out.
 - **A finale.** The lair at the bottom of a dungeon is now often a sunken arena: a gallery round the walls, and stairs down into a pit twice the usual height where the boss waits, with a second hoard at the far end. The reason to go all the way down.
 - **Windows.** Here and there, a corridor passing close to a lair, treasure room or shrine has iron bars through the wall: you see what is in there long before you find the way in.
 - Fixed: a stair's railing could cover a trap plate, or cut a small room off from its own door.
