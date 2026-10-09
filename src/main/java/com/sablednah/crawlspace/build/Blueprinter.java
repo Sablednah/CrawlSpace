@@ -469,7 +469,7 @@ public final class Blueprinter {
             if (c != Cell.FLOOR && c != Cell.CORRIDOR || nearWell(level, t[0], t[1])) {
                 continue; // a pit or second stair arrived on it, or beside it, afterwards: its railing would cover the plate
             }
-            Trigger.Kind kind = t[2] == com.sablednah.crawlspace.plan.TrapKind.GAS.ordinal() ? Trigger.Kind.GAS : Trigger.Kind.DARTS;
+            Trigger.Kind kind = Trigger.Kind.valueOf(com.sablednah.crawlspace.plan.TrapKind.values()[t[2]].name());
             int[] at = flatSpot(bp, plan, i, t[0], t[1]);
             if (at == null) {
                 continue; // no flat floor near it to hold a plate: a trap nobody could see is left out

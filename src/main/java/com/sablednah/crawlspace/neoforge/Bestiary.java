@@ -436,6 +436,38 @@ public final class Bestiary {
                 mob.getDisplayName().getString(), li + 1, o, player.getName().getString());
     }
 
+    /**
+     * An ambush trap's monsters: two or three of the level's own, round the
+     * player, a few blocks off, on floor they can stand on, and set on them.
+     * Returns how many came.
+     */
+    static int ambush(ServerLevel level, Site site, int li, net.minecraft.server.level.ServerPlayer player) {
+        String theme = site.built().plan().levels().get(li).theme.name();
+        RandomSource random = level.getRandom();
+        int want = 2 + random.nextInt(2);
+        int made = 0;
+        for (int tries = 0; tries < 24 && made < want; tries++) {
+            double a = random.nextDouble() * Math.PI * 2;
+            BlockPos p = BlockPos.containing(player.getX() + Math.cos(a) * 3.5, player.getY(), player.getZ() + Math.sin(a) * 3.5);
+            if (!level.getBlockState(p).isAir() || !level.getBlockState(p.above()).isAir() || level.getBlockState(p.below()).isAir()) {
+                continue;
+            }
+            Entity e = common(theme, random).create(level, EntitySpawnReason.EVENT);
+            if (!(e instanceof Mob mob)) {
+                continue;
+            }
+            mob.snapTo(p.getX() + 0.5, p.getY(), p.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+            net.neoforged.neoforge.event.EventHooks.finalizeMobSpawn(mob, level, level.getCurrentDifficultyAt(p), EntitySpawnReason.EVENT, null);
+            arm(mob, li, random);
+            mob.addTag(KIN);
+            level.addFreshEntityWithPassengers(mob);
+            mob.setTarget(player);
+            level.sendParticles(net.minecraft.core.particles.ParticleTypes.POOF, p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5, 8, 0.3, 0.4, 0.3, 0.02);
+            made++;
+        }
+        return made;
+    }
+
     /** How many bosses a theme has, for the command's help. */
     static int bossCount(String theme) {
         return bosses.getOrDefault(theme, List.of()).size();
