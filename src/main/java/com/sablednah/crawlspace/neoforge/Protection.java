@@ -75,6 +75,9 @@ public final class Protection {
 
     /** Whether the block at {@code pos} is part of the dungeon's shell, and still the block the dungeon put there. */
     static boolean isProtected(ServerLevel level, Site site, BlockPos pos) {
+        if (!current(site)) {
+            return false;
+        }
         int code = codeAt(site, pos);
         if (code == 0 || !Blueprint.part(code).shell()) {
             return false;
@@ -85,6 +88,18 @@ public final class Protection {
         }
         // A player's block in a gap the dungeon made (an opened secret wall, say) is theirs to take back.
         return now.getBlock() == site.state(site.built(), code, pos).getBlock();
+    }
+
+    /**
+     * Whether this dungeon was planned by the planner we have. The blueprint is
+     * regenerated from the seed, so one planned by an older version is not the
+     * dungeon in the world: protecting it would guard the wrong blocks, and
+     * repair would build today's walls into its corridors. Found on the rig's
+     * world, planned by planner 1: a quarter of today's shell did not match.
+     * Such dungeons are left alone, ordinary blocks.
+     */
+    static boolean current(Site site) {
+        return site.planner() == Site.PLANNER_VERSION;
     }
 
     private static int codeAt(Site site, BlockPos pos) {
@@ -105,7 +120,7 @@ public final class Protection {
      */
     static void tick(ServerLevel level, ServerPlayer player, Site site, BlockPos feet) {
         long now = level.getGameTime();
-        boolean inside = site != null && (codeAt(site, feet) != 0 || codeAt(site, feet.above()) != 0);
+        boolean inside = site != null && current(site) && (codeAt(site, feet) != 0 || codeAt(site, feet.above()) != 0);
         boolean want = CrawlConfig.protect() && applies(player)
                 && (inside || HOLD_UNTIL.getOrDefault(player.getUUID(), 0L) > now);
         hold(player, want);
