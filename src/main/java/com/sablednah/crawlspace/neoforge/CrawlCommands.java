@@ -56,6 +56,7 @@ public final class CrawlCommands {
                                         .executes(ctx -> tour(ctx, IntegerArgumentType.getInteger(ctx, "level"),
                                                 StringArgumentType.getString(ctx, "what"))))))
                 .then(Commands.literal("info").executes(CrawlCommands::info))
+                .then(Commands.literal("breaches").executes(CrawlCommands::breaches))
                 .then(Commands.literal("undo").executes(CrawlCommands::undo))
                 .then(Commands.literal("cancel").executes(CrawlCommands::cancel))
                 .then(Commands.literal("export").executes(CrawlCommands::export))
@@ -216,6 +217,73 @@ public final class CrawlCommands {
         player.teleportTo(last.level(), o.getX() + spot[0], y, o.getZ() + spot[1], Set.of(), (float) spot[2], 0f, false);
         say(src, "Level " + index + ", " + what + ".");
         return 1;
+    }
+
+    /**
+     * Audits the shell of the dungeon you are in against the world: every
+     * protected position whose block is not the one the palette puts there,
+     * grouped by what is there instead. That is what worldgen or anything else
+     * did to it afterwards (another structure, a feature from a neighbouring
+     * chunk, a mod), and each such block is a gap protection cannot hold.
+     * Unloaded chunks are counted, not loaded.
+     */
+    private static int breaches(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        CommandSourceStack src = ctx.getSource();
+        ServerPlayer player = src.getPlayerOrException();
+        ServerLevel level = (ServerLevel) player.level();
+        Site site = Dungeons.at(level, player.blockPosition()).orElse(null);
+        if (site == null) {
+            fail(src, "You are not in a dungeon's footprint.");
+            return 0;
+        }
+        if (site.planner() != Site.PLANNER_VERSION) {
+            say(src, "This dungeon was planned by planner " + site.planner() + "; this version's is " + Site.PLANNER_VERSION
+                    + ". Its blueprint no longer matches what is in the world, so it is not protected, and this audit"
+                    + " would only measure the difference.");
+            return 0;
+        }
+        Site.Built built = site.built();
+        BlockPos o = site.origin();
+        CrawlState state = CrawlState.of(level);
+        java.util.Map<String, Integer> found = new java.util.TreeMap<>();
+        java.util.Map<String, BlockPos> example = new java.util.HashMap<>();
+        int[] counts = new int[3]; // shell checked, mismatched, unloaded
+        built.blueprint().forEachColumn(col -> {
+            int[] codes = col.codes();
+            for (int i = 0; i < codes.length; i++) {
+                if (codes[i] == 0) {
+                    continue;
+                }
+                com.sablednah.crawlspace.build.Part part = com.sablednah.crawlspace.build.Blueprint.part(codes[i]);
+                if (!part.shell() || part.mayBeMissing()) {
+                    continue;
+                }
+                BlockPos p = o.offset(col.x(), col.y0() + i, col.z());
+                if (!level.isLoaded(p)) {
+                    counts[2]++;
+                    continue;
+                }
+                if (part == com.sablednah.crawlspace.build.Part.SECRET_WALL && state.hasFired(p)) {
+                    continue;
+                }
+                counts[0]++;
+                net.minecraft.world.level.block.state.BlockState now = level.getBlockState(p);
+                if (now.getBlock() != site.state(built, codes[i], p).getBlock()) {
+                    counts[1]++;
+                    String name = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(now.getBlock()).toString()
+                            + " (in " + part.name().toLowerCase() + ")";
+                    found.merge(name, 1, Integer::sum);
+                    example.putIfAbsent(name, p);
+                }
+            }
+        });
+        StringBuilder b = new StringBuilder("Shell blocks checked: " + counts[0] + ", not the dungeon's: " + counts[1]
+                + (counts[2] > 0 ? ", in unloaded chunks: " + counts[2] : "") + ".");
+        found.entrySet().stream().sorted((x, y) -> y.getValue() - x.getValue()).limit(12)
+                .forEach(e -> b.append("\n  ").append(e.getValue()).append(" x ").append(e.getKey())
+                        .append(", e.g. at ").append(example.get(e.getKey()).toShortString()));
+        say(src, b.toString());
+        return counts[1];
     }
 
     private static int info(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
