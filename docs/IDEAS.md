@@ -235,6 +235,54 @@ each with a list of jobs that can be done in it.** Both lists are data.
   archers, or bats, spiders and rats together. They read as warbands rather
   than singletons.
 
+## 2c. Farming, replay and per-player loot (Sable's notes, 2026-10-09)
+
+Preventing farming and offering replay (regenerating, resetting, heroic
+re-entry) pull against each other, so decide them together. A rule that
+holds both: **a reward is once per player per run**, and a run ends when the
+dungeon or level is regenerated. Replay then pays out again, and standing
+still does not.
+
+- **Per-player chests.** CrawlSpace already places chests with a loot table
+  rather than rolling their contents (`Site`, `setBlockEntityLootTable`), so
+  an unopened chest is still undecided. **Lootr** would convert them with no
+  change on our side. Lootr has to be on the client as well, though, so it
+  can only be an optional compatibility layer, never the design. The
+  vanilla-first way is to do it ourselves:
+  1. Opening a dungeon chest is caught on the server.
+  2. A per-player inventory is rolled from the loot table on that player's
+     first open and stored.
+  3. A normal chest screen opens on it, with the lid animation sent as a
+     block event.
+
+  The client sees an ordinary chest, and every player gets their own
+  contents.
+- **The vanilla vault block** already gives loot once per player (it
+  remembers who it has rewarded). It needs a key, and the key item is
+  configurable, so it suits a lair's hoard, where the key comes from the
+  boss or the key room.
+- **Trial spawners instead of spawners.**
+  - The trial spawner is vanilla and vanilla clients render it.
+  - It spawns a fixed wave scaled by the number of players nearby, ejects
+    loot when the wave is cleared, then goes dormant for a configurable
+    cooldown. That cooldown can be long enough to make it a one-off.
+  - It cannot be picked up with silk touch, so it cannot be carried home as
+    a farm.
+  - Its mobs and loot come from its config, which is datapack data, so each
+    theme can give it its own config.
+  - The ominous variant gives a harder second tier.
+  - Waking on approach is how it behaves already.
+
+## 2d. Notes on the above
+
+- **The portcullis trap is a valve**: a one-way edge in the cycle sense.
+  The keyed portcullis is a lock.
+- **Objective rooms gate the stairs down on every level, and the bottom one
+  is the finale.** In Warhammer Quest they read as finales only because they
+  are the way out. The deepest level's objective room is the reason to reach
+  the bottom: the biggest, double-height set piece. Earlier levels' objective
+  rooms are smaller versions that open the way on.
+
 ## 3. Puzzles proven on vanilla clients
 
 Hypixel's Catacombs runs about ten puzzles for unmodded clients, all
