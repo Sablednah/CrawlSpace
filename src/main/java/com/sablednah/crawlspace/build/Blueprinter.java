@@ -306,6 +306,10 @@ public final class Blueprinter {
                 case PUZZLE -> 0; // the maze is the danger; a mob on the void would be sent nowhere
                 default -> Math.min(0.95, 0.6 + 0.05 * i);
             };
+            boolean crowded = level.feeling == com.sablednah.crawlspace.plan.Feeling.CROWDED && r.role != Role.ENTRY && r.role != Role.PUZZLE;
+            if (crowded) {
+                chance = Math.min(1, chance + 0.3);
+            }
             if (!dice.chance(chance)) {
                 continue;
             }
@@ -347,7 +351,7 @@ public final class Blueprinter {
             if (!pit.isEmpty()) {
                 spots = pit;
             }
-            int n = Math.min(spots.size(), r.role == Role.LAIR ? 4 + i / 2 : 2 + i / 2 + dice.nextInt(3));
+            int n = Math.min(spots.size(), (r.role == Role.LAIR ? 4 + i / 2 : 2 + i / 2 + dice.nextInt(3)) + (crowded ? 2 : 0));
             Trigger.Kind kind = r.role == Role.LAIR ? Trigger.Kind.BOSS : Trigger.Kind.ENCOUNTER;
             int f = floorAt(plan, i, r.centerX(), r.centerZ());
             bp.addTrigger(new Trigger(kind, r.centerX(), f + 1, r.centerZ(), i,
@@ -1316,7 +1320,8 @@ public final class Blueprinter {
     /** Lanterns: round the stairs always, in other rooms less often the deeper it gets. */
     private static void lights(Blueprint bp, DungeonPlan plan, int i, java.util.Set<Integer> dark) {
         LevelPlan level = plan.levels().get(i);
-        double chance = Math.max(0.15, 0.7 - 0.07 * i);
+        // A dark level has light only where the stairs are.
+        double chance = level.feeling == com.sablednah.crawlspace.plan.Feeling.DARK ? 0 : Math.max(0.15, 0.7 - 0.07 * i);
         for (Room r : level.rooms) {
             int cx = r.centerX();
             int cz = r.centerZ();

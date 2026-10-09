@@ -28,7 +28,8 @@ public final class Planner {
         int[] arrival = {0, 0};
         for (int i = 0; i < levels; i++) {
             boolean bottom = i == levels - 1;
-            LevelPlan level = LevelPlanner.plan(seed, i, arrival, Theme.forDepth(i), bottom);
+            Feeling feeling = Feeling.roll(Dice.of(seed, i, 0xFEE1L), i);
+            LevelPlan level = LevelPlanner.plan(seed, i, arrival, Theme.forDepth(i), bottom, feeling);
             out.add(level);
             if (i > 0) {
                 extraRoutes(out.get(i - 1), level, Dice.of(seed, i, 0xD0D0L));
