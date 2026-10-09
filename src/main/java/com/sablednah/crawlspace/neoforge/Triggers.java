@@ -205,6 +205,7 @@ public final class Triggers {
             here = new Here(Dungeons.at(level, feet).orElse(null), now + RECHECK);
             HERE.put(player.getUUID(), here);
         }
+        Protection.tick(level, player, here.site(), feet);
         if (here.site() == null) {
             return;
         }
