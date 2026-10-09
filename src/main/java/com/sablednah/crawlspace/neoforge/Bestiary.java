@@ -467,6 +467,106 @@ public final class Bestiary {
         return made;
     }
 
+    /** A wandering band for the dungeon clock: the level's monsters at {@code at}, set on {@code target}. */
+    static int band(ServerLevel level, Site site, int li, BlockPos at, int count, net.minecraft.server.level.ServerPlayer target) {
+        String theme = site.built().plan().levels().get(li).theme.name();
+        RandomSource random = level.getRandom();
+        int made = 0;
+        for (int k = 0; k < count; k++) {
+            BlockPos p = at.offset(k % 2, 0, k / 2);
+            if (!level.getBlockState(p).isAir() || !level.getBlockState(p.above()).isAir() || level.getBlockState(p.below()).isAir()) {
+                p = at;
+            }
+            Entity e = common(theme, random).create(level, EntitySpawnReason.EVENT);
+            if (!(e instanceof Mob mob)) {
+                continue;
+            }
+            mob.snapTo(p.getX() + 0.5, p.getY(), p.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+            net.neoforged.neoforge.event.EventHooks.finalizeMobSpawn(mob, level, level.getCurrentDifficultyAt(p), EntitySpawnReason.EVENT, null);
+            arm(mob, li, random);
+            if (random.nextDouble() < Powers.eliteChance(li) && Powers.elite(mob, li, random)) {
+                Powers.track(level, mob);
+            }
+            mob.addTag(KIN);
+            AttributeInstance range = mob.getAttribute(Attributes.FOLLOW_RANGE);
+            if (range != null && range.getBaseValue() < 48) {
+                range.setBaseValue(48);
+            }
+            level.addFreshEntityWithPassengers(mob);
+            mob.setTarget(target);
+            made++;
+        }
+        return made;
+    }
+
+    /** A swarm for the dungeon clock: silverfish, or endermites from the third level, boiling up round a player. */
+    static int swarm(ServerLevel level, net.minecraft.server.level.ServerPlayer p, int li) {
+        RandomSource random = level.getRandom();
+        EntityType<?> type = li >= 2 && random.nextBoolean() ? EntityType.ENDERMITE : EntityType.SILVERFISH;
+        int made = 0;
+        for (int k = 0; k < 4 + random.nextInt(3); k++) {
+            double a = random.nextDouble() * Math.PI * 2;
+            BlockPos at = BlockPos.containing(p.getX() + Math.cos(a) * 2, p.getY(), p.getZ() + Math.sin(a) * 2);
+            if (!level.getBlockState(at).isAir() || level.getBlockState(at.below()).isAir()) {
+                continue;
+            }
+            Entity e = type.create(level, EntitySpawnReason.EVENT);
+            if (!(e instanceof Mob mob)) {
+                continue;
+            }
+            mob.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+            mob.addTag(Powers.NOROLL);
+            mob.finalizeSpawn(level, level.getCurrentDifficultyAt(at), EntitySpawnReason.EVENT, null);
+            mob.addTag(KIN);
+            mob.addTag(Powers.SPAWN);
+            level.addFreshEntity(mob);
+            mob.setTarget(p);
+            level.sendParticles(net.minecraft.core.particles.ParticleTypes.POOF, at.getX() + 0.5, at.getY() + 0.2, at.getZ() + 0.5, 4, 0.2, 0.1, 0.2, 0.01);
+            made++;
+        }
+        return made;
+    }
+
+    /** A stranger for the dungeon clock: a wandering trader, named, who leaves after a few minutes. */
+    static boolean stranger(ServerLevel level, net.minecraft.server.level.ServerPlayer p) {
+        RandomSource random = level.getRandom();
+        for (int tries = 0; tries < 12; tries++) {
+            double a = random.nextDouble() * Math.PI * 2;
+            BlockPos at = BlockPos.containing(p.getX() + Math.cos(a) * 3, p.getY(), p.getZ() + Math.sin(a) * 3);
+            if (!level.getBlockState(at).isAir() || !level.getBlockState(at.above()).isAir() || level.getBlockState(at.below()).isAir()) {
+                continue;
+            }
+            net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader t = EntityType.WANDERING_TRADER.create(level, EntitySpawnReason.EVENT);
+            if (t == null) {
+                return false;
+            }
+            t.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+            t.finalizeSpawn(level, level.getCurrentDifficultyAt(at), EntitySpawnReason.EVENT, null);
+            t.setDespawnDelay(3 * 60 * 20);
+            t.setCustomName(Component.literal("the Stranger").withStyle(ChatFormatting.DARK_AQUA));
+            t.addTag(KIN);
+            level.addFreshEntity(t);
+            level.sendParticles(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE, at.getX() + 0.5, at.getY() + 1, at.getZ() + 0.5, 12, 0.3, 0.6, 0.3, 0.01);
+            return true;
+        }
+        return false;
+    }
+
+    /** A glint for the dungeon clock: one thing from the level's supplies, dropped at a player's feet. */
+    static void glint(ServerLevel level, net.minecraft.server.level.ServerPlayer p, int li) {
+        var table = level.getServer().reloadableRegistries().getLootTable(net.minecraft.resources.ResourceKey.create(
+                net.minecraft.core.registries.Registries.LOOT_TABLE, Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + Math.min(5, 1 + li / 2))));
+        var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
+                .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, p.position())
+                .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
+        java.util.List<ItemStack> items = table.getRandomItems(params);
+        if (!items.isEmpty()) {
+            ItemStack it = items.get(level.getRandom().nextInt(items.size()));
+            level.addFreshEntity(new net.minecraft.world.entity.item.ItemEntity(level, p.getX(), p.getY() + 0.3, p.getZ(), it));
+        }
+        level.sendParticles(net.minecraft.core.particles.ParticleTypes.WAX_OFF, p.getX(), p.getY() + 0.2, p.getZ(), 8, 0.4, 0.1, 0.4, 0.01);
+    }
+
     /** How many bosses a theme has, for the command's help. */
     static int bossCount(String theme) {
         return bosses.getOrDefault(theme, List.of()).size();
