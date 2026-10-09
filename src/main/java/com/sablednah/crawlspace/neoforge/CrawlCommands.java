@@ -57,6 +57,19 @@ public final class CrawlCommands {
                                                 StringArgumentType.getString(ctx, "what"))))))
                 .then(Commands.literal("info").executes(CrawlCommands::info))
                 .then(Commands.literal("breaches").executes(CrawlCommands::breaches))
+                .then(Commands.literal("summon")
+                        .then(Commands.literal("elite")
+                                .executes(ctx -> summon(ctx, null, 0, 3))
+                                .then(Commands.argument("depth", IntegerArgumentType.integer(0, 9))
+                                        .executes(ctx -> summon(ctx, null, 0, IntegerArgumentType.getInteger(ctx, "depth")))))
+                        .then(Commands.literal("boss")
+                                .then(Commands.argument("theme", StringArgumentType.string())
+                                        .suggests((c, b) -> SharedSuggestionProvider.suggest(java.util.List.of("Crypt", "\"Sunken Halls\"",
+                                                "\"Old Mines\"", "Caverns", "\"Deep Halls\""), b))
+                                        .executes(ctx -> summon(ctx, StringArgumentType.getString(ctx, "theme"), 0, 3))
+                                        .then(Commands.argument("which", IntegerArgumentType.integer(0, 9))
+                                                .executes(ctx -> summon(ctx, StringArgumentType.getString(ctx, "theme"),
+                                                        IntegerArgumentType.getInteger(ctx, "which"), 3))))))
                 .then(Commands.literal("undo").executes(CrawlCommands::undo))
                 .then(Commands.literal("cancel").executes(CrawlCommands::cancel))
                 .then(Commands.literal("export").executes(CrawlCommands::export))
@@ -286,6 +299,20 @@ public final class CrawlCommands {
                         .append(", e.g. at ").append(example.get(e.getKey()).toShortString()));
         say(src, b.toString());
         return counts[1];
+    }
+
+    /** A boss and its pack, or an elite, where you stand: to try them without finding their lair. */
+    private static int summon(CommandContext<CommandSourceStack> ctx, String theme, int which, int depth) {
+        CommandSourceStack src = ctx.getSource();
+        BlockPos at = BlockPos.containing(src.getPosition());
+        String made = Bestiary.summon(src.getLevel(), at, theme, which, depth);
+        if (made == null) {
+            fail(src, theme == null ? "Could not make an elite here." : "No boss " + which + " for " + theme + ": it has "
+                    + Bestiary.bossCount(theme) + " (from 0). Themes: Crypt, Sunken Halls, Old Mines, Caverns, Deep Halls.");
+            return 0;
+        }
+        say(src, "Summoned " + made + ".");
+        return 1;
     }
 
     private static int info(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
