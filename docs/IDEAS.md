@@ -360,9 +360,52 @@ https://broheim.net/downloads/whq/.
 | 65 | **Imperial knight** | A friendly NPC's warning gives a buff for the next fight. |
 | 66 | **Curse of Hashakk** | A voice declares the halls forbidden, and one random player is struck: a STR roll decides between a wound and a lasting weakness. |
 
-Of these, Lost (45) and Change of Plan (54) need the most thought, because
-they alter or argue with the level's plan. The rest are local, which is
-what makes the deck easy to grow.
+**Lost (45) and Change of Plan (54) are skipped** (Sable, 2026-10-09). They
+alter or argue with the level's plan. Everything else only affects the spot
+where it happens, which is what makes the deck easy to grow.
+
+## 2f. Protection: no digging round the dungeon (2026-10-09)
+
+Sable's question: an unbreakable disk between levels (it looks wrong where a
+cave cuts through it), adventure mode inside, or tagged blocks.
+
+**Recommended: protect the blocks the dungeon placed, and nothing else.**
+- **The shell is already there.** Walls, floors and ceilings are blocks we
+  placed, and the blueprint knows every one of them. Protect those and every
+  room and corridor is sealed, with no extra layer to build and nothing to
+  see from a cave: it is just the dungeon's own wall.
+- **What stays breakable is a list of roles in the datapack:**
+  - decoration: pots, cobwebs, rubble, gravel piles;
+  - the Mines' ore seams;
+  - "loose" walls a theme marks as diggable;
+  - trap plates and wires, which already break to disarm;
+  - secret walls, which crumble on use.
+- **Players can always break what they placed themselves**, and may place
+  torches and blocks anywhere except puzzle rooms.
+- **Explosions are filtered per block**: a creeper or TNT still hurts, but
+  protected positions are removed from what it destroys. Leave the
+  `mobGriefing` gamerule alone; it is world-wide and other mods rely on it.
+  Also stop endermen picking protected blocks up, pistons moving them, and
+  fire burning them.
+- **Hitting a protected block says something**, now and then: "The
+  dungeon's stonework holds. Find another way."
+- **A server config switch turns it off**, for anyone who wants plain
+  Minecraft digging.
+
+**Why not adventure mode.** Switching game mode at a boundary is fragile.
+Death, logout, a crash or a dimension change can each leave a player stuck
+in the wrong mode, and other mods, ops and creative players all care what
+mode someone is in. Cancelling breaks and placements inside the dungeon has
+the same effect without touching the mode.
+
+**The one real problem: the client predicts.** A vanilla client in survival
+cracks the block and briefly shows it gone before the server puts it back.
+That is a visible correction, which Sable's design principles count as a
+defect. The likely cure is the `block_break_speed` attribute (1.20.5 and
+later; clients read it): set it to 0 while the player is digging at a
+protected block, and back to normal on a breakable one. Unmeasured: try it
+on a rig before relying on it. The fallback is the Ocean Monument's answer,
+Mining Fatigue inside the dungeon.
 
 ## 3. Puzzles proven on vanilla clients
 
