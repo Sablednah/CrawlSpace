@@ -647,6 +647,41 @@ in a dungeon. `PLANNER_VERSION` 8.
 - **Rig gotcha:** a test spawner in a lit room spawns nothing. Give it
   `custom_spawn_rules` with light limits [0,15].
 
+## The dungeon clock (Sable's Warhammer Quest power phase, 2026-10-10)
+
+**`neoforge/Clock`.** Every `play.eventSeconds` (45; 0 turns events off),
+each level with a survival player on it rolls a d6; on a 1, an event.
+Fighting is noise: for 15 s after a player on that level hurts or is hurt
+(`LivingIncomingDamageEvent`), a 2 counts too. There is no visible clock; each
+event says what it is as it happens.
+
+| Event | Weight | From level | What happens |
+|---|---|---|---|
+| band | 4 | 1 | 2 or 3 of the level's monsters (maybe an elite) in the nearest room at least 16 blocks from everyone, set on a player. They growl, and "Footsteps, to the south-west, coming closer." |
+| spoor | 3 | 1 | a growl or rattle from such a room, and "Something moves in the dark, to the ...". |
+| dark | 2 | 2 | Darkness for 20 s on everyone on the level. |
+| swarm | 2 | 2 | 4 to 6 silverfish, or endermites from level 3, round one player. |
+| curse | 1 | 3 | Weakness and mining fatigue for a minute: "A voice in the stone: 'Trespasser.'" |
+| knight | 1 | 1 | Strength for 90 s and a warning. |
+| stranger | 1 | 2 | a wandering trader, "the Stranger", who leaves after 3 minutes. |
+| rocks | 1 | 3 | the rockfall trap on one player. |
+| glint | 1 | 1 | one item from the level's chest loot at a player's feet. |
+
+- No monster events on peaceful.
+- Directions are compass points from the player's position.
+- `/crawlspace event <name>` fires one where you stand.
+- **Seen on the rig:**
+  - Each event fired by command:
+    - the band put two monsters 16 to 40 blocks off;
+    - the swarm brought three, and the stranger one trader;
+    - the dark, curse and knight effects applied;
+    - the glint dropped a Tide Armor Trim;
+    - the spoor and stranger messages read correctly.
+  - With the clock at 5 s for 90 s, a band came on its own.
+- **From the deck, not built:** Lost and Change of Plan (Sable: skip them),
+  and the linked key events (the dying Dwarf's key and the portcullis). Those
+  would need the planner to hold a key back for the deck.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the

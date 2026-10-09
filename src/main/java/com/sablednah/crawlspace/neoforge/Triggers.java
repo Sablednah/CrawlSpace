@@ -433,7 +433,7 @@ public final class Triggers {
     }
 
     /** Stalactites drop from the ceiling on to you and round you. */
-    private static void rockfall(ServerLevel level, ServerPlayer player) {
+    static void rockfall(ServerLevel level, ServerPlayer player) {
         BlockPos feet = player.blockPosition();
         int dropped = 0;
         for (int[] d : new int[][] {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
@@ -966,7 +966,7 @@ public final class Triggers {
         });
     }
 
-    private static void tell(ServerPlayer player, String text) {
+    static void tell(ServerPlayer player, String text) {
         player.displayClientMessage(Component.literal(text).withStyle(ChatFormatting.GOLD), true);
     }
 }

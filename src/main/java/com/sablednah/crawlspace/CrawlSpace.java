@@ -43,12 +43,14 @@ public final class CrawlSpace {
             Builds.tick();
             com.sablednah.crawlspace.neoforge.Crumbles.tick();
             com.sablednah.crawlspace.neoforge.Restamp.tick(e.getServer());
+            com.sablednah.crawlspace.neoforge.Clock.tick(e.getServer());
             Bosses.tick(e.getServer().overworld().getGameTime());
             com.sablednah.crawlspace.neoforge.Powers.tick(e.getServer().overworld().getGameTime());
         });
         NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e) -> {
             com.sablednah.crawlspace.neoforge.Crumbles.clear();
             com.sablednah.crawlspace.neoforge.Restamp.clear();
+            com.sablednah.crawlspace.neoforge.Clock.clear();
             Builds.clear();
             Bosses.clear();
             com.sablednah.crawlspace.neoforge.Powers.clear();
@@ -60,6 +62,7 @@ public final class CrawlSpace {
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onDrops);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onGrief);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onSpawnerSpawn);
+        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Clock::onHurt);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onHurt);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onTarget);
         NeoForge.EVENT_BUS.addListener(Triggers::onUse);
