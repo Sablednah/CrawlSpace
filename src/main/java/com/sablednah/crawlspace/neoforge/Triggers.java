@@ -70,6 +70,12 @@ public final class Triggers {
                 && !player.isSpectator() && inPuzzleRoom(site, pos)) {
             Powers.bless(level, player, pos);
         }
+        Trigger pedestal = triggerAt(site, pos);
+        if (pedestal != null && Vaults.use(level, player, site, pedestal)) {
+            e.setCanceled(true);
+            e.setCancellationResult(InteractionResult.SUCCESS);
+            return;
+        }
         Trigger bars = portcullisAt(site, pos);
         if (bars != null) {
             usePortcullis(level, player, site, bars, e.getItemStack());
@@ -518,6 +524,7 @@ public final class Triggers {
         }
         if (player.tickCount % 20 == 0 && here.site().planner() == Site.PLANNER_VERSION) {
             Arrivals.tick(level, player, here.site(), feet);
+            Vaults.tick(level, player, here.site());
         }
         if (player.tickCount % 20 == 0) {
             final Site site = here.site();

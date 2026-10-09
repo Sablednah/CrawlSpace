@@ -682,6 +682,31 @@ event says what it is as it happens.
   and the linked key events (the dying Dwarf's key and the portcullis). Those
   would need the planner to hold a key back for the deck.
 
+## Vaults: take one of three (2026-10-10)
+
+Brogue's reward rooms; Pixel Dungeon's crystal choice. `Blueprinter.vault`:
+a TREASURE room from level 2, at `VAULT_CHANCE` (0.4) on its own dice, gets
+three `PEDESTAL`s (chiseled stone bricks, the `pedestal` role) two apart
+along one wall, away from doorways. Each is a `Trigger.Kind.VAULT` whose
+targets are all three, the first being the group's.
+- **`neoforge/Vaults`:**
+  - The first time anyone comes within 10 blocks, an `item_display` appears
+    over each pedestal (`getSlot(0).set`, since its setters are private). The
+    items are three different ones from the chest loot a tier above the
+    level's, gear before handfuls, made up with gems if short.
+  - Using a pedestal gives its item and cages the other two in iron bars,
+    their items still showing. One choice per vault, shared.
+  - The state is kept in `CrawlState` under marker keys 200 and 201 above
+    the first pedestal.
+  - A cage over a pedestal is protected.
+- **Seen on the rig** (seed 2, level 2): three items appeared. Taking the
+  middle gave an enchanted, trimmed iron helmet; two cages of bars closed;
+  using it again said "The cages hold. The choice was made."
+- `goto <level> vault`. `PLANNER_VERSION` 9.
+- **Rig gotcha:** a test player killed in one script sits on the death screen
+  and makes every later teleport a silent no-op. Check health first, and
+  click Respawn at (640,343).
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the
