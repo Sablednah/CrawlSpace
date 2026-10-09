@@ -398,14 +398,51 @@ in the wrong mode, and other mods, ops and creative players all care what
 mode someone is in. Cancelling breaks and placements inside the dungeon has
 the same effect without touching the mode.
 
-**The one real problem: the client predicts.** A vanilla client in survival
-cracks the block and briefly shows it gone before the server puts it back.
-That is a visible correction, which Sable's design principles count as a
-defect. The likely cure is the `block_break_speed` attribute (1.20.5 and
-later; clients read it): set it to 0 while the player is digging at a
-protected block, and back to normal on a breakable one. Unmeasured: try it
-on a rig before relying on it. The fallback is the Ocean Monument's answer,
-Mining Fatigue inside the dungeon.
+**The client predicts, and the attribute cures it. Measured on the Vivo
+CrawlSpace rig, 1.21.11, 2026-10-09.** Set the player's
+`minecraft:block_break_speed` to 0, and holding attack on a block does
+nothing. The arm swings, but there is no crack overlay, no break and no
+flicker. The same setup at 1 broke every block. Each run was aimed straight
+at the block, with the server confirming the block was there before the
+swing and checking it after:
+
+| Block, tool | speed 1, held | speed 0, held 4 s |
+|---|---|---|
+| dirt, bare hand | broken in 2 s | intact |
+| stone, iron pickaxe | broken in 2 s | intact |
+| stone, diamond pickaxe with Efficiency V | broken in 1 s | intact |
+
+The rig's client is a NeoForge dev client, but mining prediction is
+vanilla code, so a vanilla client should behave the same.
+
+**How the design follows from that:**
+
+1. **Set the attribute to 0 for the whole time a player is inside a dungeon**,
+   using a transient modifier. Do not toggle it per block when someone
+   starts digging: a block that breaks instantly (dirt with an Efficiency
+   pick, or Haste) breaks on the client in the very first tick, before any
+   server toggle could arrive. Repair the modifier on respawn and login as
+   LQ does (`PlayerEvent.Clone`).
+2. **Breakable blocks are broken by the server.** The client still sends
+   "started digging" and "stopped digging" at speed 0; that is from reading
+   vanilla's `MultiPlayerGameMode`, not yet measured. The server times the
+   dig itself from the block's hardness and the tool, sends the crack stages
+   (the block-destruction packet) and breaks the block. It looks like normal
+   mining, and it applies only to the breakable roles.
+3. **A server-side cancel is the fallback**, for whatever never goes through
+   the attribute: mining gadgets, lasers, Create drills, tunnellers, fake
+   players.
+   - Cancel the break event on protected blocks.
+   - Filter each explosion so it only takes blocks on the breakable list:
+     a creeper still breaks things, just nothing that matters.
+   - Mods that bypass the events entirely (it is not known which do) are
+     caught by **repair from the blueprint**. The blueprint knows what every
+     protected block should be, so when a player enters a room, put back
+     anything missing. That catches everything at the cost of a delay.
+4. **An optional client layer is a nicer extra, never a requirement.**
+   CrawlSpace on the client could be told the protected volumes and refuse
+   to start digging there at all, with a hint over the crosshair. The
+   server never relies on it.
 
 ## 3. Puzzles proven on vanilla clients
 
