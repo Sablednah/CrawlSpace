@@ -40,18 +40,36 @@ public final class Bestiary {
         }
     }
 
-    /** A theme's boss: what it is, what it is called, what it carries, its bar's colour. */
-    private record BossSpec(EntityType<?> type, String name, Item weapon, BossEvent.BossBarColor colour, double scale) {
+    /**
+     * A theme's boss: what it is, what it is called, what it carries, its bar's
+     * colour and its size. The rest is for the stranger ones:
+     *
+     * @param health    its maximum health outright, or 0 for its own plus the boss's bonus by depth
+     * @param damage    its attack damage outright, or 0 for its own plus the bonus
+     * @param speed     a multiplier on its speed (a five-times silverfish is slow)
+     * @param powers    "summon", "blink"
+     * @param minion    what "summon" calls up, or null
+     * @param follower  what stands with it in its lair instead of the theme's monsters, or null
+     * @param followerScale  ...how big they are
+     * @param followerHealth ...and their health and damage outright, or 0 for their own
+     */
+    private record BossSpec(EntityType<?> type, String name, Item weapon, BossEvent.BossBarColor colour, double scale,
+            double health, double damage, double speed, java.util.Set<String> powers, EntityType<?> minion,
+            EntityType<?> follower, double followerScale, double followerHealth, double followerDamage) {
+        BossSpec(EntityType<?> type, String name, Item weapon, BossEvent.BossBarColor colour, double scale) {
+            this(type, name, weapon, colour, scale, 0, 0, 1, java.util.Set.of(), null, null, 1, 0, 0);
+        }
     }
 
     private static final java.util.Set<EntityType<?>> HUMANOIDS = java.util.Set.of(EntityType.ZOMBIE, EntityType.SKELETON,
             EntityType.DROWNED, EntityType.STRAY, EntityType.BOGGED, EntityType.WITHER_SKELETON, EntityType.HUSK);
 
     private static final Map<String, List<Pick>> COMMON = new HashMap<>();
-    private static final Map<String, BossSpec> BOSSES = new HashMap<>();
+    /** Each theme's bosses: a lair gets one of them, from its own dice. */
+    private static final Map<String, List<BossSpec>> BOSSES = new HashMap<>();
     /** The built-in tables with any datapack's on top; swapped whole on reload. */
     private static volatile Map<String, List<Pick>> common = Map.of();
-    private static volatile Map<String, BossSpec> bosses = Map.of();
+    private static volatile Map<String, List<BossSpec>> bosses = Map.of();
 
     static {
         COMMON.put("Crypt", List.of(new Pick(EntityType.ZOMBIE, 4), new Pick(EntityType.SKELETON, 4), new Pick(EntityType.SPIDER, 1)));
@@ -64,11 +82,24 @@ public final class Bestiary {
         COMMON.put("Deep Halls", List.of(new Pick(EntityType.VINDICATOR, 3), new Pick(EntityType.PILLAGER, 2),
                 new Pick(EntityType.STRAY, 2), new Pick(EntityType.WITHER_SKELETON, 2), new Pick(EntityType.WITCH, 1)));
 
-        BOSSES.put("Crypt", new BossSpec(EntityType.SKELETON, "the Bone Warden", Items.BOW, BossEvent.BossBarColor.WHITE, 1.3));
-        BOSSES.put("Sunken Halls", new BossSpec(EntityType.DROWNED, "the Drowned Reeve", Items.TRIDENT, BossEvent.BossBarColor.BLUE, 1.35));
-        BOSSES.put("Old Mines", new BossSpec(EntityType.ZOMBIE, "the Foreman", Items.DIAMOND_PICKAXE, BossEvent.BossBarColor.YELLOW, 1.35));
-        BOSSES.put("Caverns", new BossSpec(EntityType.SPIDER, "the Broodmother", Items.AIR, BossEvent.BossBarColor.GREEN, 1.8));
-        BOSSES.put("Deep Halls", new BossSpec(EntityType.VINDICATOR, "the Gaoler", Items.DIAMOND_AXE, BossEvent.BossBarColor.PURPLE, 1.3));
+        BOSSES.put("Crypt", List.of(new BossSpec(EntityType.SKELETON, "the Bone Warden", Items.BOW, BossEvent.BossBarColor.WHITE, 1.3)));
+        BOSSES.put("Sunken Halls", List.of(new BossSpec(EntityType.DROWNED, "the Drowned Reeve", Items.TRIDENT, BossEvent.BossBarColor.BLUE, 1.35)));
+        BOSSES.put("Old Mines", List.of(
+                new BossSpec(EntityType.ZOMBIE, "the Foreman", Items.DIAMOND_PICKAXE, BossEvent.BossBarColor.YELLOW, 1.35),
+                // A giant endermite that blinks to you and sheds lesser mites (Sable's "weird bosses via the scale").
+                new BossSpec(EntityType.ENDERMITE, "the Gnawing Mite", Items.AIR, BossEvent.BossBarColor.PURPLE, 4.0,
+                        0, 6, 0.8, java.util.Set.of("blink", "summon"), EntityType.ENDERMITE, null, 1, 0, 0)));
+        BOSSES.put("Caverns", List.of(
+                new BossSpec(EntityType.SPIDER, "the Broodmother", Items.AIR, BossEvent.BossBarColor.GREEN, 1.8),
+                // Jabba the Hutt as a silverfish: vast, slow, too wide for a door, and birthing her brood.
+                new BossSpec(EntityType.SILVERFISH, "the Brood Queen", Items.AIR, BossEvent.BossBarColor.WHITE, 5.0,
+                        0, 5, 0.45, java.util.Set.of("summon"), EntityType.SILVERFISH, null, 1, 0, 0)));
+        BOSSES.put("Deep Halls", List.of(
+                new BossSpec(EntityType.VINDICATOR, "the Gaoler", Items.DIAMOND_AXE, BossEvent.BossBarColor.PURPLE, 1.3),
+                // Wardens shrunk to Wardlings: blind, hunting by sound, and a pack of them. Their boom is scaled down by size.
+                // Measured on the rig: at 10 and 5 a matriarch and three Wardlings took 200 health in 20 s.
+                new BossSpec(EntityType.WARDEN, "the Wardling Matriarch", Items.AIR, BossEvent.BossBarColor.BLUE, 0.6,
+                        110, 6, 1, java.util.Set.of(), null, EntityType.WARDEN, 0.4, 20, 3)));
         common = Map.copyOf(COMMON);
         bosses = Map.copyOf(BOSSES);
     }
@@ -80,7 +111,7 @@ public final class Bestiary {
      */
     static void apply(Map<String, com.google.gson.JsonObject> themes) {
         Map<String, List<Pick>> c = new HashMap<>(COMMON);
-        Map<String, BossSpec> b = new HashMap<>(BOSSES);
+        Map<String, List<BossSpec>> b = new HashMap<>(BOSSES);
         themes.forEach((theme, json) -> {
             if (json.has("mobs")) {
                 List<Pick> picks = new java.util.ArrayList<>();
@@ -100,7 +131,7 @@ public final class Bestiary {
             }
             if (json.has("boss")) {
                 com.google.gson.JsonObject o = json.getAsJsonObject("boss");
-                BossSpec old = b.getOrDefault(theme, BOSSES.get("Crypt"));
+                BossSpec old = b.getOrDefault(theme, BOSSES.get("Crypt")).get(0);
                 EntityType<?> type = o.has("type") ? entity(o.get("type").getAsString(), theme) : null;
                 Item weapon = old.weapon();
                 if (o.has("weapon")) {
@@ -115,9 +146,11 @@ public final class Bestiary {
                         }
                     }
                 }
-                b.put(theme, new BossSpec(type != null ? type : old.type(),
+                // A datapack's boss is that theme's only boss, the first built-in one changed where it says.
+                b.put(theme, List.of(new BossSpec(type != null ? type : old.type(),
                         o.has("name") ? o.get("name").getAsString() : old.name(), weapon, bar,
-                        o.has("scale") ? o.get("scale").getAsDouble() : old.scale()));
+                        o.has("scale") ? o.get("scale").getAsDouble() : old.scale(), old.health(), old.damage(), old.speed(),
+                        old.powers(), old.minion(), old.follower(), old.followerScale(), old.followerHealth(), old.followerDamage())));
             }
         });
         common = Map.copyOf(c);
@@ -143,7 +176,7 @@ public final class Bestiary {
             mobs.add(o);
         }
         into.add("mobs", mobs);
-        BossSpec spec = bosses.get(theme);
+        BossSpec spec = bosses.containsKey(theme) ? bosses.get(theme).get(0) : null;
         if (spec != null) {
             com.google.gson.JsonObject o = new com.google.gson.JsonObject();
             o.addProperty("type", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(spec.type()).toString());
@@ -154,6 +187,9 @@ public final class Bestiary {
             into.add("boss", o);
         }
     }
+
+    /** The most of a strange boss's own pack that wake with it. */
+    private static final int MAX_PACK = 3;
 
     /** Every monster a room wakes carries this tag. */
     static final String KIN = "crawlspace_mob";
@@ -204,34 +240,128 @@ public final class Bestiary {
         RandomSource random = level.getRandom();
         BlockPos o = site.origin();
         int spawned = 0;
+        int elites = 0;
         String bossName = null;
+        // Which of the theme's bosses: from the dungeon's own dice, so a lair always holds the same one.
+        List<BossSpec> choices = bosses.getOrDefault(theme, bosses.get("Crypt"));
+        BossSpec spec = choices.get(com.sablednah.crawlspace.plan.Dice.of(site.seed(), t.level(), 0xB055L).nextInt(choices.size()));
+        boolean lair = t.kind() == Trigger.Kind.BOSS;
         for (int k = 0; k < t.targets().length; k++) {
             int[] s = t.targets()[k];
             BlockPos pos = o.offset(s[0], s[1], s[2]);
-            boolean boss = t.kind() == Trigger.Kind.BOSS && k == 0;
-            BossSpec spec = bosses.getOrDefault(theme, bosses.get("Crypt"));
-            EntityType<?> type = boss ? spec.type() : common(theme, random);
+            boolean boss = lair && k == 0;
+            boolean follower = lair && k > 0 && spec.follower() != null;
+            if (follower && k > MAX_PACK) {
+                continue; // a strange boss's own pack stays small: three Wardlings are a fight, six are a wipe
+            }
+            EntityType<?> type = boss ? spec.type() : follower ? spec.follower() : common(theme, random);
             Entity e = type.create(level, EntitySpawnReason.STRUCTURE);
             if (!(e instanceof Mob mob)) {
                 continue;
             }
             mob.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, random.nextFloat() * 360f, 0f);
-            mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.STRUCTURE, null);
+            if (boss || follower) {
+                // Ours alone: the direct call fires no spawn event, and the tag tells a mod that hooks it anyway.
+                mob.addTag(Powers.NOROLL);
+                mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.STRUCTURE, null);
+            } else {
+                // A room's ordinary monsters go through NeoForge's spawn event, so another mod may make them its
+                // own (ZombieMod rolls a zombie type). One that comes back named is not made an elite on top.
+                net.neoforged.neoforge.event.EventHooks.finalizeMobSpawn(mob, level, level.getCurrentDifficultyAt(pos),
+                        EntitySpawnReason.STRUCTURE, null);
+            }
             arm(mob, depth + (boss ? 2 : 0), random);
             if (boss) {
                 crown(mob, spec, depth);
                 Bosses.track(level, mob, spec.colour());
                 bossName = spec.name();
+            } else if (follower) {
+                follow(mob, spec);
+            } else if (elites < 2 && random.nextDouble() < Powers.eliteChance(depth) && Powers.elite(mob, depth, random)) {
+                elites++;
             }
             mob.addTag(KIN);
             mob.setPersistenceRequired();
             level.addFreshEntityWithPassengers(mob);
+            Powers.track(level, mob);
             spawned++;
         }
         if (spawned == 0) {
             return null;
         }
+        if (lair && spec.type() == EntityType.WARDEN) {
+            // Wardens are blind and find you by sound; a pack woken by someone hunts them from the start.
+            net.minecraft.world.entity.player.Player near = level.getNearestPlayer(o.getX() + t.x(), o.getY() + t.y(), o.getZ() + t.z(), 24, false);
+            if (near != null) {
+                for (net.minecraft.world.entity.monster.warden.Warden w : level.getEntitiesOfClass(net.minecraft.world.entity.monster.warden.Warden.class,
+                        near.getBoundingBox().inflate(32), w -> w.entityTags().contains(KIN))) {
+                    w.increaseAngerAt(near, 80, false);
+                }
+            }
+        }
         return bossName != null ? capitalise(bossName) + " rises from its lair!" : "Something stirs in the dark.";
+    }
+
+    /**
+     * For testing and for showing off: a theme's boss (its {@code index}th, from
+     * 0) and its pack at a spot, or, with a null theme, one elite. As a lair or
+     * room would make them, at {@code depth}. Returns what was made, for the message.
+     */
+    static String summon(ServerLevel level, BlockPos pos, String theme, int index, int depth) {
+        RandomSource random = level.getRandom();
+        if (theme == null) {
+            Entity e = common("Crypt", random).create(level, EntitySpawnReason.COMMAND);
+            if (!(e instanceof Mob mob)) {
+                return null;
+            }
+            mob.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0, 0);
+            mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.COMMAND, null);
+            arm(mob, depth, random);
+            Powers.elite(mob, depth, random);
+            mob.addTag(KIN);
+            level.addFreshEntityWithPassengers(mob);
+            Powers.track(level, mob);
+            return mob.getDisplayName().getString();
+        }
+        List<BossSpec> choices = bosses.get(theme);
+        if (choices == null || index < 0 || index >= choices.size()) {
+            return null;
+        }
+        BossSpec spec = choices.get(index);
+        for (int k = 0; k < (spec.follower() != null ? 4 : 1); k++) {
+            Entity e = (k == 0 ? spec.type() : spec.follower()).create(level, EntitySpawnReason.COMMAND);
+            if (!(e instanceof Mob mob)) {
+                continue;
+            }
+            mob.snapTo(pos.getX() + 0.5 + (k == 0 ? 0 : random.nextInt(5) - 2), pos.getY(), pos.getZ() + 0.5 + (k == 0 ? 0 : random.nextInt(5) - 2), 0, 0);
+            mob.addTag(Powers.NOROLL);
+            mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.COMMAND, null);
+            if (k == 0) {
+                crown(mob, spec, depth);
+                Bosses.track(level, mob, spec.colour());
+            } else {
+                follow(mob, spec);
+            }
+            mob.addTag(KIN);
+            mob.setPersistenceRequired();
+            level.addFreshEntityWithPassengers(mob);
+            Powers.track(level, mob);
+        }
+        if (spec.type() == EntityType.WARDEN) {
+            net.minecraft.world.entity.player.Player near = level.getNearestPlayer(pos.getX(), pos.getY(), pos.getZ(), 24, false);
+            if (near != null) {
+                for (net.minecraft.world.entity.monster.warden.Warden w : level.getEntitiesOfClass(net.minecraft.world.entity.monster.warden.Warden.class,
+                        near.getBoundingBox().inflate(32), w -> w.entityTags().contains(KIN))) {
+                    w.increaseAngerAt(near, 80, false);
+                }
+            }
+        }
+        return capitalise(spec.name());
+    }
+
+    /** How many bosses a theme has, for the command's help. */
+    static int bossCount(String theme) {
+        return bosses.getOrDefault(theme, List.of()).size();
     }
 
     private static final List<Item[]> ARMOUR = List.of(
@@ -271,14 +401,64 @@ public final class Bestiary {
             mob.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(spec.weapon()));
             mob.setDropChance(EquipmentSlot.MAINHAND, 0.25f);
         }
-        modify(mob, Attributes.MAX_HEALTH, "boss_health", 30 + 12.0 * depth, AttributeModifier.Operation.ADD_VALUE);
-        modify(mob, Attributes.ATTACK_DAMAGE, "boss_damage", 1 + depth, AttributeModifier.Operation.ADD_VALUE);
+        if (spec.health() > 0) {
+            base(mob, Attributes.MAX_HEALTH, spec.health() + 8.0 * depth);
+        } else {
+            modify(mob, Attributes.MAX_HEALTH, "boss_health", 30 + 12.0 * depth, AttributeModifier.Operation.ADD_VALUE);
+        }
+        if (spec.damage() > 0) {
+            base(mob, Attributes.ATTACK_DAMAGE, spec.damage() + depth / 2.0);
+        } else {
+            modify(mob, Attributes.ATTACK_DAMAGE, "boss_damage", 1 + depth, AttributeModifier.Operation.ADD_VALUE);
+        }
         modify(mob, Attributes.SCALE, "boss_scale", spec.scale() - 1, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        modify(mob, Attributes.MOVEMENT_SPEED, "boss_speed", spec.speed() - 1, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        // A boss notices anyone in its lair: an endermite's own 16 left the Gnawing Mite blind to a player across a big room.
+        reach(mob);
+        if (spec.scale() != 1) {
+            mob.addTag(Powers.SCALED);
+        }
+        for (String power : spec.powers()) {
+            mob.addTag(Powers.POWER + power);
+        }
+        if (spec.minion() != null) {
+            mob.addTag(Powers.MINION + net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(spec.minion()));
+        }
         mob.setHealth(mob.getMaxHealth());
         mob.setCustomName(Component.literal(capitalise(spec.name())).withStyle(ChatFormatting.GOLD));
         mob.setCustomNameVisible(true);
         mob.addTag(Bosses.TAG);
         mob.addTag(Bosses.COLOUR_TAG + spec.colour().getName());
+    }
+
+    private static void reach(Mob mob) {
+        AttributeInstance range = mob.getAttribute(Attributes.FOLLOW_RANGE);
+        if (range != null && range.getBaseValue() < 40) {
+            range.setBaseValue(40);
+        }
+    }
+
+    /** One of a strange boss's own pack (a Wardling): its size, health and bite. */
+    private static void follow(Mob mob, BossSpec spec) {
+        reach(mob);
+        modify(mob, Attributes.SCALE, "follower_scale", spec.followerScale() - 1, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        if (spec.followerHealth() > 0) {
+            base(mob, Attributes.MAX_HEALTH, spec.followerHealth());
+        }
+        if (spec.followerDamage() > 0) {
+            base(mob, Attributes.ATTACK_DAMAGE, spec.followerDamage());
+        }
+        if (spec.followerScale() != 1) {
+            mob.addTag(Powers.SCALED);
+        }
+        mob.setHealth(mob.getMaxHealth());
+    }
+
+    private static void base(Mob mob, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr, double value) {
+        AttributeInstance inst = mob.getAttribute(attr);
+        if (inst != null) {
+            inst.setBaseValue(value);
+        }
     }
 
     private static void modify(Mob mob, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr,
