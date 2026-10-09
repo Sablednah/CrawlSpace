@@ -86,7 +86,7 @@ public final class Restamp {
         if (structure == null) {
             return;
         }
-        for (StructureStart start : level.structureManager().startsForStructure(chunk, s -> s == structure)) {
+        for (StructureStart start : level.structureManager().startsForStructure(chunk.x(), chunk.z(), s -> s == structure)) {
             for (StructurePiece piece : start.getPieces()) {
                 if (piece instanceof DungeonPiece d && d.site().planner() == Site.PLANNER_VERSION) {
                     stamp(level, chunk, d);
