@@ -155,7 +155,18 @@ public enum Part {
     /** A big dripleaf path block: tips you off if you stand on it; facing is the way it points. */
     DRIPLEAF,
     /** A pit trap's floor tile: crumbles away under you, into the spikes below. */
-    PIT_TILE;
+    PIT_TILE,
+    // ---- portcullises ----
+    /** Iron bars filling a doorway: a lock whose key is in a chest elsewhere on the level. */
+    PORTCULLIS,
+    /** The open air under a raised portcullis that drops behind you: air until it falls. */
+    PORTCULLIS_GAP,
+    /** The floor block under a dropping portcullis: worn, scored where the bars land (the tell). */
+    PORTCULLIS_SILL,
+    /** The key room's chest when its level's lock is a portcullis: it holds the key. */
+    KEY_CHEST,
+    /** A lever that raises a dropped portcullis: inside the room it shut you into. */
+    WINCH;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).
@@ -172,19 +183,21 @@ public enum Part {
                     LOCKED_LOWER, LOCKED_UPPER, LEVER,
                     TOWER, TOWER_FLOOR, TOWER_TOP, TOWER_TRIM, TOWER_STAIR, TOWER_CORBEL, TOWER_WINDOW, TOWER_PILLAR, TOWER_ROOF,
                     SHELF, WALL_ACCENT, FLOOR_ACCENT, FLOOR_INLAY, PILASTER, COVE, PANEL, DADO, MOSS_FLOOR, BEAM,
-                    VOID, RESTART, PATH_HIDDEN, CRUMBLE, DRIPLEAF, PIT_TILE -> true;
+                    VOID, RESTART, PATH_HIDDEN, CRUMBLE, DRIPLEAF, PIT_TILE,
+                    PORTCULLIS, PORTCULLIS_SILL, WINCH -> true;
             default -> false;
         };
     }
 
     /**
      * Shell parts that come and go by design, so a missing one is never put
-     * back: crumbling path and pit floor, dripleaf, and the iron doors (two
-     * halves that only make sense together).
+     * back: crumbling path and pit floor, dripleaf, the iron doors (two
+     * halves that only make sense together) and a keyed portcullis, which is
+     * gone once raised.
      */
     public boolean mayBeMissing() {
         return switch (this) {
-            case CRUMBLE, DRIPLEAF, PIT_TILE, LOCKED_LOWER, LOCKED_UPPER -> true;
+            case CRUMBLE, DRIPLEAF, PIT_TILE, LOCKED_LOWER, LOCKED_UPPER, PORTCULLIS -> true;
             default -> false;
         };
     }

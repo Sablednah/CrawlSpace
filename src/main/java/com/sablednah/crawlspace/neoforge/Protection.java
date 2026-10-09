@@ -79,6 +79,10 @@ public final class Protection {
             return false;
         }
         int code = codeAt(site, pos);
+        if (code != 0 && Blueprint.part(code) == Part.PORTCULLIS_GAP) {
+            // A dropped portcullis holds; raised, its archway is air and there is nothing to hold.
+            return level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.IRON_BARS);
+        }
         if (code == 0 || !Blueprint.part(code).shell()) {
             return false;
         }

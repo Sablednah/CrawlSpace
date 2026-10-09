@@ -21,7 +21,8 @@ final class Tour {
 
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
-            "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle");
+            "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle",
+            "portcullis", "droptrap", "winch");
 
     private Tour() {
     }
@@ -38,12 +39,22 @@ final class Tour {
             case "trap" -> null;
             case "decoy" -> com.sablednah.crawlspace.build.Trigger.Kind.DECOY;
             case "pit" -> com.sablednah.crawlspace.build.Trigger.Kind.PIT;
+            case "portcullis" -> com.sablednah.crawlspace.build.Trigger.Kind.PORTCULLIS;
+            case "droptrap" -> com.sablednah.crawlspace.build.Trigger.Kind.PORTCULLIS_TRAP;
+            case "winch" -> com.sablednah.crawlspace.build.Trigger.Kind.WINCH;
             default -> throw new IllegalArgumentException(what);
         };
         for (com.sablednah.crawlspace.build.Trigger t : bp.triggers()) {
             boolean match = kind == null ? t.kind().isTrap() : t.kind() == kind;
             if (!match || t.level() != level.index) {
                 continue;
+            }
+            if (what.equalsIgnoreCase("droptrap")) {
+                // Outside the arch, two out, facing in: a walk in springs it.
+                int[] door = t.targets()[0];
+                int ox = 2 * door[0] - t.x();
+                int oz = 2 * door[2] - t.z();
+                return new double[] {ox + 0.5, oz + 0.5, yaw(t.x() - ox, t.z() - oz)};
             }
             if (what.equalsIgnoreCase("locked") && t.targets().length > 0) {
                 // In front of the first door the lever works: the door cell's open neighbour.

@@ -198,8 +198,12 @@ public final class Blueprinter {
                                 bp.set(x, f + 1, z, Part.DOOR_UPPER, facing, i);
                             }
                             case DOOR_LOCKED -> {
-                                bp.set(x, f, z, Part.LOCKED_LOWER, facing, i);
-                                bp.set(x, f + 1, z, Part.LOCKED_UPPER, facing, i);
+                                if (keyLock(plan, i)) {
+                                    bp.fill(x, z, f, f + 1, Part.PORTCULLIS, i);
+                                } else {
+                                    bp.set(x, f, z, Part.LOCKED_LOWER, facing, i);
+                                    bp.set(x, f + 1, z, Part.LOCKED_UPPER, facing, i);
+                                }
                             }
                             case DOOR_SECRET -> bp.fill(x, z, f, f + 1, Part.SECRET_WALL, i);
                             default -> {
@@ -385,10 +389,22 @@ public final class Blueprinter {
             int[] spot = clearFloorNear(level, key);
             if (spot != null) {
                 int f = floorAt(plan, i, spot[0], spot[1]);
-                bp.set(spot[0], f, spot[1], Part.LEVER, 0, i);
-                bp.addTrigger(new Trigger(Trigger.Kind.LEVER, spot[0], f, spot[1], i, locked.toArray(new int[0][])));
+                if (keyLock(plan, i)) {
+                    // The key in a chest; each portcullis raised with it is its own trigger, on its lower bar.
+                    bp.set(spot[0], f, spot[1], Part.KEY_CHEST, facingToward(spot, key), i);
+                    // Kept clear and reachable like a hoard, and hinted like one.
+                    bp.addTrigger(new Trigger(Trigger.Kind.TREASURE, spot[0], f, spot[1], i, new int[0][]));
+                    for (int[] d : locked) {
+                        bp.addTrigger(new Trigger(Trigger.Kind.PORTCULLIS, d[0], d[1], d[2], i,
+                                new int[][] {{d[0], d[1], d[2]}, {d[0], d[1] + 1, d[2]}}));
+                    }
+                } else {
+                    bp.set(spot[0], f, spot[1], Part.LEVER, 0, i);
+                    bp.addTrigger(new Trigger(Trigger.Kind.LEVER, spot[0], f, spot[1], i, locked.toArray(new int[0][])));
+                }
             }
         }
+        portcullisTrap(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x9C11L));
         for (Room r : level.rooms) {
             if (r.role == Role.TREASURE) {
                 int[] spot = clearFloorNear(level, r);
@@ -493,6 +509,106 @@ public final class Blueprinter {
             bp.addTrigger(new Trigger(Trigger.Kind.DECOY, x, f, z, i, new int[0][]));
             trapLook(bp, level, i, x, f, z, true, look);
             want--;
+        }
+    }
+
+    /** How often a level's lock is a portcullis with a key, rather than an iron door with a lever. */
+    static final double KEY_LOCK_CHANCE = 0.5;
+    /** How often a level from the second down has a portcullis that drops behind you. */
+    static final double PORTCULLIS_TRAP_CHANCE = 0.4;
+
+    /** Whether level {@code i}'s lock is a keyed portcullis. Its own dice: it moves nothing else. */
+    public static boolean keyLock(DungeonPlan plan, int i) {
+        return com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x6E70L).chance(KEY_LOCK_CHANCE);
+    }
+
+    /** A facing from a spot toward a room's centre, for a chest that should open toward the room. */
+    private static int facingToward(int[] spot, Room r) {
+        int dx = r.centerX() - spot[0];
+        int dz = r.centerZ() - spot[1];
+        if (dx == 0 && dz == 0) {
+            return 2;
+        }
+        return Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? 1 : 3) : (dz > 0 ? 2 : 0);
+    }
+
+    /**
+     * A portcullis that drops behind you (Sable, 2026-10-09: "if it drops after
+     * walking through it"): over an archway into a room that has another way
+     * out, so it bars the way back, never the way on. The floor under the arch
+     * is a sill, scored where the bars land: the tell. Walking two cells in
+     * drops it; a winch lever further inside raises it, and so, in the end,
+     * does time. A blocked retreat, in one doorway.
+     */
+    private static void portcullisTrap(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice dice) {
+        LevelPlan level = plan.levels().get(i);
+        if (i < 1 || !dice.chance(PORTCULLIS_TRAP_CHANCE)) {
+            return;
+        }
+        java.util.Map<Room, Integer> doorways = new java.util.HashMap<>();
+        java.util.List<int[]> arches = new java.util.ArrayList<>(); // {door x, z, normal x, z, room id}
+        for (Link l : level.links) {
+            for (int side = 0; side < 2; side++) {
+                int[] d = side == 0 ? l.doorA : l.doorB;
+                Room r = side == 0 ? l.a : l.b;
+                if (d == null) {
+                    continue;
+                }
+                doorways.merge(r, 1, Integer::sum);
+                if (level.cell(d[0], d[1]) == Cell.ARCH) {
+                    arches.add(new int[] {d[0], d[1], d[2], d[3], r.id});
+                }
+            }
+        }
+        java.util.List<int[]> fits = new java.util.ArrayList<>();
+        for (int[] a : arches) {
+            Room r = level.room(a[4]);
+            boolean role = switch (r.role) {
+                case ROOM, HALL, GUARD, LAIR -> true;
+                default -> false;
+            };
+            int tx = a[0] - 2 * a[2];
+            int tz = a[1] - 2 * a[3];
+            int mx = a[0] - a[2];
+            int mz = a[1] - a[3];
+            if (role && doorways.getOrDefault(r, 0) >= 2
+                    && level.cell(tx, tz) == Cell.FLOOR && level.region(tx, tz) == r.id
+                    && level.cell(mx, mz) == Cell.FLOOR && level.region(mx, mz) == r.id
+                    && level.height(tx, tz) == level.height(a[0], a[1]) && level.height(mx, mz) == level.height(a[0], a[1])
+                    && clearAround(bp, level, i, tx, tz)) {
+                fits.add(a);
+            }
+        }
+        if (fits.isEmpty()) {
+            return;
+        }
+        int[] a = fits.get(dice.nextInt(fits.size()));
+        Room r = level.room(a[4]);
+        int f = floorAt(plan, i, a[0], a[1]);
+        int[][] bars = {{a[0], f, a[1]}, {a[0], f + 1, a[1]}, {a[0], f + 2, a[1]}};
+        bp.set(a[0], f - 1, a[1], Part.PORTCULLIS_SILL, 0, i);
+        bp.fill(a[0], a[1], f, f + 2, Part.PORTCULLIS_GAP, i);
+        int tx = a[0] - 2 * a[2];
+        int tz = a[1] - 2 * a[3];
+        bp.addTrigger(new Trigger(Trigger.Kind.PORTCULLIS_TRAP, tx, floorAt(plan, i, tx, tz), tz, i, bars));
+        // The winch: floor as near the room's middle as there is, well away from the arch.
+        int[] winch = null;
+        for (int d = 0; d <= Math.max(r.w, r.h) && winch == null; d++) {
+            for (int dx = -d; dx <= d && winch == null; dx++) {
+                for (int dz = -d; dz <= d && winch == null; dz++) {
+                    int x = r.centerX() + dx;
+                    int z = r.centerZ() + dz;
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) == d && level.cell(x, z) == Cell.FLOOR && level.region(x, z) == r.id
+                            && Math.max(Math.abs(x - a[0]), Math.abs(z - a[1])) >= 4 && clearAround(bp, level, i, x, z)) {
+                        winch = new int[] {x, z};
+                    }
+                }
+            }
+        }
+        if (winch != null) {
+            int wf = floorAt(plan, i, winch[0], winch[1]);
+            bp.set(winch[0], wf, winch[1], Part.WINCH, facingToward(winch, r), i);
+            bp.addTrigger(new Trigger(Trigger.Kind.WINCH, winch[0], wf, winch[1], i, bars));
         }
     }
 

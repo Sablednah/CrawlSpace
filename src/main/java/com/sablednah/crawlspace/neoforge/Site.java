@@ -32,7 +32,8 @@ import net.minecraft.world.level.block.state.BlockState;
 public record Site(long seed, int levels, int top, String style, BlockPos origin, int planner) {
 
     /** Bump whenever a planner or blueprint change would alter an existing seed's dungeon. */
-    public static final int PLANNER_VERSION = 5; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms
+    public static final int PLANNER_VERSION = 6; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
+                                                 // 6: portcullises
 
     /**
      * A plan and its blueprint, built once and shared by every chunk that asks.
@@ -135,6 +136,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
         int li = Math.max(0, Blueprint.level(code));
         int tier = Math.min(5, 1 + li / 2);
         String table = switch (part) {
+            case KEY_CHEST -> "chests/supplies";
             case CHEST -> "chests/tier" + tier;
             case HOARD_CHEST -> "chests/tier" + Math.min(5, tier + 1);
             case BARREL -> "chests/supplies";
@@ -144,6 +146,11 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
             net.minecraft.world.RandomizableContainer.setBlockEntityLootTable(level, random, pos,
                     net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,
                             net.minecraft.resources.Identifier.fromNamespaceAndPath("crawlspace", table)));
+            // The key sits in the middle; the loot table fills the slots round it when the chest is first opened.
+            if (part == Part.KEY_CHEST && level.getBlockEntity(pos) instanceof net.minecraft.world.Container chest) {
+                String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();
+                chest.setItem(13, Keys.make(this, li, theme));
+            }
         } else if (part == Part.SPAWNER
                 && level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner) {
             String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();

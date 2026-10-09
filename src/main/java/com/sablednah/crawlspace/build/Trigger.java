@@ -34,10 +34,19 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         /** A pit trap, at the middle of its 3x3 floor; targets are all nine tiles. */
         PIT,
         /** Not a trap of its own: one of a pit trap's eight outer tiles; its target is the middle. */
-        PIT_EDGE;
+        PIT_EDGE,
+        /** A portcullis locking a doorway, on its lower bar; the targets are its bars. Raised with the level's key. */
+        PORTCULLIS,
+        /**
+         * A portcullis that drops behind you: on the floor tile two in from the archway, fired by
+         * walking in (never out). The targets are the archway's three blocks, bottom first.
+         */
+        PORTCULLIS_TRAP,
+        /** A lever that raises a dropped portcullis; the targets are its bars. */
+        WINCH;
 
         public boolean isTrap() {
-            return this == DARTS || this == GAS || this == PIT;
+            return this == DARTS || this == GAS || this == PIT || this == PORTCULLIS_TRAP;
         }
 
         public boolean isEncounter() {

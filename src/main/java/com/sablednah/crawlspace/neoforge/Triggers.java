@@ -64,11 +64,28 @@ public final class Triggers {
             e.setCancellationResult(InteractionResult.SUCCESS);
             return;
         }
+        Trigger bars = portcullisAt(site, pos);
+        if (bars != null) {
+            usePortcullis(level, player, site, bars, e.getItemStack());
+            e.setCanceled(true);
+            e.setCancellationResult(InteractionResult.SUCCESS);
+            return;
+        }
         Trigger t = triggerAt(site, pos);
         if (t == null) {
+            if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.IRON_BARS) && droppedAt(site, pos)) {
+                tell(player, "It will not budge. Somewhere in the room, a winch raises it.");
+            }
             return;
         }
         switch (t.kind()) {
+            case WINCH -> {
+                if (level.getBlockState(site.origin().offset(t.targets()[0][0], t.targets()[0][1], t.targets()[0][2]))
+                        .is(net.minecraft.world.level.block.Blocks.IRON_BARS)) {
+                    raise(level, site, t.targets());
+                    tell(player, "The winch creaks round: the portcullis rises.");
+                }
+            }
             case LEVER -> {
                 BlockState lever = level.getBlockState(pos);
                 if (!(lever.getBlock() instanceof LeverBlock)) {
@@ -109,6 +126,114 @@ public final class Triggers {
         }
     }
 
+    /** The keyed portcullis whose bars are at {@code pos}: its trigger is on the lower bar. */
+    private static Trigger portcullisAt(Site site, BlockPos pos) {
+        Trigger t = triggerAt(site, pos);
+        if (t != null && t.kind() == Trigger.Kind.PORTCULLIS) {
+            return t;
+        }
+        t = triggerAt(site, pos.below());
+        return t != null && t.kind() == Trigger.Kind.PORTCULLIS ? t : null;
+    }
+
+    /** Whether {@code pos} is one of the bars of a portcullis that drops behind you. */
+    private static boolean droppedAt(Site site, BlockPos pos) {
+        BlockPos o = site.origin();
+        for (Trigger t : site.built().blueprint().triggers()) {
+            if (t.kind() == Trigger.Kind.PORTCULLIS_TRAP) {
+                for (int[] b : t.targets()) {
+                    if (o.offset(b[0], b[1], b[2]).equals(pos)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Using a locked portcullis: with this level's key in hand it rises and the
+     * key is spent; with another key, the game says whose it is; with none, it
+     * names where the key is.
+     */
+    private static void usePortcullis(ServerLevel level, ServerPlayer player, Site site, Trigger t, ItemStack held) {
+        BlockPos lower = site.origin().offset(t.targets()[0][0], t.targets()[0][1], t.targets()[0][2]);
+        if (!level.getBlockState(lower).is(net.minecraft.world.level.block.Blocks.IRON_BARS)) {
+            return;
+        }
+        String id = Keys.idOf(held);
+        if (Keys.id(site, t.level()).equals(id)) {
+            if (!player.isCreative()) {
+                held.shrink(1);
+            }
+            raise(level, site, t.targets());
+            tell(player, "The key turns. The portcullis grinds up.");
+        } else if (id != null && id.startsWith(Keys.id(site, 0).substring(0, Keys.id(site, 0).lastIndexOf('/') + 1))) {
+            tell(player, "That key is for the portcullis on level " + (Keys.levelOf(id) + 1) + ".");
+        } else if (id != null) {
+            tell(player, "That key belongs to another dungeon.");
+        } else {
+            tell(player, "Locked. Its key is in a chest somewhere on this level.");
+        }
+    }
+
+    /** A portcullis rises: its bars go from the bottom up, a few ticks apart. */
+    private static void raise(ServerLevel level, Site site, int[][] bars) {
+        BlockPos o = site.origin();
+        BlockPos first = o.offset(bars[0][0], bars[0][1], bars[0][2]);
+        level.playSound(null, first, SoundEvents.IRON_DOOR_OPEN, SoundSource.BLOCKS, 1f, 0.6f);
+        level.playSound(null, first, SoundEvents.CHAIN_PLACE, SoundSource.BLOCKS, 1f, 0.7f);
+        for (int k = 0; k < bars.length; k++) {
+            BlockPos p = o.offset(bars[k][0], bars[k][1], bars[k][2]);
+            Crumbles.later(level, 1 + 6 * k, () -> {
+                if (level.getBlockState(p).is(net.minecraft.world.level.block.Blocks.IRON_BARS)) {
+                    level.setBlock(p, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3);
+                    level.playSound(null, p, SoundEvents.CHAIN_HIT, SoundSource.BLOCKS, 0.8f, 0.8f);
+                }
+            });
+        }
+    }
+
+    /** How long a dropped portcullis stays down before its counterweight lifts it anyway, in ticks. */
+    private static final int PORTCULLIS_RESET = 2400;
+
+    /**
+     * The portcullis slams down over the archway behind {@code player}. Anyone
+     * standing in the archway is pushed into the room first, never into the
+     * bars. It names the way out as it falls, and lifts itself in the end.
+     */
+    private static void drop(ServerLevel level, Site site, Trigger t, ServerPlayer player) {
+        BlockPos o = site.origin();
+        BlockPos inside = o.offset(t.x(), t.y(), t.z());
+        java.util.List<BlockPos> bars = new java.util.ArrayList<>();
+        for (int[] b : t.targets()) {
+            bars.add(o.offset(b[0], b[1], b[2]));
+        }
+        for (net.minecraft.world.entity.LivingEntity mob : level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class,
+                new net.minecraft.world.phys.AABB(bars.get(0)).expandTowards(0, 2, 0))) {
+            mob.teleportTo(inside.getX() + 0.5, inside.getY(), inside.getZ() + 0.5);
+        }
+        for (BlockPos p : bars) {
+            level.setBlock(p, net.minecraft.world.level.block.Blocks.IRON_BARS.defaultBlockState(), 3);
+        }
+        for (BlockPos p : bars) {
+            level.setBlock(p, net.minecraft.world.level.block.Block.updateFromNeighbourShapes(level.getBlockState(p), level, p), 3);
+        }
+        level.playSound(null, bars.get(0), SoundEvents.ANVIL_LAND, SoundSource.BLOCKS, 1f, 0.5f);
+        level.sendParticles(net.minecraft.core.particles.ParticleTypes.CLOUD, bars.get(0).getX() + 0.5, bars.get(0).getY() + 0.2,
+                bars.get(0).getZ() + 0.5, 12, 0.4, 0.1, 0.4, 0.02);
+        for (ServerPlayer p : level.players()) {
+            if (p.blockPosition().closerThan(inside, 12)) {
+                tell(p, "Clang! A portcullis slams down behind you. A winch in this room raises it.");
+            }
+        }
+        Crumbles.later(level, PORTCULLIS_RESET, () -> {
+            if (level.getBlockState(bars.get(0)).is(net.minecraft.world.level.block.Blocks.IRON_BARS)) {
+                raise(level, site, t.targets());
+            }
+        });
+    }
+
     /**
      * Sneak-using the floor tile of a trap you know about, or its plate or
      * wire: try to disarm it.
@@ -144,7 +269,11 @@ public final class Triggers {
             }
             level.playSound(null, trapPos, SoundEvents.TRIPWIRE_CLICK_OFF, SoundSource.BLOCKS, 1f, 0.8f);
             tell(player, t.kind() == Trigger.Kind.PIT ? "You wedge the loose stones: this floor will hold now."
+                    : t.kind() == Trigger.Kind.PORTCULLIS_TRAP ? "You jam the portcullis's chain: it will not fall."
                     : "You disarm the " + (t.kind() == Trigger.Kind.DARTS ? "dart trap." : "gas trap."));
+        } else if (t.kind() == Trigger.Kind.PORTCULLIS_TRAP) {
+            Dungeons.at(level, trapPos).ifPresent(site -> drop(level, site, t, player));
+            tell(player, "You set it off! The portcullis slams down!");
         } else if (t.kind() == Trigger.Kind.PIT) {
             Dungeons.at(level, trapPos).ifPresent(site -> pitfall(level, site, t));
             tell(player, "You set it off! The floor cracks under your feet!");
@@ -199,6 +328,7 @@ public final class Triggers {
         }
         ServerLevel level = (ServerLevel) player.level();
         BlockPos feet = player.blockPosition();
+        BlockPos prev = PREV.put(player.getUUID(), feet);
         Here here = HERE.get(player.getUUID());
         long now = level.getGameTime();
         if (here == null || now >= here.until() || (here.site() != null && !here.site().contains(feet))) {
@@ -242,12 +372,30 @@ public final class Triggers {
         if (state.hasFired(at)) {
             return;
         }
+        if (t.kind() == Trigger.Kind.PORTCULLIS_TRAP && !walkingIn(here.site(), t, prev, feet)) {
+            return; // leaving the room by the arch: it falls only behind someone going in
+        }
         state.fire(at);
         switch (t.kind()) {
             case DARTS -> darts(level, player, feet);
             case GAS -> gas(level, player, feet);
+            case PORTCULLIS_TRAP -> drop(level, here.site(), t, player);
             default -> pitfall(level, here.site(), t);
         }
+    }
+
+    /** Per player: where their feet were at the last look, to tell going into a room from coming out. */
+    private static final Map<UUID, BlockPos> PREV = new HashMap<>();
+
+    /** Whether a player on a portcullis trap's tile got there from the archway's side: closer to it a moment ago. */
+    private static boolean walkingIn(Site site, Trigger t, BlockPos prev, BlockPos feet) {
+        if (prev == null) {
+            return false;
+        }
+        BlockPos door = site.origin().offset(t.targets()[0][0], t.targets()[0][1], t.targets()[0][2]);
+        int before = Math.max(Math.abs(prev.getX() - door.getX()), Math.abs(prev.getZ() - door.getZ()));
+        int now = Math.max(Math.abs(feet.getX() - door.getX()), Math.abs(feet.getZ() - door.getZ()));
+        return before < now;
     }
 
     /** How near a room's monsters wake, in blocks. */
@@ -322,6 +470,8 @@ public final class Triggers {
             if (seen) {
                 String found = trap ? reveal(level, site, t, p) : null;
                 tell(player, !trap ? "Something about this wall is not right..."
+                        : t.kind() == Trigger.Kind.PORTCULLIS_TRAP
+                        ? "You notice deep grooves under the arch ahead: a portcullis hangs over it. Sneak and use the floor before it to jam it."
                         : found == null ? "You notice a trap in the floor ahead. Sneak and use it to disarm it."
                         : "You spot " + found + " ahead: a trap. Break it, or sneak and use it, to try to disarm it.");
             }
@@ -377,7 +527,7 @@ public final class Triggers {
                 continue;
             }
             switch (t.kind()) {
-                case DARTS, GAS -> {
+                case DARTS, GAS, PORTCULLIS_TRAP -> {
                     if (!state.hasFired(p)) {
                         level.sendParticles(player, RED, false, false, p.getX() + 0.5, p.getY() + 0.1, p.getZ() + 0.5, 3, 0.3, 0.02, 0.3, 0);
                     }
@@ -533,6 +683,7 @@ public final class Triggers {
         HERE.remove(e.getEntity().getUUID());
         LAST_SAFE.remove(e.getEntity().getUUID());
         NOTICED.remove(e.getEntity().getUUID());
+        PREV.remove(e.getEntity().getUUID());
     }
 
     private static Trigger triggerAt(Site site, BlockPos pos) {

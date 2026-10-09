@@ -332,6 +332,54 @@ dripstone spikes; with LegendQuest, a check to jump clear.
   `later(...)` for delayed jobs. A restart leaves a crumble at whatever stage
   it had reached.
 
+## Portcullises (Sable, 2026-10-09)
+
+Two kinds, both in the blueprint layer on their own dice, so neither moves a
+wall. `PLANNER_VERSION` 6.
+
+- **Keyed lock.** On half the levels that have a lock (`Blueprinter.keyLock`,
+  `KEY_LOCK_CHANCE`), the locked doorway is iron bars (`Part.PORTCULLIS`)
+  instead of an iron door. The KEY room then holds a `KEY_CHEST`, not a
+  lever: the supplies loot table plus the key in slot 13 (`Keys`). The key
+  is a tripwire hook with a name, lore, glint and a `crawlspace_key` tag in
+  `custom_data`, `"x,y,z/level"`. The tag opens the bars, so a hook renamed
+  on an anvil opens nothing. Using the bars (`Trigger.Kind.PORTCULLIS`, on
+  the lower bar) with the right key spends it and raises them bottom-first.
+  A key for another level says which; with none, it says the key is in a
+  chest on this level. The lock is still on the loop, so a lost key costs a
+  shortcut, never the way down.
+- **Drops behind you** (from level 2, 40%). Over an ARCH into a ROOM, HALL,
+  GUARD or LAIR with at least two doorways, so it bars the way back and
+  never the way on. Its trigger (`PORTCULLIS_TRAP`, a trap for notice, hints
+  and disarm) is the floor two cells in. It fires only when you walk *in*:
+  `Triggers.PREV` holds where the feet were last look, and the drop needs
+  them to have been nearer the arch. The archway is `PORTCULLIS_GAP` (air
+  until it falls), and the floor under it is a `PORTCULLIS_SILL`, the tell
+  (`floor_inlay` with hints on, otherwise the corridor floor). A `WINCH`
+  lever inside raises it, and so does a timer after 2 minutes. Anyone in
+  the arch is pushed into the room, never into the bars. Dropped bars are
+  protected; raised, there is nothing to protect.
+- **Seen on the rig (seed 6, level 2, 2026-10-09):**
+  - Walked out through the arch: the bars stayed up.
+  - Walked in: they dropped, with "Clang! A portcullis slams down behind
+    you. A winch in this room raises it."
+  - Using the bars said "It will not budge. Somewhere in the room, a winch
+    raises it."
+  - The winch raised them.
+  - At the keyed portcullis with no key: "Locked. Its key is in a chest
+    somewhere on this level."
+  - The key chest held `crawlspace_key: "5000,47,5006/1"`. With that key:
+    "The key turns. The portcullis grinds up.", the bars rose bottom-first,
+    and the key was spent.
+- **Testing aid:** `/crawlspace goto <level> portcullis|droptrap|winch`.
+  `droptrap` stands you two outside the arch, facing in.
+- The hall's aisle carpet used to lay itself over a winch. It now breaks
+  round reserved cells.
+- **Rig gotchas:** RCON `tp ... facing` did not move the client's pitch, so
+  use explicit yaw and pitch. Clear the inventory before clicking, or a
+  right-click places a block. Action-bar text is not in the client log, so
+  screenshot it.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the

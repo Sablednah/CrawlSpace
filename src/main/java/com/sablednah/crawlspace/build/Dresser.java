@@ -634,7 +634,8 @@ final class Dresser {
         for (int k = alongX ? r.minX() : r.minZ(); k <= (alongX ? r.maxX() : r.maxZ()); k++) {
             int x = alongX ? k : r.centerX();
             int z = alongX ? r.centerZ() : k;
-            if (r.contains(x, z) && level.cell(x, z) == Cell.FLOOR) {
+            // Round a winch or other trigger the carpet breaks off: it once laid itself over a winch.
+            if (r.contains(x, z) && level.cell(x, z) == Cell.FLOOR && !reserved[x + R][z + R]) {
                 props.add(new Prop(x, f, z, Part.CARPET, 0, false));
             }
         }
@@ -733,7 +734,8 @@ final class Dresser {
         }
         for (Trigger t : bp.triggers()) {
             if (t.level() == i) {
-                mark(res, t.x(), t.z(), t.kind() == Trigger.Kind.LEVER || t.kind() == Trigger.Kind.TREASURE ? 1 : 0);
+                mark(res, t.x(), t.z(), t.kind() == Trigger.Kind.LEVER || t.kind() == Trigger.Kind.WINCH
+                        || t.kind() == Trigger.Kind.TREASURE ? 1 : 0);
             }
         }
         return res;
@@ -778,7 +780,7 @@ final class Dresser {
         }
         for (Trigger t : bp.triggers()) {
             if (t.level() == i && r.contains(t.x(), t.z())
-                    && (t.kind() == Trigger.Kind.LEVER || t.kind() == Trigger.Kind.TREASURE)) {
+                    && (t.kind() == Trigger.Kind.LEVER || t.kind() == Trigger.Kind.WINCH || t.kind() == Trigger.Kind.TREASURE)) {
                 // Stand beside it: one of its four neighbours must be reachable.
                 must.add(new int[] {t.x(), t.z(), 1});
             }

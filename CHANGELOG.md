@@ -5,6 +5,8 @@
 - **Dungeons can no longer be dug round.** In survival, the dungeon's walls, floors, ceilings, stairs, tower, locked doors and puzzle rooms will not break: the way down is through it. Hitting them says so: "The dungeon's stonework holds. Find another way." Chests, spawners, pots, cobwebs, furniture, wooden doors, trap plates and anything you placed yourself still break as usual. Creative is unaffected.
 - Explosions still hurt and still break the dressing, but not the walls. Pistons cannot move them, and blocks that mining machines remove without the usual break event are put back after a few seconds.
 - No building over a puzzle room's void.
+- **Portcullises.** On some levels the locked door is a portcullis, and its key is in a chest in the key room: a named key that opens that level's portcullis and no other. Deeper down, a portcullis may slam shut behind you as you walk into a room. A winch inside raises it, and it lifts on its own after a couple of minutes. The scored sill under the arch gives it away, and with LegendQuest you can spot it and jam it like any other trap.
+- Fixed: features from neighbouring chunks (tuff, gravel, clay, moss, ore, water) could spill into a dungeon's walls as the world generated. New chunks of a dungeon are now put right as they load.
 - **All of it is optional**: `[protection] enabled = false` in `crawlspace-server.toml` makes dungeons ordinary minable blocks again. There are separate switches for explosions and repair, and changes apply without a restart.
 
 ## 0.2.0 — 2026-10-08
