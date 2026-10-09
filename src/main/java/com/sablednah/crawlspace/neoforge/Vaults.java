@@ -87,7 +87,7 @@ public final class Vaults {
         var table = level.getServer().reloadableRegistries().getLootTable(net.minecraft.resources.ResourceKey.create(
                 net.minecraft.core.registries.Registries.LOOT_TABLE, Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + tier)));
         var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
-                .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, at.getCenter())
+                .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, net.minecraft.world.phys.Vec3.atCenterOf(at))
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
         List<ItemStack> out = new ArrayList<>();
         for (int tries = 0; tries < 6 && out.size() < 3; tries++) {
