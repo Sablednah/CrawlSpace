@@ -283,6 +283,87 @@ still does not.
   the bottom: the biggest, double-height set piece. Earlier levels' objective
   rooms are smaller versions that open the way on.
 
+## 2e. The dungeon clock, after Warhammer Quest's power phase (2026-10-09)
+
+Sable's favourite board game. Sources: the WHQ Roleplay Book's Dungeon Events
+Table (pp. 61–65) and the Adventure Book's play sheet, both from
+https://broheim.net/downloads/whq/.
+
+### How WHQ runs it
+
+- **Two triggers.**
+  - Entering a *new room* draws an event card. Corridors draw nothing.
+  - Every turn, the Wizard's power roll comes up 1 on one turn in six, and
+    that is an **Unexpected Event**: another card, which can land anywhere.
+    Players called it the "Wizard rolls a 1" phase.
+- **Two kinds of card.**
+  - **M** cards are monsters. Arriving as an Unexpected Event, they get
+    their first attack in at once.
+  - **E** cards are events, with the d66 table as an alternative to the deck.
+- **Chaining.** Many events end "draw another card immediately", or "on 1–3
+  draw another", so a quiet find can turn into an ambush.
+- **Noise raises the odds.** Freeing chained slaves takes 1D6 turns, and
+  while you do it an Unexpected Event comes on a 1 *or* 2.
+- **Events point at each other.** The dying Dwarf gives you "the key to the
+  portcullis" (13), and the portcullis slams shut behind you (44). The dying
+  Orc's iron key (53) fits the padlocked door (43). **Sable's portcullis,
+  with its key and its trap, is already in WHQ as a pair of linked events.**
+- **The victim is the lowest roll.** "Roll 1D6 for each Warrior; the lowest
+  sets off the trap." Everyone rolls and someone is unlucky. LegendQuest
+  shows dice already, so the roll can be seen.
+
+### For CrawlSpace
+
+- **A turn is about 30–60 s of real time** on a level with players on it.
+  Each turn, roll a d6 per level (per party, not per player): a 1 is an
+  unexpected event. Noisy actions make it 1–2 for a while: fighting,
+  breaking blocks, the portcullis, freeing prisoners. There is **no visible
+  clock**; the event announces itself when it happens.
+- **First entry to a room** rolls on a room-event deck alongside the waking
+  monsters, sometimes nothing.
+- **The decks are data**: weighted per theme and depth, each entry
+  flagged *monster* or *event*, with an optional "chain" chance.
+- **A wandering band** comes in from an unexplored corridor, out of sight,
+  never spawning in view. Its arrival is heard first: the dungeon-clock
+  "spoor" line, and with LQ a WIS check tells you which direction.
+- **Linked pairs** are two entries that share a key id: the key event and
+  the lock event. The planner places the lock on the level and holds the
+  key back for the deck, so the key cannot come before its lock exists.
+
+### Events from the table that work in Minecraft
+
+| d66 | WHQ event | CrawlSpace version |
+|---|---|---|
+| 11 | **Cave in** | The room shakes and gravel pours from the ceiling. All exits but the one you came in by are blocked, and you have one turn to get out (boss-bar countdown). Never in the first room. |
+| 12 | **Dead body** | A skeleton clutching a bag (a named bundle or chest). The lowest roller opens it: gas, a spear, or gold. |
+| 13 / 44 | **Dying Dwarf, portcullis** | A named villager or NPC hands you a key with a line of chat, and the portcullis drops behind you later. Linked pair. |
+| 43 / 53 | **Locked door, dying Orc** | A padlocked door, and an Orc somewhere with the key. Rush him and he lashes out; wait and he makes noise (raised clock) while he dies. |
+| 14 | **Lone mercenary** | Tells you the layout: the next few rooms are revealed (glowing outline on their doorways), then he heads for the exit. |
+| 15 | **Sneaky git** | A Snotling-like follower (a named baby zombie or allay) that speeds you up, but warns either you or the monsters before an ambush. Kill it and its scream brings a band. |
+| 16 | **Ghost** | A glowing figure beckons, and following it leads to a pit, a dart or hidden gold. |
+| 21 | **Prisoners** | Escaped captives tag along; escort them out for a reward, or once in six they denounce you. |
+| 22 | **Stranger** | A cloaked NPC warns you. Attack him and it goes badly or he drops a bag; leave him and he may pick a pocket. |
+| 23 | **Gold digger** | A mad old prospector blocks the way and wants a toll. Pay, or kill him and risk his curse (a debuff). |
+| 24 | **Nurgle's Rot** | A crawling figure calls for help, and whoever helps may catch the plague: a lasting debuff that worsens on each unexpected event, until healed. |
+| 25, 26 | **Scorpion swarm, snakes** | A burst of small mobs (silverfish, endermites) on one random player. |
+| 31–36, 41 | **Traps** | Explosion, pit, spiked pit, poison dart, falling stone block, paralysis, gas, chain lightning. Most are on our trap list already. **New ones:** the *stone block*, which pins you and needs a group STR total to lift; and *lightning*, which arcs from player to player on 1–3. |
+| 42 | **Old bones** | Bones and glinting gold: a trap, an illusion, or real gold. |
+| 45 | **Lost** | The way ahead loops: 1D6 extra rooms before you are back on track. Best as a generation-time feeling, not a runtime change. |
+| 46 | **Flames of Khazla** | Stone shutters seal the room. Two braziers: thrust your arm in (use the brazier) and roll. Two passes and the shutters lift; a fail burns. Nobody is left trapped for ever: a timer opens it in the end. |
+| 51 | **Footprints** | Prints in the dust lead to a blank wall. Investigate it for a concealed door to a **sub-dungeon** ending in an extra objective room. |
+| 52 | **Slaves** | Chained captives. Freeing them takes time and raises the clock; leaving them is remembered (**LQ:** karma). |
+| 54 | **Change of plan** | A cloaked messenger says to turn back, for a reward. He may be lying. |
+| 55 | **Secret door** | Leads to a bonus objective room with better treasure. |
+| 61 | **Daylight?** | A stiff trapdoor to the surface, an emergency exit you can come back to. |
+| 63 | **Orc runes** | **LQ:** INT reads them and opens an alcove of treasure, and its owners come running. |
+| 64 | **Lantern goes out** | A chill breeze puts out the light sources in the room (ours, never the player's) and gives Darkness; the next fight is in the dark. |
+| 65 | **Imperial knight** | A friendly NPC's warning gives a buff for the next fight. |
+| 66 | **Curse of Hashakk** | A voice declares the halls forbidden, and one random player is struck: a STR roll decides between a wound and a lasting weakness. |
+
+Of these, Lost (45) and Change of Plan (54) need the most thought, because
+they alter or argue with the level's plan. The rest are local, which is
+what makes the deck easy to grow.
+
 ## 3. Puzzles proven on vanilla clients
 
 Hypixel's Catacombs runs about ten puzzles for unmodded clients, all
