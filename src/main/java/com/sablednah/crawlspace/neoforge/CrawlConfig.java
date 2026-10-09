@@ -17,6 +17,9 @@ public final class CrawlConfig {
     private static final ModConfigSpec.IntValue MIN_LEVELS;
     private static final ModConfigSpec.EnumValue<Hints> HINTS;
     private static final ModConfigSpec.DoubleValue DISARM_CHANCE;
+    private static final ModConfigSpec.BooleanValue PROTECT;
+    private static final ModConfigSpec.BooleanValue PROTECT_EXPLOSIONS;
+    private static final ModConfigSpec.BooleanValue PROTECT_REPAIR;
 
     /** Whether secret walls look different and traps and treasure give off particles. */
     public enum Hints {
@@ -55,6 +58,21 @@ public final class CrawlConfig {
                 "disarms it rather than setting it off. A perception mod (LegendQuest) rolls its own instead.")
                 .defineInRange("disarmChance", 0.75, 0.0, 1.0);
         b.pop();
+        b.push("protection");
+        PROTECT = b.comment(
+                "Keep the dungeon whole: players in survival cannot break its walls, floors, ceilings, stairs, tower,",
+                "locked doors or puzzle rooms, so the way down is through it rather than round it. Dressing still breaks",
+                "(chests, spawners, pots, cobwebs, furniture, wooden doors), as do trap plates and anything a player placed.",
+                "Off: dungeons are ordinary blocks, minable like the rest of the world.")
+                .define("enabled", true);
+        PROTECT_EXPLOSIONS = b.comment(
+                "With protection on: creepers and TNT still hurt, and still break the dressing, but not the shell.")
+                .define("explosions", true);
+        PROTECT_REPAIR = b.comment(
+                "With protection on: put back any shell block found missing near a player, every few seconds.",
+                "Catches machines and mods that remove blocks without the usual break event (drills, lasers, tunnellers).")
+                .define("repair", true);
+        b.pop();
         SPEC = b.build();
     }
 
@@ -84,6 +102,18 @@ public final class CrawlConfig {
 
     public static double disarmChance() {
         return get(DISARM_CHANCE, 0.75);
+    }
+
+    public static boolean protect() {
+        return get(PROTECT, true);
+    }
+
+    public static boolean protectExplosions() {
+        return protect() && get(PROTECT_EXPLOSIONS, true);
+    }
+
+    public static boolean protectRepair() {
+        return protect() && get(PROTECT_REPAIR, true);
     }
 
     /**

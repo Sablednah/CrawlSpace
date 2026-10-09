@@ -60,5 +60,11 @@ public final class CrawlSpace {
         NeoForge.EVENT_BUS.addListener(Triggers::onTick);
         NeoForge.EVENT_BUS.addListener(Triggers::onLogout);
         NeoForge.EVENT_BUS.addListener(Triggers::onSpawnCheck);
+        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onLeftClick);
+        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onBreak);
+        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onPlace);
+        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onExplode);
+        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onPiston);
+        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onLogout);
     }
 }
