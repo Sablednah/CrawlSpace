@@ -168,6 +168,15 @@ than `minLevels` fit gets no pieces, so nothing is placed there. Each chunk's
   and other structures are all laid first, and the dungeon carves through
   them. That also keeps springs out of its walls. Snow settles on the tower
   afterwards, which is right.
+- **...but neighbours spill.** A chunk decorated later puts features a few
+  blocks into its neighbours, including a dungeon already built there.
+  `/crawlspace breaches` found 0.3–1% of the shell replaced by tuff, gravel,
+  clay, moss, granite, water and ore on three fresh dungeons. **`Restamp`**
+  puts each new chunk of a dungeon right once, the tick after it loads: every
+  blueprint block that differs is set again. A chunk only loads as full once
+  every neighbour has finished its features, so nothing spills in afterwards.
+  Three more fresh dungeons on the rig audited at 0, one of them 16 blocks
+  from a mineshaft.
 - Biomes are Dungeon Crawl's list (`#crawlspace:has_structure/dungeon`), plus
   mushroom fields, mangroves, cherry groves and the pale garden. No ocean, river
   or deep lowland.
