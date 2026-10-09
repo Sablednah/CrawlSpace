@@ -5,6 +5,8 @@
 - **Dungeons can no longer be dug round.** In survival, the dungeon's walls, floors, ceilings, stairs, tower, locked doors and puzzle rooms will not break: the way down is through it. Hitting them says so: "The dungeon's stonework holds. Find another way." Chests, spawners, pots, cobwebs, furniture, wooden doors, trap plates and anything you placed yourself still break as usual. Creative is unaffected.
 - Explosions still hurt and still break the dressing, but not the walls. Pistons cannot move them, and blocks that mining machines remove without the usual break event are put back after a few seconds.
 - No building over a puzzle room's void.
+- **Solving a puzzle room blesses you**: opening its hoard gives a buff for six minutes.
+- **Spawners burn out** after 24 monsters (`play.spawnerUses`, 0 for never), so a dungeon is not a farm.
 - **More traps**, deeper down: alarms that wake the rooms around, webs, falling stalactites, freezing mist, fire, and ambushes. Spotted and disarmed like the others. `/crawlspace trap <kind>` to try one.
 - **Level feelings.** Arriving on a level now shows its number and theme, and sometimes its mood: hollow walls (more secrets), damp air (pools everywhere), darkness (no lanterns, better loot), many feet (more monsters), clicking floors (twice the traps), or something large hunting the halls. A hunter is an elite that tracks you down, room by room, and you hear it coming.
 - **Elites.** Now and then a dungeon monster is an elite, its affixes in its name: Venomous, Frenzied, Armoured, Hulking, Blinking, Burning, Splitting, Vampiric, two of them deeper down. They are tougher, and drop loot and extra experience.

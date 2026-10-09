@@ -64,6 +64,12 @@ public final class Triggers {
             e.setCancellationResult(InteractionResult.SUCCESS);
             return;
         }
+        int code = site.built().blueprint().get(pos.getX() - site.origin().getX(), pos.getY() - site.origin().getY(),
+                pos.getZ() - site.origin().getZ());
+        if (code != 0 && com.sablednah.crawlspace.build.Blueprint.part(code) == com.sablednah.crawlspace.build.Part.HOARD_CHEST
+                && !player.isSpectator() && inPuzzleRoom(site, pos)) {
+            Powers.bless(level, player, pos);
+        }
         Trigger bars = portcullisAt(site, pos);
         if (bars != null) {
             usePortcullis(level, player, site, bars, e.getItemStack());
@@ -141,6 +147,17 @@ public final class Triggers {
             default -> {
             }
         }
+    }
+
+    /** Whether {@code pos} is inside one of the dungeon's puzzle rooms. */
+    private static boolean inPuzzleRoom(Site site, BlockPos pos) {
+        int li = Arrivals.levelAt(site, pos);
+        if (li < 0) {
+            return false;
+        }
+        com.sablednah.crawlspace.plan.LevelPlan lp = site.built().plan().levels().get(li);
+        com.sablednah.crawlspace.plan.Room r = lp.room(lp.region(pos.getX() - site.origin().getX(), pos.getZ() - site.origin().getZ()));
+        return r != null && r.role == com.sablednah.crawlspace.plan.Role.PUZZLE;
     }
 
     /** The keyed portcullis whose bars are at {@code pos}: its trigger is on the lower bar. */

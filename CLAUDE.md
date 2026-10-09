@@ -631,6 +631,22 @@ ticks, fire lit the player and 4 floor blocks, the ambush brought 2 monsters
 and the alarm woke 6. `/crawlspace trap <kind>` springs one where you stand
 in a dungeon. `PLANNER_VERSION` 8.
 
+## Puzzle blessings and spawners that burn out (2026-10-10)
+
+- **Blessings** (Hypixel's Catacombs). Opening a puzzle room's hoard chest
+  (`Part.HOARD_CHEST` in a PUZZLE room) gives one of Strength, Regeneration,
+  Haste, Speed, Resistance or Jump Boost for six minutes, named on the action
+  bar. Once per player per room, held in memory. Seen on the rig (seed 1,
+  level 1): Haste at about six minutes, from opening the hoard.
+- **Spawners burn out** at `play.spawnerUses` (24; 0 means never). A dungeon
+  spawner counts what it makes on its block entity's persistent data, via
+  `FinalizeSpawnEvent.getSpawner()`. At the cap it becomes mossy cobblestone
+  in a puff of smoke, with "The spawner sputters and burns out." Its mobs are
+  tagged as the dungeon's own. Seen on the rig with the cap at 3: three
+  zombies, then cobblestone.
+- **Rig gotcha:** a test spawner in a lit room spawns nothing. Give it
+  `custom_spawn_rules` with light limits [0,15].
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the
