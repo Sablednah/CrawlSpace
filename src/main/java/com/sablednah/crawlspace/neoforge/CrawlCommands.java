@@ -57,6 +57,17 @@ public final class CrawlCommands {
                                                 StringArgumentType.getString(ctx, "what"))))))
                 .then(Commands.literal("info").executes(CrawlCommands::info))
                 .then(Commands.literal("breaches").executes(CrawlCommands::breaches))
+                .then(Commands.literal("event")
+                        .then(Commands.argument("name", StringArgumentType.word())
+                                .suggests((c, b) -> SharedSuggestionProvider.suggest(Clock.names(), b))
+                                .executes(ctx -> {
+                                    if (!Clock.force(ctx.getSource().getLevel(), ctx.getSource().getPlayerOrException(),
+                                            StringArgumentType.getString(ctx, "name"))) {
+                                        fail(ctx.getSource(), "Stand inside a dungeon, and name one of: " + String.join(", ", Clock.names()));
+                                        return 0;
+                                    }
+                                    return 1;
+                                })))
                 .then(Commands.literal("trap")
                         .then(Commands.argument("kind", StringArgumentType.word())
                                 .suggests((c, b) -> SharedSuggestionProvider.suggest(java.util.Arrays.stream(
