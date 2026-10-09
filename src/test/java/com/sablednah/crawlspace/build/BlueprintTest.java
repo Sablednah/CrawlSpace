@@ -95,6 +95,61 @@ class BlueprintTest {
         assertFalse(leaks(bp).isEmpty());
     }
 
+    /**
+     * Protection keeps only the shell ({@link Part#shell()}); everything else
+     * may be broken. So with every breakable block gone, the dungeon must still
+     * be sealed: no breakable block underground may touch the world it is cut
+     * into, or digging out a barrel would be a way round a level.
+     */
+    static List<String> breakableLeaks(Blueprint bp) {
+        List<String> out = new ArrayList<>();
+        bp.forEachColumn(col -> {
+            int[] codes = col.codes();
+            for (int i = 0; i < codes.length; i++) {
+                int y = col.y0() + i;
+                if (codes[i] == 0 || Blueprint.part(codes[i]).shell() || y >= 0) {
+                    continue;
+                }
+                for (int[] d : SIX) {
+                    if (bp.get(col.x() + d[0], y + d[1], col.z() + d[2]) == 0 && out.size() < 10) {
+                        out.add(Blueprint.part(codes[i]) + " at " + col.x() + "," + y + "," + col.z() + " is breakable and touches the world");
+                    }
+                }
+            }
+        });
+        return out;
+    }
+
+    @Test
+    void protectedShellSealsEveryLevel() {
+        for (long seed = 0; seed < 40; seed++) {
+            Blueprint bp = Blueprinter.blueprint(Planner.plan(seed, 6)).compact();
+            List<String> leaks = breakableLeaks(bp);
+            assertTrue(leaks.isEmpty(), "seed " + seed + ": " + leaks);
+        }
+    }
+
+    /** ...and it can fail: make one outer wall block a barrel, and it must be noticed. */
+    @Test
+    void noticesABreakableHoleInTheShell() {
+        Blueprint bp = Blueprinter.blueprint(Planner.plan(3L, 3));
+        assertTrue(breakableLeaks(bp).isEmpty());
+        int[] found = null;
+        for (int x = -60; x <= 60 && found == null; x++) {
+            for (int z = -60; z <= 60 && found == null; z++) {
+                for (int y = -40; y < -5 && found == null; y++) {
+                    int c = bp.get(x, y, z);
+                    if (c != 0 && Blueprint.part(c) == Part.WALL && bp.get(x + 1, y, z) == 0) {
+                        found = new int[] {x, y, z};
+                    }
+                }
+            }
+        }
+        assertTrue(found != null);
+        bp.set(found[0], found[1], found[2], Part.BARREL, 0, 0);
+        assertFalse(breakableLeaks(bp).isEmpty());
+    }
+
     /** Cells round a well, clockwise from north: the order a climber walks them. */
     private static final int[][] RING = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}};
 

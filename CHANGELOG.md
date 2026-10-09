@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — unreleased
+
+- **Dungeons can no longer be dug round.** In survival, the dungeon's walls, floors, ceilings, stairs, tower, locked doors and puzzle rooms will not break: the way down is through it. Hitting them says so: "The dungeon's stonework holds. Find another way." Chests, spawners, pots, cobwebs, furniture, wooden doors, trap plates and anything you placed yourself still break as usual. Creative is unaffected.
+- Explosions still hurt and still break the dressing, but not the walls. Pistons cannot move them, and blocks that mining machines remove without the usual break event are put back after a few seconds.
+- No building over a puzzle room's void.
+- **All of it is optional**: `[protection] enabled = false` in `crawlspace-server.toml` makes dungeons ordinary minable blocks again. There are separate switches for explosions and repair, and changes apply without a restart.
+
 ## 0.2.0 — 2026-10-08
 
 For Minecraft 1.21.11, 26.1.2, 26.2 and 26.3. **On 26.3 it now needs NeoForge 26.3.0.58-beta or newer**; for 26.3.0.33-beta to 26.3.0.36-beta, stay on 0.1.0. Your config carries over unchanged.

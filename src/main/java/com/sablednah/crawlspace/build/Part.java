@@ -155,5 +155,37 @@ public enum Part {
     /** A big dripleaf path block: tips you off if you stand on it; facing is the way it points. */
     DRIPLEAF,
     /** A pit trap's floor tile: crumbles away under you, into the spikes below. */
-    PIT_TILE
+    PIT_TILE;
+
+    /**
+     * The dungeon's shell: what protection keeps whole (see {@code Protection}).
+     * Walls, floors, ceilings, the stairs, the tower, the locked doors and their
+     * lever, the puzzle rooms; everything that, broken, would be a way round the
+     * dungeon rather than through it. Dressing (chests, spawners, pots, cobwebs,
+     * furniture, wooden doors) and trap plates are not: breaking those is play.
+     * Together with the open parts it seals every level; BlueprintTest checks
+     * that no breakable block opens on to the world.
+     */
+    public boolean shell() {
+        return switch (this) {
+            case FLOOR, CORRIDOR_FLOOR, WALL, CEILING, PILLAR, SECRET_WALL, STEP, NEWEL, LANDING,
+                    LOCKED_LOWER, LOCKED_UPPER, LEVER,
+                    TOWER, TOWER_FLOOR, TOWER_TOP, TOWER_TRIM, TOWER_STAIR, TOWER_CORBEL, TOWER_WINDOW, TOWER_PILLAR, TOWER_ROOF,
+                    SHELF, WALL_ACCENT, FLOOR_ACCENT, FLOOR_INLAY, PILASTER, COVE, PANEL, DADO, MOSS_FLOOR, BEAM,
+                    VOID, RESTART, PATH_HIDDEN, CRUMBLE, DRIPLEAF, PIT_TILE -> true;
+            default -> false;
+        };
+    }
+
+    /**
+     * Shell parts that come and go by design, so a missing one is never put
+     * back: crumbling path and pit floor, dripleaf, and the iron doors (two
+     * halves that only make sense together).
+     */
+    public boolean mayBeMissing() {
+        return switch (this) {
+            case CRUMBLE, DRIPLEAF, PIT_TILE, LOCKED_LOWER, LOCKED_UPPER -> true;
+            default -> false;
+        };
+    }
 }

@@ -323,6 +323,44 @@ dripstone spikes; with LegendQuest, a check to jump clear.
   `later(...)` for delayed jobs. A restart leaves a crumble at whatever stage
   it had reached.
 
+## Protection (Sable, 2026-10-09)
+
+**`neoforge/Protection`** keeps the shell whole, so the way down is through the
+dungeon, not round it. The shell is `Part.shell()`: walls, floors, ceilings,
+stairs, tower, iron doors and their lever, beams, and the puzzle rooms.
+Everything else breaks as usual: dressing, trap plates (still a disarm
+attempt) and whatever a player placed. A block counts as the dungeon's only
+while it is still the block the palette put there.
+
+- **The client is stopped, not corrected.** A survival player inside a
+  dungeon (feet in a cell the blueprint set) gets a transient
+  `block_break_speed` modifier of ×0. A client then never cracks or predicts
+  a break. Measured on Vivo 2026-10-09: an Efficiency V diamond pick held 4 s
+  left the wall untouched; at ×1 it broke stone in 1 s. Hitting the shell
+  from outside (from a cave) puts the hold on for 3 s.
+- **Breakable blocks are mined by the server.** At ×0 the client still sends
+  START and ABORT; the server times the dig from vanilla's own
+  `getDestroyProgress` (computed with the modifier briefly removed), sends
+  the cracks under an id that is not the player's own (the level never sends
+  a breaker its own progress), and calls `gameMode.destroyBlock`. Measured: a
+  placed dirt block broke by hand within 3 s, with cracks showing.
+- **Behind it, for anything without hands:** the break event is cancelled on
+  the shell (fake players, drills); explosions keep only non-shell blocks;
+  pistons cannot push, pull or crush the shell; and every 5 s shell missing
+  within 8 blocks of a player is put back from the blueprint. Repair only
+  fills air, never where an entity is, and never touches what goes by
+  design: crumble, dripleaf, pit tiles, iron doors, opened secret walls.
+  Measured: a wall removed by `/setblock` came back within 7 s, and TNT took
+  a placed dirt block but not the wall beside it.
+- **No placing a block within two above a VOID cell**, which is a bridge.
+- **Config `[protection]`**: `enabled`, `explosions`, `repair`. All default
+  on, and they apply live: the hold came off and back on as the file was
+  edited, with no restart.
+- `BlueprintTest.protectedShellSealsEveryLevel`: no breakable block
+  underground may touch the world. It found BEAM in the ceiling layer, which
+  is why BEAM is in the shell. `noticesABreakableHoleInTheShell` proves the
+  test can fail.
+
 ## Datapacks (2026-10-07)
 
 `ThemeData` (a `ResourceManagerReloadListener`, registered on
