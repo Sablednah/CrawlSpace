@@ -169,7 +169,9 @@ public enum Part {
     WINCH,
     /** An iron door that opens only from its own side: a shortcut back. */
     ONEWAY_LOWER,
-    ONEWAY_UPPER;
+    ONEWAY_UPPER,
+    /** Iron bars at eye level through the wall between a corridor and a room: the goal seen before it is reached. */
+    WINDOW_BARS;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).
@@ -187,7 +189,7 @@ public enum Part {
                     TOWER, TOWER_FLOOR, TOWER_TOP, TOWER_TRIM, TOWER_STAIR, TOWER_CORBEL, TOWER_WINDOW, TOWER_PILLAR, TOWER_ROOF,
                     SHELF, WALL_ACCENT, FLOOR_ACCENT, FLOOR_INLAY, PILASTER, COVE, PANEL, DADO, MOSS_FLOOR, BEAM,
                     VOID, RESTART, PATH_HIDDEN, CRUMBLE, DRIPLEAF, PIT_TILE,
-                    PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER -> true;
+                    PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER, WINDOW_BARS -> true;
             default -> false;
         };
     }

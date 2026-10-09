@@ -22,7 +22,7 @@ final class Tour {
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
             "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle",
-            "portcullis", "droptrap", "winch", "oneway", "onewaydoor");
+            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window");
 
     private Tour() {
     }
@@ -89,6 +89,26 @@ final class Tour {
             }
         }
         return null;
+    }
+
+    /** In the corridor outside one of the level's windows, two back, looking through it. */
+    static double[] findWindow(LevelPlan level, com.sablednah.crawlspace.build.Blueprint bp) {
+        double[][] out = {null};
+        bp.forEachColumn(col -> {
+            for (int i = 0; i < col.codes().length && out[0] == null; i++) {
+                int code = col.codes()[i];
+                if (code == 0 || com.sablednah.crawlspace.build.Blueprint.part(code) != com.sablednah.crawlspace.build.Part.WINDOW_BARS
+                        || com.sablednah.crawlspace.build.Blueprint.level(code) != level.index) {
+                    continue;
+                }
+                for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    if (level.cell(col.x() + d[0], col.z() + d[1]) == Cell.CORRIDOR) {
+                        out[0] = new double[] {col.x() + 2 * d[0] + 0.5, col.z() + 2 * d[1] + 0.5, yaw(-d[0], -d[1])};
+                    }
+                }
+            }
+        });
+        return out[0];
     }
 
     /** {x, z, yaw} in dungeon coordinates (block centres), or null. */

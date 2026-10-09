@@ -226,6 +226,7 @@ public final class Blueprinter {
         puzzles(bp, plan, i);
         triggers(bp, plan, i);
         java.util.Set<Integer> dark = Dresser.dress(bp, plan, i);
+        windows(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x3E7DL));
         lights(bp, plan, i, dark);
         encounters(bp, plan, i);
         ambushes(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0xA4B5L));
@@ -544,6 +545,122 @@ public final class Blueprinter {
                 }
             }
         }
+    }
+
+    /** How often a room worth seeing early gets a window on to a corridor that passes it. */
+    static final double WINDOW_CHANCE = 0.65;
+
+    /**
+     * Foreshadowing (Dormans; Zelda): where a corridor passes three cells from
+     * a lair, treasure, key or shrine room, the two wall blocks between them
+     * become iron bars at eye level. You see the room long before the way in.
+     * Only through straight wall, floor level on both sides, away from
+     * doorways, and from a corridor that is not one of the room's own. Run
+     * after the dressing, so no shelf or panelling takes the slot.
+     */
+    private static void windows(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice dice) {
+        LevelPlan level = plan.levels().get(i);
+        for (Room r : level.rooms) {
+            boolean worth = switch (r.role) {
+                case LAIR, TREASURE, KEY, SHRINE -> true;
+                default -> false;
+            };
+            if (!worth || !dice.chance(WINDOW_CHANCE)) {
+                continue;
+            }
+            java.util.List<int[]> fits = new java.util.ArrayList<>(); // {x, z, dx, dz}: a room cell and the way out
+            for (int x = r.minX(); x <= r.maxX(); x++) {
+                for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                    if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR) {
+                        continue;
+                    }
+                    for (int[] d : DIRS4) {
+                        if (window(level, r, x, z, d[0], d[1]) && inFront(bp, plan, i, x, z, d[0], d[1])) {
+                            fits.add(new int[] {x, z, d[0], d[1]});
+                        }
+                    }
+                }
+            }
+            if (fits.isEmpty()) {
+                continue;
+            }
+            int[] w = fits.get(dice.nextInt(fits.size()));
+            int f = floorAt(plan, i, w[0], w[1]);
+            // Two wide where the wall beside it will take a second.
+            int sx = w[3];
+            int sz = w[2];
+            boolean wide = window(level, r, w[0] + sx, w[1] + sz, w[2], w[3]) && inFront(bp, plan, i, w[0] + sx, w[1] + sz, w[2], w[3]);
+            for (int k = 0; k <= (wide ? 1 : 0); k++) {
+                int x = w[0] + k * sx;
+                int z = w[1] + k * sz;
+                for (int step = 1; step <= 2; step++) {
+                    bp.set(x + step * w[2], f + 1, z + step * w[3], Part.WINDOW_BARS, 0, i);
+                }
+                // Whatever hung on the wall that is now bars comes down with it.
+                for (int step : new int[] {0, 3}) {
+                    int code = bp.get(x + step * w[2], f + 1, z + step * w[3]);
+                    if (code != 0 && Blueprint.part(code) != Part.AIR) {
+                        bp.set(x + step * w[2], f + 1, z + step * w[3], Part.AIR, 0, i);
+                    }
+                }
+            }
+        }
+    }
+
+    /** Things hung on a wall: a window may go where one of these is, and takes it down. */
+    private static boolean onTheWall(Part p) {
+        return switch (p) {
+            case BANNER, WALL_TORCH, VINE, CHAIN, ROOTS -> true;
+            default -> false;
+        };
+    }
+
+    /** Whether the cells either side of a window, at eye level, are clear or hold only something hung on the wall. */
+    private static boolean inFront(Blueprint bp, DungeonPlan plan, int i, int x, int z, int dx, int dz) {
+        int f = floorAt(plan, i, x, z);
+        for (int step : new int[] {0, 3}) {
+            int code = bp.get(x + step * dx, f + 1, z + step * dz);
+            if (code != 0 && Blueprint.part(code) != Part.AIR && !onTheWall(Blueprint.part(code))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Whether a window fits from room cell (x, z) going (dx, dz): two wall
+     * cells, then corridor, all at the room's floor height, the wall straight
+     * either side, and no doorway, stair or pit within two of either end.
+     */
+    private static boolean window(LevelPlan level, Room r, int x, int z, int dx, int dz) {
+        if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR) {
+            return false;
+        }
+        int h = level.height(x, z);
+        int cx = x + 3 * dx;
+        int cz = z + 3 * dz;
+        if (level.cell(x + dx, z + dz) != Cell.WALL || level.cell(x + 2 * dx, z + 2 * dz) != Cell.WALL
+                || level.cell(cx, cz) != Cell.CORRIDOR || level.height(cx, cz) != h) {
+            return false;
+        }
+        for (int step = 1; step <= 2; step++) {
+            int wx = x + step * dx;
+            int wz = z + step * dz;
+            if (level.cell(wx + dz, wz + dx) != Cell.WALL || level.cell(wx - dz, wz - dx) != Cell.WALL) {
+                return false;
+            }
+        }
+        for (int[] end : new int[][] {{x, z}, {cx, cz}}) {
+            for (int ox = -2; ox <= 2; ox++) {
+                for (int oz = -2; oz <= 2; oz++) {
+                    Cell n = level.cell(end[0] + ox, end[1] + oz);
+                    if (n.isDoor() || n == Cell.STAIR_UP || n == Cell.STAIR_DOWN || n == Cell.PIT) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
     }
 
     /** How often a level's lock is a portcullis with a key, rather than an iron door with a lever. */

@@ -408,6 +408,25 @@ way back."
 - The dressing walker in `BlueprintTest` now passes through levers, which
   have no collision, as in the game.
 
+## Windows (foreshadowing, 2026-10-09)
+
+`Blueprinter.windows`, after the dressing, on its own dice (`WINDOW_CHANCE`
+0.65 per room). Where a corridor passes exactly three cells from a LAIR,
+TREASURE, KEY or SHRINE room, the two wall cells between them become
+`WINDOW_BARS` at eye level (f+1): one or two wide.
+- **Conditions:** straight wall either side, the room and corridor floors
+  at the same height, and no doorway, stair or pit within two of either end.
+- **The cells in front, at eye level,** must be clear or hold only something
+  hung on the wall, which comes down: a banner on a wall that is now bars
+  would float.
+- **They are rare**, about one level in four: corridors seldom hug a room at
+  exactly three. A thicker wall would make a tunnel of bars through natural
+  rock, so rare stays.
+- **Tested:** `windowsSeeThrough` checks every bar has air on both sides in a
+  straight line, and that 30 dungeons have more than 30 bars.
+- **Seen on the rig** (seed 9, level 1, `goto 1 window`): the room's
+  furniture shows through.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the

@@ -363,6 +363,46 @@ class BlueprintTest {
                 "keyed " + keyed + ", dropping " + dropping + ", winches " + winches);
     }
 
+    /**
+     * Windows: each is a pair of bars at eye level with a room's air on one side
+     * and a corridor's air on the other, in a straight line, so you can see
+     * through. Several in 30 dungeons.
+     */
+    @Test
+    void windowsSeeThrough() {
+        int windows = 0;
+        for (long seed = 0; seed < 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 6);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            java.util.List<int[]> bars = new ArrayList<>();
+            bp.forEachColumn(col -> {
+                for (int i = 0; i < col.codes().length; i++) {
+                    if (col.codes()[i] != 0 && Blueprint.part(col.codes()[i]) == Part.WINDOW_BARS) {
+                        bars.add(new int[] {col.x(), col.y0() + i, col.z()});
+                    }
+                }
+            });
+            for (int[] b : bars) {
+                boolean through = false;
+                for (int[] d : SIX) {
+                    if (d[1] != 0) {
+                        continue;
+                    }
+                    int a1 = bp.get(b[0] + d[0], b[1], b[2] + d[2]);
+                    int a2 = bp.get(b[0] + 2 * d[0], b[1], b[2] + 2 * d[2]);
+                    int back = bp.get(b[0] - d[0], b[1], b[2] - d[2]);
+                    boolean airAhead = a1 != 0 && Blueprint.part(a1) == Part.AIR
+                            || a1 != 0 && Blueprint.part(a1) == Part.WINDOW_BARS && a2 != 0 && Blueprint.part(a2) == Part.AIR;
+                    boolean airBehind = back != 0 && (Blueprint.part(back) == Part.AIR || Blueprint.part(back) == Part.WINDOW_BARS);
+                    through |= airAhead && airBehind;
+                }
+                assertTrue(through, "seed " + seed + ": window bars at " + b[0] + "," + b[1] + "," + b[2] + " see nothing");
+                windows++;
+            }
+        }
+        assertTrue(windows > 30, "only " + windows + " window bars in 30 dungeons");
+    }
+
     /** One-way doors exist, and each has its lever on its own side: inside the room further from the entry. */
     @Test
     void onewayDoorsOpenFromTheFarSide() {
