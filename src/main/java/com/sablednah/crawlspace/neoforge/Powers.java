@@ -474,6 +474,71 @@ public final class Powers {
         }
     }
 
+    /**
+     * A dungeon's spawner counts what it makes, on its block entity, and burns
+     * out at {@code play.spawnerUses}: a spawner left running is a farm, and a
+     * farmed dungeon is abandoned (the most common complaint about Roguelike
+     * Dungeons). What it makes are the dungeon's own, so they leave each other
+     * alone like the rest.
+     */
+    public static void onSpawnerSpawn(net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent e) {
+        if (e.getSpawner() == null || e.getSpawner().left().isEmpty()
+                || !(e.getSpawner().left().get() instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner)
+                || !(spawner.getLevel() instanceof ServerLevel level)) {
+            return;
+        }
+        net.minecraft.core.BlockPos pos = spawner.getBlockPos();
+        if (Dungeons.at(level, pos).isEmpty()) {
+            return;
+        }
+        e.getEntity().addTag(Bestiary.KIN);
+        int cap = CrawlConfig.spawnerUses();
+        if (cap <= 0) {
+            return;
+        }
+        net.minecraft.nbt.CompoundTag data = spawner.getPersistentData();
+        int made = data.getIntOr("crawlspace_spawns", 0) + 1;
+        data.putInt("crawlspace_spawns", made);
+        spawner.setChanged();
+        if (made >= cap) {
+            Crumbles.later(level, 1, () -> {
+                if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.SPAWNER)) {
+                    level.setBlock(pos, net.minecraft.world.level.block.Blocks.MOSSY_COBBLESTONE.defaultBlockState(), 3);
+                    level.sendParticles(ParticleTypes.LARGE_SMOKE, pos.getX() + 0.5, pos.getY() + 0.7, pos.getZ() + 0.5, 20, 0.3, 0.3, 0.3, 0.02);
+                    level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 1.2f, 0.6f);
+                    for (ServerPlayer p : level.players()) {
+                        if (p.blockPosition().closerThan(pos, 16)) {
+                            p.sendOverlayMessage(Component.literal("The spawner sputters and burns out.").withStyle(ChatFormatting.GOLD));
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    /** The blessings a solved puzzle can give: one, for six minutes. */
+    private static final List<net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect>> BLESSINGS = List.of(
+            MobEffects.STRENGTH, MobEffects.REGENERATION, MobEffects.HASTE, MobEffects.SPEED, MobEffects.RESISTANCE, MobEffects.JUMP_BOOST);
+    private static final java.util.Set<String> BLESSED = new java.util.HashSet<>();
+
+    /**
+     * Opening a puzzle room's hoard blesses whoever solved it (Hypixel's
+     * Catacombs): a buff for six minutes, named as it is given, once per
+     * player per room. The puzzle pays at once, not only in what the chest holds.
+     */
+    static void bless(ServerLevel level, ServerPlayer player, net.minecraft.core.BlockPos chest) {
+        if (!BLESSED.add(player.getUUID() + "@" + chest.asLong())) {
+            return;
+        }
+        net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> effect = BLESSINGS.get(level.getRandom().nextInt(BLESSINGS.size()));
+        player.addEffect(new MobEffectInstance(effect, 6 * 60 * 20, 0));
+        level.sendParticles(ParticleTypes.HAPPY_VILLAGER, player.getX(), player.getY() + 1, player.getZ(), 16, 0.5, 0.6, 0.5, 0);
+        level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.8f, 1.2f);
+        player.sendOverlayMessage(Component.literal("The maze rewards you: ")
+                .append(Component.translatable(effect.value().getDescriptionId())).append(Component.literal(" for six minutes."))
+                .withStyle(ChatFormatting.AQUA));
+    }
+
     public static void clear() {
         TRACKED.clear();
     }

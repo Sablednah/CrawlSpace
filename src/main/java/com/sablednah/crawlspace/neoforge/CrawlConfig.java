@@ -17,6 +17,7 @@ public final class CrawlConfig {
     private static final ModConfigSpec.IntValue MIN_LEVELS;
     private static final ModConfigSpec.EnumValue<Hints> HINTS;
     private static final ModConfigSpec.DoubleValue DISARM_CHANCE;
+    private static final ModConfigSpec.IntValue SPAWNER_USES;
     private static final ModConfigSpec.BooleanValue PROTECT;
     private static final ModConfigSpec.BooleanValue PROTECT_EXPLOSIONS;
     private static final ModConfigSpec.BooleanValue PROTECT_REPAIR;
@@ -57,6 +58,10 @@ public final class CrawlConfig {
                 "Without a perception mod: the chance that breaking a trap's plate or wire, or sneak-using it,",
                 "disarms it rather than setting it off. A perception mod (LegendQuest) rolls its own instead.")
                 .defineInRange("disarmChance", 0.75, 0.0, 1.0);
+        SPAWNER_USES = b.comment(
+                "How many monsters a dungeon's spawner makes before it burns out, so a dungeon is not a farm.",
+                "0: spawners never burn out.")
+                .defineInRange("spawnerUses", 24, 0, 100000);
         b.pop();
         b.push("protection");
         PROTECT = b.comment(
@@ -98,6 +103,10 @@ public final class CrawlConfig {
 
     public static int minLevels() {
         return Math.min(get(MIN_LEVELS, 2), maxLevels());
+    }
+
+    public static int spawnerUses() {
+        return get(SPAWNER_USES, 24);
     }
 
     public static double disarmChance() {

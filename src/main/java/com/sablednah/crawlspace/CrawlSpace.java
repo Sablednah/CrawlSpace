@@ -59,6 +59,7 @@ public final class CrawlSpace {
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onDeath);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onDrops);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onGrief);
+        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onSpawnerSpawn);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onHurt);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onTarget);
         NeoForge.EVENT_BUS.addListener(Triggers::onUse);
