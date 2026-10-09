@@ -179,7 +179,7 @@ public final class Blueprinter {
                         bp.fill(x, z, f, f + h - 1, Part.AIR, i);
                         bp.set(x, f + h, z, Part.CEILING, 0, i);
                     }
-                    case DOOR, ARCH, DOOR_LOCKED, DOOR_SECRET -> {
+                    case DOOR, ARCH, DOOR_LOCKED, DOOR_SECRET, DOOR_ONEWAY -> {
                         int[] d = doorNormals.get(key(x, z));
                         int facing = d == null ? 0 : facingOf(d[2], d[3]);
                         int top = h;
@@ -206,6 +206,10 @@ public final class Blueprinter {
                                 }
                             }
                             case DOOR_SECRET -> bp.fill(x, z, f, f + 1, Part.SECRET_WALL, i);
+                            case DOOR_ONEWAY -> {
+                                bp.set(x, f, z, Part.ONEWAY_LOWER, facing, i);
+                                bp.set(x, f + 1, z, Part.ONEWAY_UPPER, facing, i);
+                            }
                             default -> {
                                 opening = 3;
                                 bp.fill(x, z, f, f + 2, Part.AIR, i);
@@ -404,6 +408,7 @@ public final class Blueprinter {
                 }
             }
         }
+        onewayLevers(bp, plan, i);
         portcullisTrap(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x9C11L));
         for (Room r : level.rooms) {
             if (r.role == Role.TREASURE) {
@@ -419,8 +424,8 @@ public final class Blueprinter {
         com.sablednah.crawlspace.plan.Dice pits = com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x917FL);
         for (int[] t : level.traps) {
             Cell c = level.cell(t[0], t[1]);
-            if (c != Cell.FLOOR && c != Cell.CORRIDOR) {
-                continue; // a pit or stair arrived on it afterwards
+            if (c != Cell.FLOOR && c != Cell.CORRIDOR || nearWell(level, t[0], t[1])) {
+                continue; // a pit or second stair arrived on it, or beside it, afterwards: its railing would cover the plate
             }
             Trigger.Kind kind = t[2] == com.sablednah.crawlspace.plan.TrapKind.GAS.ordinal() ? Trigger.Kind.GAS : Trigger.Kind.DARTS;
             int[] at = flatSpot(bp, plan, i, t[0], t[1]);
@@ -509,6 +514,35 @@ public final class Blueprinter {
             bp.addTrigger(new Trigger(Trigger.Kind.DECOY, x, f, z, i, new int[0][]));
             trapLook(bp, level, i, x, f, z, true, look);
             want--;
+        }
+    }
+
+    /**
+     * Each one-way door's lever: on the floor just inside its room, beside the
+     * doorway, so whoever reaches the far side finds it at once. From the other
+     * side the door is iron with nothing to pull.
+     */
+    private static void onewayLevers(Blueprint bp, DungeonPlan plan, int i) {
+        LevelPlan level = plan.levels().get(i);
+        for (Link l : level.links) {
+            if (l.kind != com.sablednah.crawlspace.plan.LinkKind.ONEWAY || l.doorA == null) {
+                continue;
+            }
+            int[] d = l.doorA;
+            int ix = d[0] - d[2];
+            int iz = d[1] - d[3];
+            int f = floorAt(plan, i, d[0], d[1]);
+            // Beside the cell inside the doorway, on either hand; else that cell itself.
+            int[][] spots = {{ix + d[3], iz + d[2]}, {ix - d[3], iz - d[2]}, {ix, iz}};
+            for (int[] s : spots) {
+                int code = bp.get(s[0], f, s[1]);
+                if (level.cell(s[0], s[1]) == Cell.FLOOR && level.region(s[0], s[1]) == l.a.id
+                        && level.height(s[0], s[1]) == level.height(d[0], d[1]) && (code == 0 || Blueprint.part(code) == Part.AIR)) {
+                    bp.set(s[0], f, s[1], Part.LEVER, facingOf(-d[2], -d[3]), i);
+                    bp.addTrigger(new Trigger(Trigger.Kind.ONEWAY, s[0], f, s[1], i, new int[][] {{d[0], f, d[1]}}));
+                    break;
+                }
+            }
         }
     }
 
@@ -676,6 +710,19 @@ public final class Blueprinter {
             }
         }
         return true;
+    }
+
+    /** Whether a stair or pit cell is within two of (x, z): where a railing or a shaft's rim goes. */
+    private static boolean nearWell(LevelPlan level, int x, int z) {
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                Cell n = level.cell(x + dx, z + dz);
+                if (n == Cell.STAIR_UP || n == Cell.STAIR_DOWN || n == Cell.PIT) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Whether (x, z) is in a puzzle room: no trap, decoy or prop belongs there. */
@@ -1085,10 +1132,13 @@ public final class Blueprinter {
         }
         int room = upper.region(s[0], s[1]);
         Room r = upper.room(room);
-        for (int x = r.minX(); x <= r.maxX(); x++) {
-            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+        for (int x = r.minX() - 1; x <= r.maxX() + 1; x++) {
+            for (int z = r.minZ() - 1; z <= r.maxZ() + 1; z++) {
                 boolean hole = Math.abs(x - s[0]) <= 1 && Math.abs(z - s[1]) <= 1;
-                if (r.contains(x, z) && !hole && !rail.contains(key(x, z)) && upper.cell(x, z).isWalkable()
+                // Every part of the room, and every doorway into it: a second stair dropped beside a small
+                // room's door once railed the doorway off from the room it opened into (seed 14, level 1).
+                boolean mine = r.contains(x, z) || upper.cell(x, z).isDoor();
+                if (mine && !hole && !rail.contains(key(x, z)) && upper.cell(x, z).isWalkable()
                         && !seen.contains(key(x, z))) {
                     return; // the railing would cut part of the room off from the stair: leave the hole open
                 }

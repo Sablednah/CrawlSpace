@@ -380,6 +380,34 @@ wall. `PLANNER_VERSION` 6.
   right-click places a block. Action-bar text is not in the client log, so
   screenshot it.
 
+## One-way doors (2026-10-09)
+
+A **shortcut back** (Dormans' "hidden shortcut"; Dark Souls' unlocked gate).
+In `LevelPlanner.addShortcuts`, a shortcut between rooms at different hop
+counts from the entry may be `LinkKind.ONEWAY` (`ONEWAY_CHANCE`, 0.35). The
+link is oriented so `a` is the room further from the entry. Its `doorA`
+becomes `Cell.DOOR_ONEWAY`, an iron door (`ONEWAY_LOWER`/`UPPER`), and
+`Blueprinter.onewayLevers` puts a floor lever (`Trigger.Kind.ONEWAY`) just
+inside room `a`, beside the doorway. From the near side the door says "It
+will not open from this side."; the lever says "The iron door swings open: a
+way back."
+- `PlanCheck`'s without-locks walk treats it like the locked door: the exit
+  and the lever must be reachable without it.
+- A puzzle room is never a one-way door's far room, since its lever would
+  stand on the maze.
+- **Seen on the rig** (seed 14, level 1): closed from the near side and
+  using it changed nothing; the lever opened it.
+- Test: `onewayDoorsOpenFromTheFarSide` (each lever is in its door's own
+  room; more than 15 in 30 dungeons).
+- **Two old bugs the new layouts brought out**, both now fixed and tested:
+  - A second stair added after the traps could put its railing over a trap
+    plate. Traps within 2 of a stair or pit are now dropped.
+  - The railing round a stair hole checked that it left the whole room
+    reachable, but not its doorways, and it once railed a small treasure
+    room off from its own door. Doorways are now checked too.
+- The dressing walker in `BlueprintTest` now passes through levers, which
+  have no collision, as in the game.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the

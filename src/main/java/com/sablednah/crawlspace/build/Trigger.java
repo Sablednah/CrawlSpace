@@ -43,7 +43,9 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
          */
         PORTCULLIS_TRAP,
         /** A lever that raises a dropped portcullis; the targets are its bars. */
-        WINCH;
+        WINCH,
+        /** A one-way door's lever, inside the room on its far side; the target is the door's lower half. */
+        ONEWAY;
 
         public boolean isTrap() {
             return this == DARTS || this == GAS || this == PIT || this == PORTCULLIS_TRAP;

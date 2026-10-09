@@ -166,7 +166,10 @@ public enum Part {
     /** The key room's chest when its level's lock is a portcullis: it holds the key. */
     KEY_CHEST,
     /** A lever that raises a dropped portcullis: inside the room it shut you into. */
-    WINCH;
+    WINCH,
+    /** An iron door that opens only from its own side: a shortcut back. */
+    ONEWAY_LOWER,
+    ONEWAY_UPPER;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).
@@ -184,7 +187,7 @@ public enum Part {
                     TOWER, TOWER_FLOOR, TOWER_TOP, TOWER_TRIM, TOWER_STAIR, TOWER_CORBEL, TOWER_WINDOW, TOWER_PILLAR, TOWER_ROOF,
                     SHELF, WALL_ACCENT, FLOOR_ACCENT, FLOOR_INLAY, PILASTER, COVE, PANEL, DADO, MOSS_FLOOR, BEAM,
                     VOID, RESTART, PATH_HIDDEN, CRUMBLE, DRIPLEAF, PIT_TILE,
-                    PORTCULLIS, PORTCULLIS_SILL, WINCH -> true;
+                    PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER -> true;
             default -> false;
         };
     }
@@ -197,7 +200,7 @@ public enum Part {
      */
     public boolean mayBeMissing() {
         return switch (this) {
-            case CRUMBLE, DRIPLEAF, PIT_TILE, LOCKED_LOWER, LOCKED_UPPER, PORTCULLIS -> true;
+            case CRUMBLE, DRIPLEAF, PIT_TILE, LOCKED_LOWER, LOCKED_UPPER, PORTCULLIS, ONEWAY_LOWER, ONEWAY_UPPER -> true;
             default -> false;
         };
     }

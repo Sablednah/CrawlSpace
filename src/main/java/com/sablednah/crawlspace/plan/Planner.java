@@ -62,6 +62,13 @@ public final class Planner {
             if (r.role != Role.ROOM || r.shape != Shape.RECT || Math.min(r.w, r.h) < 7 || Math.max(r.w, r.h) > 17) {
                 continue;
             }
+            boolean onewayLever = false; // a one-way door's lever stands just inside its room: not on a maze's void
+            for (Link l : level.links) {
+                onewayLever |= l.kind == LinkKind.ONEWAY && l.a == r;
+            }
+            if (onewayLever) {
+                continue;
+            }
             boolean open = true;
             for (int x = r.minX(); x <= r.maxX() && open; x++) {
                 for (int z = r.minZ(); z <= r.maxZ() && open; z++) {

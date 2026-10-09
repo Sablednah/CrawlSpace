@@ -22,7 +22,7 @@ final class Tour {
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
             "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle",
-            "portcullis", "droptrap", "winch");
+            "portcullis", "droptrap", "winch", "oneway", "onewaydoor");
 
     private Tour() {
     }
@@ -42,11 +42,24 @@ final class Tour {
             case "portcullis" -> com.sablednah.crawlspace.build.Trigger.Kind.PORTCULLIS;
             case "droptrap" -> com.sablednah.crawlspace.build.Trigger.Kind.PORTCULLIS_TRAP;
             case "winch" -> com.sablednah.crawlspace.build.Trigger.Kind.WINCH;
+            case "oneway", "onewaydoor" -> com.sablednah.crawlspace.build.Trigger.Kind.ONEWAY;
             default -> throw new IllegalArgumentException(what);
         };
         for (com.sablednah.crawlspace.build.Trigger t : bp.triggers()) {
             boolean match = kind == null ? t.kind().isTrap() : t.kind() == kind;
             if (!match || t.level() != level.index) {
+                continue;
+            }
+            if (what.equalsIgnoreCase("onewaydoor")) {
+                // On the near side, two out from the door, facing it: where it will not open.
+                int[] door = t.targets()[0];
+                for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    if (level.region(door[0] + d[0], door[2] + d[1]) >= 0) {
+                        int ox = door[0] - 2 * d[0];
+                        int oz = door[2] - 2 * d[1];
+                        return new double[] {ox + 0.5, oz + 0.5, yaw(d[0], d[1])};
+                    }
+                }
                 continue;
             }
             if (what.equalsIgnoreCase("droptrap")) {

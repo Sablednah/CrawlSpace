@@ -75,10 +75,27 @@ public final class Triggers {
         if (t == null) {
             if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.IRON_BARS) && droppedAt(site, pos)) {
                 tell(player, "It will not budge. Somewhere in the room, a winch raises it.");
+            } else if (level.getBlockState(pos).getBlock() instanceof DoorBlock door && onewayDoor(site, pos)
+                    && !door.isOpen(level.getBlockState(pos))) {
+                tell(player, "It will not open from this side.");
             }
             return;
         }
         switch (t.kind()) {
+            case ONEWAY -> {
+                BlockState lever = level.getBlockState(pos);
+                if (!(lever.getBlock() instanceof LeverBlock)) {
+                    return;
+                }
+                boolean open = !lever.getValue(LeverBlock.POWERED);
+                int[] target = t.targets()[0];
+                BlockPos door = site.origin().offset(target[0], target[1], target[2]);
+                BlockState ds = level.getBlockState(door);
+                if (ds.getBlock() instanceof DoorBlock db && db.isOpen(ds) != open) {
+                    db.setOpen(null, level, ds, door, open);
+                    tell(player, open ? "The iron door swings open: a way back." : "The iron door swings shut.");
+                }
+            }
             case WINCH -> {
                 if (level.getBlockState(site.origin().offset(t.targets()[0][0], t.targets()[0][1], t.targets()[0][2]))
                         .is(net.minecraft.world.level.block.Blocks.IRON_BARS)) {
@@ -134,6 +151,20 @@ public final class Triggers {
         }
         t = triggerAt(site, pos.below());
         return t != null && t.kind() == Trigger.Kind.PORTCULLIS ? t : null;
+    }
+
+    /** Whether {@code pos} is either half of a one-way door. */
+    private static boolean onewayDoor(Site site, BlockPos pos) {
+        BlockPos o = site.origin();
+        for (Trigger t : site.built().blueprint().triggers()) {
+            if (t.kind() == Trigger.Kind.ONEWAY) {
+                BlockPos lower = o.offset(t.targets()[0][0], t.targets()[0][1], t.targets()[0][2]);
+                if (lower.equals(pos) || lower.above().equals(pos)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Whether {@code pos} is one of the bars of a portcullis that drops behind you. */

@@ -430,6 +430,7 @@ public final class Palettes {
             case TOWER_PILLAR -> t.apply("pillar");
             case TOWER_ROOF -> t.apply("roof");
             case LOCKED_LOWER, LOCKED_UPPER -> door(Blocks.IRON_DOOR, dir, part == Part.LOCKED_UPPER);
+            case ONEWAY_LOWER, ONEWAY_UPPER -> door(Blocks.IRON_DOOR, dir, part == Part.ONEWAY_UPPER);
             case DOOR_LOWER, DOOR_UPPER -> door(block(s, "door", hash), dir, part == Part.DOOR_UPPER);
             case STEP -> with(b.apply("step"), StairBlock.FACING, dir);
             case LIGHT -> with(b.apply("light"), LanternBlock.HANGING, true);

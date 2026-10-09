@@ -734,7 +734,7 @@ final class Dresser {
         }
         for (Trigger t : bp.triggers()) {
             if (t.level() == i) {
-                mark(res, t.x(), t.z(), t.kind() == Trigger.Kind.LEVER || t.kind() == Trigger.Kind.WINCH
+                mark(res, t.x(), t.z(), t.kind() == Trigger.Kind.LEVER || t.kind() == Trigger.Kind.WINCH || t.kind() == Trigger.Kind.ONEWAY
                         || t.kind() == Trigger.Kind.TREASURE ? 1 : 0);
             }
         }
@@ -780,7 +780,8 @@ final class Dresser {
         }
         for (Trigger t : bp.triggers()) {
             if (t.level() == i && r.contains(t.x(), t.z())
-                    && (t.kind() == Trigger.Kind.LEVER || t.kind() == Trigger.Kind.WINCH || t.kind() == Trigger.Kind.TREASURE)) {
+                    && (t.kind() == Trigger.Kind.LEVER || t.kind() == Trigger.Kind.WINCH || t.kind() == Trigger.Kind.ONEWAY
+                        || t.kind() == Trigger.Kind.TREASURE)) {
                 // Stand beside it: one of its four neighbours must be reachable.
                 must.add(new int[] {t.x(), t.z(), 1});
             }

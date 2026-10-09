@@ -21,7 +21,7 @@ class BlueprintTest {
     private static boolean open(Part p) {
         return switch (p) {
             case AIR, WATER, DOOR_LOWER, DOOR_UPPER, LOCKED_LOWER, LOCKED_UPPER, TOWER_DOOR_LOWER, TOWER_DOOR_UPPER, STEP, LIGHT, LEVER,
-                    PORTCULLIS_GAP -> true;
+                    PORTCULLIS_GAP, ONEWAY_LOWER, ONEWAY_UPPER -> true;
             default -> false;
         };
     }
@@ -272,6 +272,14 @@ class BlueprintTest {
             if (t.kind() == Trigger.Kind.SECRET && Blueprint.part(bp.get(t.x(), t.y(), t.z())) != Part.SECRET_WALL) {
                 out.add("secret trigger on something that is not a secret wall");
             }
+            if (t.kind() == Trigger.Kind.ONEWAY) {
+                for (int[] d : t.targets()) {
+                    aimed.add(d[0] + "," + d[1] + "," + d[2]);
+                }
+                if (Blueprint.part(bp.get(t.x(), t.y(), t.z())) != Part.LEVER) {
+                    out.add("one-way trigger with no lever at " + t.x() + "," + t.y() + "," + t.z());
+                }
+            }
             if (t.kind() == Trigger.Kind.PORTCULLIS) {
                 aimed.add(t.x() + "," + t.y() + "," + t.z());
                 keyed.add(t.level());
@@ -306,6 +314,10 @@ class BlueprintTest {
                 if (col.codes()[i] != 0 && Blueprint.part(col.codes()[i]) == Part.LOCKED_LOWER
                         && !aimed.contains(col.x() + "," + (col.y0() + i) + "," + col.z())) {
                     out.add("locked door at " + col.x() + "," + (col.y0() + i) + "," + col.z() + " has no lever");
+                }
+                if (col.codes()[i] != 0 && Blueprint.part(col.codes()[i]) == Part.ONEWAY_LOWER
+                        && !aimed.contains(col.x() + "," + (col.y0() + i) + "," + col.z())) {
+                    out.add("one-way door at " + col.x() + "," + (col.y0() + i) + "," + col.z() + " has no lever");
                 }
                 boolean lowerBar = col.codes()[i] != 0 && Blueprint.part(col.codes()[i]) == Part.PORTCULLIS
                         && (i == 0 || col.codes()[i - 1] == 0 || Blueprint.part(col.codes()[i - 1]) != Part.PORTCULLIS);
@@ -349,6 +361,33 @@ class BlueprintTest {
         }
         assertTrue(keyed > 10 && dropping > 10 && winches >= dropping * 9 / 10,
                 "keyed " + keyed + ", dropping " + dropping + ", winches " + winches);
+    }
+
+    /** One-way doors exist, and each has its lever on its own side: inside the room further from the entry. */
+    @Test
+    void onewayDoorsOpenFromTheFarSide() {
+        int doors = 0;
+        for (long seed = 0; seed < 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 6);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            for (Trigger t : bp.triggers()) {
+                if (t.kind() != Trigger.Kind.ONEWAY) {
+                    continue;
+                }
+                doors++;
+                LevelPlan level = plan.levels().get(t.level());
+                com.sablednah.crawlspace.plan.Link link = null;
+                for (com.sablednah.crawlspace.plan.Link l : level.links) {
+                    if (l.kind == com.sablednah.crawlspace.plan.LinkKind.ONEWAY && l.doorA != null
+                            && l.doorA[0] == t.targets()[0][0] && l.doorA[1] == t.targets()[0][2]) {
+                        link = l;
+                    }
+                }
+                assertTrue(link != null, "seed " + seed + ": a one-way lever with no one-way link");
+                assertEquals(link.a.id, level.region(t.x(), t.z()), "seed " + seed + ": the lever is not in the door's own room");
+            }
+        }
+        assertTrue(doors > 15, "only " + doors + " one-way doors in 30 dungeons");
     }
 
     /** ...and the wiring check notices a keyed level whose key chest is missing. */
@@ -407,7 +446,7 @@ class BlueprintTest {
         return switch (Blueprint.part(code)) {
             case AIR, CARPET, MOSS, RAIL, WATER, DOOR_LOWER, LOCKED_LOWER, SECRET_WALL, LIGHT, BANNER, WALL_TORCH, CHAIN, STEP, LANDING,
                     RUG, PLANT, MUSHROOM, VINE, ROOTS, TABLE_TOP, TRAP_PLATE, TRAP_WIRE, DECOY_PLATE, DECOY_WIRE,
-                    PORTCULLIS, PORTCULLIS_GAP -> true;
+                    PORTCULLIS, PORTCULLIS_GAP, ONEWAY_LOWER, LEVER, WINCH -> true; // a lever has no collision
             default -> false;
         };
     }
