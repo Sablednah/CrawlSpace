@@ -489,6 +489,9 @@ public final class LevelPlanner {
         return true;
     }
 
+    /** How often a shortcut is a one-way door: a way back opened from the far end. */
+    static final double ONEWAY_CHANCE = 0.35;
+
     /** Links rooms that are close on the map but at least three steps apart in the graph. */
     private static void addShortcuts(LevelPlan level, Dice dice, int count) {
         if (count <= 0) {
@@ -514,10 +517,18 @@ public final class LevelPlanner {
                 }
             }
         }
+        // How far each room is from the entry, before any shortcut: a one-way door's lever goes on the far side.
+        Room entry = level.roomWith(Role.ENTRY);
+        Map<Room, Integer> fromEntry = entry == null ? Map.of() : hops(entry, adj);
         for (int i = 0; i < count && !candidates.isEmpty(); i++) {
             Room[] pair = candidates.remove(dice.nextInt(candidates.size()));
-            LinkKind kind = dice.chance(0.25) ? LinkKind.SECRET : dice.chance(0.5) ? LinkKind.DOOR : LinkKind.OPEN;
-            level.links.add(new Link(pair[0], pair[1], kind, false));
+            int ha = fromEntry.getOrDefault(pair[0], -1);
+            int hb = fromEntry.getOrDefault(pair[1], -1);
+            boolean oneway = ha >= 0 && hb >= 0 && ha != hb && dice.chance(ONEWAY_CHANCE);
+            LinkKind kind = oneway ? LinkKind.ONEWAY
+                    : dice.chance(0.25) ? LinkKind.SECRET : dice.chance(0.5) ? LinkKind.DOOR : LinkKind.OPEN;
+            Room a = oneway && hb > ha ? pair[1] : pair[0];
+            level.links.add(new Link(a, a == pair[0] ? pair[1] : pair[0], kind, false));
         }
     }
 

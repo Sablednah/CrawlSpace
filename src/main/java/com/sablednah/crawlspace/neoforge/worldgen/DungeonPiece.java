@@ -70,6 +70,11 @@ public final class DungeonPiece extends StructurePiece {
         return site;
     }
 
+    /** Whether this piece places the blueprint column at (x, z), relative to the origin. */
+    public boolean owns(int x, int z) {
+        return part == Part.ALL || (part == Part.TOWER) == Site.towerColumn(x, z);
+    }
+
     @Override
     protected void addAdditionalSaveData(StructurePieceSerializationContext ctx, CompoundTag tag) {
         tag.put("site", site.save());
@@ -87,7 +92,7 @@ public final class DungeonPiece extends StructurePiece {
         for (int x = box.minX(); x <= box.maxX(); x++) {
             for (int z = box.minZ(); z <= box.maxZ(); z++) {
                 Blueprint.Column col = bp.column(x - o.getX(), z - o.getZ());
-                if (col == null || (part == Part.TOWER) != Site.towerColumn(x - o.getX(), z - o.getZ()) && part != Part.ALL) {
+                if (col == null || !owns(x - o.getX(), z - o.getZ())) {
                     continue;
                 }
                 int[] codes = col.codes();

@@ -121,7 +121,8 @@ public final class PlanCheck {
                 out.add("pit at " + p[0] + "," + p[1] + " cannot be reached");
             }
         }
-        // The locked door is a shortcut: the exit and the lever must both be reachable without it.
+        // The locked door is a shortcut, and so is a one-way door: the exit and the lever must both be
+        // reachable without either.
         boolean[][] unlocked = reach(level, start, false);
         for (int[] s : level.stairsDown) {
             if (!unlocked[s[0] + lim][s[1] + lim]) {
@@ -242,7 +243,7 @@ public final class PlanCheck {
                     continue;
                 }
                 Cell n = level.cell(x, z);
-                if (!n.isWalkable() || (!throughLocks && n == Cell.DOOR_LOCKED)) {
+                if (!n.isWalkable() || (!throughLocks && (n == Cell.DOOR_LOCKED || n == Cell.DOOR_ONEWAY))) {
                     continue;
                 }
                 if (Math.abs(level.height(x, z) - y) > 1) {
