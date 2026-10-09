@@ -64,6 +64,12 @@ public final class Triggers {
             e.setCancellationResult(InteractionResult.SUCCESS);
             return;
         }
+        int code = site.built().blueprint().get(pos.getX() - site.origin().getX(), pos.getY() - site.origin().getY(),
+                pos.getZ() - site.origin().getZ());
+        if (code != 0 && com.sablednah.crawlspace.build.Blueprint.part(code) == com.sablednah.crawlspace.build.Part.HOARD_CHEST
+                && !player.isSpectator() && inPuzzleRoom(site, pos)) {
+            Powers.bless(level, player, pos);
+        }
         Trigger bars = portcullisAt(site, pos);
         if (bars != null) {
             usePortcullis(level, player, site, bars, e.getItemStack());
@@ -141,6 +147,17 @@ public final class Triggers {
             default -> {
             }
         }
+    }
+
+    /** Whether {@code pos} is inside one of the dungeon's puzzle rooms. */
+    private static boolean inPuzzleRoom(Site site, BlockPos pos) {
+        int li = Arrivals.levelAt(site, pos);
+        if (li < 0) {
+            return false;
+        }
+        com.sablednah.crawlspace.plan.LevelPlan lp = site.built().plan().levels().get(li);
+        com.sablednah.crawlspace.plan.Room r = lp.room(lp.region(pos.getX() - site.origin().getX(), pos.getZ() - site.origin().getZ()));
+        return r != null && r.role == com.sablednah.crawlspace.plan.Role.PUZZLE;
     }
 
     /** The keyed portcullis whose bars are at {@code pos}: its trigger is on the lower bar. */
@@ -301,7 +318,10 @@ public final class Triggers {
             level.playSound(null, trapPos, SoundEvents.TRIPWIRE_CLICK_OFF, SoundSource.BLOCKS, 1f, 0.8f);
             tell(player, t.kind() == Trigger.Kind.PIT ? "You wedge the loose stones: this floor will hold now."
                     : t.kind() == Trigger.Kind.PORTCULLIS_TRAP ? "You jam the portcullis's chain: it will not fall."
-                    : "You disarm the " + (t.kind() == Trigger.Kind.DARTS ? "dart trap." : "gas trap."));
+                    : "You disarm the " + com.sablednah.crawlspace.plan.TrapKind.valueOf(t.kind().name()).description + ".");
+        } else if (t.kind() != Trigger.Kind.PORTCULLIS_TRAP && t.kind() != Trigger.Kind.PIT
+                && t.kind() != Trigger.Kind.DARTS && t.kind() != Trigger.Kind.GAS) {
+            Dungeons.at(level, trapPos).ifPresent(site -> spring(level, site, t, player, trapPos));
         } else if (t.kind() == Trigger.Kind.PORTCULLIS_TRAP) {
             Dungeons.at(level, trapPos).ifPresent(site -> drop(level, site, t, player));
             tell(player, "You set it off! The portcullis slams down!");
@@ -315,6 +335,132 @@ public final class Triggers {
             gas(level, player, trapPos);
             tell(player, "You set it off! Poison gas seeps from the floor: step out of the cloud!");
         }
+    }
+
+    /** The newer traps (darts, gas, pits and portcullises have their own): each says what happened as it happens. */
+    private static void spring(ServerLevel level, Site site, Trigger t, ServerPlayer player, BlockPos at) {
+        switch (t.kind()) {
+            case ALARM -> alarm(level, site, t, player);
+            case WEBS -> webs(level, player);
+            case ROCKFALL -> rockfall(level, player);
+            case FROST -> {
+                player.setTicksFrozen(player.getTicksRequiredToFreeze() + 160);
+                player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 100, 1));
+                level.sendParticles(net.minecraft.core.particles.ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 1, player.getZ(),
+                        60, 1.2, 0.8, 1.2, 0.02);
+                level.playSound(null, player.blockPosition(), SoundEvents.POWDER_SNOW_STEP, SoundSource.BLOCKS, 1.5f, 0.6f);
+                tell(player, "A freezing mist rolls over you! Keep moving.");
+            }
+            case FIRE -> {
+                player.igniteForSeconds(4);
+                BlockPos feet = player.blockPosition();
+                for (Direction d : Direction.Plane.HORIZONTAL) {
+                    BlockPos p = feet.relative(d);
+                    if (level.getBlockState(p).isAir() && level.getBlockState(p.below()).isFaceSturdy(level, p.below(), Direction.UP)) {
+                        level.setBlock(p, net.minecraft.world.level.block.Blocks.FIRE.defaultBlockState(), 3);
+                    }
+                }
+                level.playSound(null, feet, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 1.2f, 0.8f);
+                tell(player, "Flames roar up from the floor!");
+            }
+            case SUMMON -> {
+                int n = Bestiary.ambush(level, site, t.level(), player);
+                level.playSound(null, player.blockPosition(), SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 1.2f, 0.5f);
+                tell(player, n > 0 ? "Hidden panels grind open: an ambush!" : "Something grinds in the walls, and nothing comes.");
+            }
+            default -> darts(level, player, at);
+        }
+    }
+
+    /** For /crawlspace trap: springs a trap of {@code kind} where the player stands, as if they had stepped on one. */
+    static boolean springHere(ServerLevel level, ServerPlayer player, Trigger.Kind kind) {
+        Site site = Dungeons.at(level, player.blockPosition()).orElse(null);
+        int li = site == null ? -1 : Arrivals.levelAt(site, player.blockPosition());
+        if (li < 0) {
+            return false;
+        }
+        BlockPos rel = player.blockPosition().subtract(site.origin());
+        Trigger t = new Trigger(kind, rel.getX(), rel.getY(), rel.getZ(), li, new int[0][]);
+        switch (kind) {
+            case DARTS -> darts(level, player, player.blockPosition());
+            case GAS -> gas(level, player, player.blockPosition());
+            default -> spring(level, site, t, player, player.blockPosition());
+        }
+        return true;
+    }
+
+    /** An alarm: a bell, and every sleeping room within 24 blocks of it on this level wakes, its monsters set on you. */
+    private static void alarm(ServerLevel level, Site site, Trigger t, ServerPlayer player) {
+        BlockPos o = site.origin();
+        BlockPos at = o.offset(t.x(), t.y(), t.z());
+        level.playSound(null, at, SoundEvents.BELL_BLOCK, SoundSource.BLOCKS, 3f, 0.8f);
+        level.playSound(null, at, SoundEvents.BELL_RESONATE, SoundSource.BLOCKS, 2f, 1f);
+        CrawlState state = CrawlState.of(level);
+        int woke = 0;
+        for (Trigger e : site.built().blueprint().triggers()) {
+            BlockPos p = o.offset(e.x(), e.y(), e.z());
+            if (!e.kind().isEncounter() || e.level() != t.level() || state.hasFired(p) || p.distSqr(at) > 24 * 24) {
+                continue;
+            }
+            state.fire(p);
+            if (Bestiary.wake(level, site, e) != null) {
+                woke++;
+            }
+        }
+        for (net.minecraft.world.entity.Mob m : level.getEntitiesOfClass(net.minecraft.world.entity.Mob.class,
+                player.getBoundingBox().inflate(28), m -> m.entityTags().contains(Bestiary.KIN) && m.getTarget() == null)) {
+            m.setTarget(player);
+        }
+        tell(player, woke > 0 ? "A bell clangs! The rooms around you wake." : "A bell clangs, and echoes. Nothing answers... yet.");
+    }
+
+    /** Cobwebs burst round you, and you are slowed. */
+    private static void webs(ServerLevel level, ServerPlayer player) {
+        BlockPos feet = player.blockPosition();
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                for (int dy = 0; dy <= 1; dy++) {
+                    BlockPos p = feet.offset(dx, dy, dz);
+                    if ((dx != 0 || dz != 0 || dy == 0) && level.getBlockState(p).isAir() && level.getRandom().nextFloat() < 0.6f) {
+                        level.setBlock(p, net.minecraft.world.level.block.Blocks.COBWEB.defaultBlockState(), 3);
+                    }
+                }
+            }
+        }
+        player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 100, 1));
+        level.playSound(null, feet, SoundEvents.SPIDER_AMBIENT, SoundSource.BLOCKS, 1.2f, 0.6f);
+        tell(player, "Sticky webs burst from the walls! Cut your way out.");
+    }
+
+    /** Stalactites drop from the ceiling on to you and round you. */
+    private static void rockfall(ServerLevel level, ServerPlayer player) {
+        BlockPos feet = player.blockPosition();
+        int dropped = 0;
+        for (int[] d : new int[][] {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+            BlockPos column = feet.offset(d[0], 0, d[1]);
+            // The first air under the ceiling, up to six above.
+            BlockPos top = null;
+            for (int y = 2; y <= 6; y++) {
+                if (!level.getBlockState(column.above(y)).isAir()) {
+                    top = column.above(y - 1);
+                    break;
+                }
+            }
+            if (top == null || !level.getBlockState(top).isAir() || (d[0] != 0 || d[1] != 0) && level.getRandom().nextBoolean()) {
+                continue;
+            }
+            net.minecraft.world.entity.item.FallingBlockEntity f = net.minecraft.world.entity.item.FallingBlockEntity.fall(level, top,
+                    net.minecraft.world.level.block.Blocks.POINTED_DRIPSTONE.defaultBlockState()
+                            .setValue(net.minecraft.world.level.block.PointedDripstoneBlock.TIP_DIRECTION, Direction.DOWN));
+            f.dropItem = false;
+            f.setHurtsEntities(2f, 12);
+            dropped++;
+        }
+        level.playSound(null, feet, SoundEvents.POINTED_DRIPSTONE_FALL, SoundSource.BLOCKS, 1.5f, 0.8f);
+        if (dropped == 0) {
+            player.hurt(level.damageSources().fallingBlock(player), 4f);
+        }
+        tell(player, "The ceiling cracks: stalactites fall!");
     }
 
     private static boolean isTrapBlock(net.minecraft.world.level.block.state.BlockState st) {
@@ -414,7 +560,8 @@ public final class Triggers {
             case DARTS -> darts(level, player, feet);
             case GAS -> gas(level, player, feet);
             case PORTCULLIS_TRAP -> drop(level, here.site(), t, player);
-            default -> pitfall(level, here.site(), t);
+            case PIT -> pitfall(level, here.site(), t);
+            default -> spring(level, here.site(), t, player, feet);
         }
     }
 
@@ -561,7 +708,7 @@ public final class Triggers {
                 continue;
             }
             switch (t.kind()) {
-                case DARTS, GAS, PORTCULLIS_TRAP -> {
+                case DARTS, GAS, PORTCULLIS_TRAP, ALARM, WEBS, ROCKFALL, FROST, FIRE, SUMMON -> {
                     if (!state.hasFired(p)) {
                         level.sendParticles(player, RED, false, false, p.getX() + 0.5, p.getY() + 0.1, p.getZ() + 0.5, 3, 0.3, 0.02, 0.3, 0);
                     }
