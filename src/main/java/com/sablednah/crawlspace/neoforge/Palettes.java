@@ -491,6 +491,14 @@ public final class Palettes {
                     .setValue(net.minecraft.world.level.block.GrindstoneBlock.FACING, dir);
             case CAULDRON -> Blocks.CAULDRON.defaultBlockState();
             case LECTERN -> Blocks.LECTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LecternBlock.FACING, dir);
+            case TELL_PEBBLE -> Blocks.STONE_BUTTON.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.ButtonBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR)
+                    .setValue(net.minecraft.world.level.block.ButtonBlock.FACING, dir);
+            case TELL_FROST -> Blocks.SNOW.defaultBlockState();
+            case TELL_SCORCH -> Blocks.BLACK_CARPET.defaultBlockState();
+            case TELL_SCULK -> Blocks.SCULK_VEIN.defaultBlockState().setValue(net.minecraft.world.level.block.MultifaceBlock.getFaceProperty(net.minecraft.core.Direction.DOWN), true);
+            case TELL_DEAD -> Blocks.DEAD_TUBE_CORAL_FAN.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.BaseCoralPlantTypeBlock.WATERLOGGED, false);
             case RUMOURS -> Blocks.LECTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LecternBlock.FACING, dir)
                     .setValue(net.minecraft.world.level.block.LecternBlock.HAS_BOOK, true);
             case MUSHROOM -> (Math.floorMod(hash, 2L) == 0 ? Blocks.RED_MUSHROOM : Blocks.BROWN_MUSHROOM).defaultBlockState();
