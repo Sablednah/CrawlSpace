@@ -491,6 +491,8 @@ public final class Palettes {
                     .setValue(net.minecraft.world.level.block.GrindstoneBlock.FACING, dir);
             case CAULDRON -> Blocks.CAULDRON.defaultBlockState();
             case LECTERN -> Blocks.LECTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LecternBlock.FACING, dir);
+            case RUMOURS -> Blocks.LECTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LecternBlock.FACING, dir)
+                    .setValue(net.minecraft.world.level.block.LecternBlock.HAS_BOOK, true);
             case MUSHROOM -> (Math.floorMod(hash, 2L) == 0 ? Blocks.RED_MUSHROOM : Blocks.BROWN_MUSHROOM).defaultBlockState();
             case VINE -> Blocks.VINE.defaultBlockState().setValue(net.minecraft.world.level.block.VineBlock.getPropertyForFace(dir), true);
             case PLANT -> (facing == 0 ? Blocks.FERN : Blocks.SHORT_GRASS).defaultBlockState();

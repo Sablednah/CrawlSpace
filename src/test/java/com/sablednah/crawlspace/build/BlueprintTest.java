@@ -506,6 +506,29 @@ class BlueprintTest {
         assertTrue(found > 5, "only " + found + " pit rooms in 40 dungeons");
     }
 
+    /** Every dungeon has its rumour book: one lectern, on level 1, with clear air above it. */
+    @Test
+    void everyDungeonHasItsRumours() {
+        for (long seed = 1; seed <= 40; seed++) {
+            long sd = seed;
+            Blueprint bp = Blueprinter.blueprint(Planner.plan(seed, 3));
+            int[] found = {0, 0};
+            bp.forEachColumn(col -> {
+                for (int k = 0; k < col.codes().length; k++) {
+                    int code = col.codes()[k];
+                    if (code != 0 && Blueprint.part(code) == Part.RUMOURS) {
+                        found[0]++;
+                        found[1] = Blueprint.level(code);
+                        int above = bp.get(col.x(), col.y0() + k + 1, col.z());
+                        assertTrue(above == 0 || Blueprint.part(above) == Part.AIR, "seed " + sd + ": the lectern is buried");
+                    }
+                }
+            });
+            assertEquals(1, found[0], "seed " + seed + ": rumour lecterns");
+            assertEquals(0, found[1], "seed " + seed + ": the lectern is not on level 1");
+        }
+    }
+
     /**
      * Feelings do what they say: over many levels, hollow ones have more
      * secret doors, trapped ones more traps, damp ones more pools, and a dark

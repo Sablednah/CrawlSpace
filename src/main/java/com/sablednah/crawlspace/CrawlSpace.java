@@ -54,6 +54,7 @@ public final class CrawlSpace {
             com.sablednah.crawlspace.neoforge.Restamp.clear();
             com.sablednah.crawlspace.neoforge.Clock.clear();
             com.sablednah.crawlspace.neoforge.IceBoards.clear();
+            com.sablednah.crawlspace.neoforge.Shrines.clear();
             Builds.clear();
             Bosses.clear();
             com.sablednah.crawlspace.neoforge.Powers.clear();

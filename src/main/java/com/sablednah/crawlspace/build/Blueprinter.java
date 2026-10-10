@@ -247,6 +247,9 @@ public final class Blueprinter {
         triggers(bp, plan, i);
         java.util.Set<Integer> dark = Dresser.dress(bp, plan, i);
         windows(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x3E7DL));
+        if (i == 0) {
+            rumours(bp, plan);
+        }
         lights(bp, plan, i, dark);
         if (finale != null) {
             arena(bp, plan, i, finale);
@@ -752,6 +755,40 @@ public final class Blueprinter {
         bp.set(hx, bottom + 1, hz, Part.HOARD_CHEST, facingOf(Integer.signum(r.centerX() - hx), Integer.signum(r.centerZ() - hz)), i);
         bp.addTrigger(new Trigger(Trigger.Kind.TREASURE, hx, bottom + 1, hz, i, new int[0][]));
         hang(bp, plan, i, r.centerX(), r.centerZ());
+    }
+
+    /**
+     * The rumour book's lectern: against a wall of the first level's entry room,
+     * the room you arrive in, on floor the dressing left clear and away from
+     * the doorways and the stair.
+     */
+    private static void rumours(Blueprint bp, DungeonPlan plan) {
+        LevelPlan level = plan.levels().get(0);
+        Room r = level.roomWith(Role.ENTRY);
+        if (r == null) {
+            return;
+        }
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR || nearDoor(level, x, z)
+                        || Math.max(Math.abs(x - r.centerX()), Math.abs(z - r.centerZ())) < 3) {
+                    continue;
+                }
+                for (int[] d : DIRS4) {
+                    if (level.cell(x + d[0], z + d[1]) != Cell.WALL) {
+                        continue;
+                    }
+                    int f = floorAt(plan, 0, x, z);
+                    int here = bp.get(x, f, z);
+                    int above = bp.get(x, f + 1, z);
+                    if ((here == 0 || Blueprint.part(here) == Part.AIR) && (above == 0 || Blueprint.part(above) == Part.AIR)
+                            && bp.triggerAt(x, f, z) == null) {
+                        bp.set(x, f, z, Part.RUMOURS, facingOf(-d[0], -d[1]), 0);
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     /** How often a guard room from the second level down wakes numbered monsters, to be killed in order. */
