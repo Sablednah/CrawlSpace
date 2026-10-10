@@ -177,7 +177,13 @@ public enum Part {
     /** An ice board's tile: cross every one exactly once. */
     ICE_TILE,
     /** The rumour book's lectern, in the first level's entry room. Facing is toward the room. */
-    RUMOURS;
+    RUMOURS,
+    /** A trap's tells (Goblin Punch): a pebble by a rockfall, frost by a frost trap, a scorch by fire, sculk by a summoning, a dead fan by gas. */
+    TELL_PEBBLE,
+    TELL_FROST,
+    TELL_SCORCH,
+    TELL_SCULK,
+    TELL_DEAD;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).

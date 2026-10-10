@@ -22,7 +22,7 @@ final class Tour {
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
             "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle",
-            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena", "vault", "altar", "rumours");
+            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena", "vault", "altar", "rumours", "tell");
 
     private Tour() {
     }
@@ -124,18 +124,23 @@ final class Tour {
 
     /** Two blocks from a block of {@code part} on this level (an altar, the rumour lectern), facing it. */
     static double[] findPart(LevelPlan level, com.sablednah.crawlspace.build.Blueprint bp, com.sablednah.crawlspace.build.Part part) {
+        return findPart(level, bp, p -> p == part);
+    }
+
+    static double[] findPart(LevelPlan level, com.sablednah.crawlspace.build.Blueprint bp,
+            java.util.function.Predicate<com.sablednah.crawlspace.build.Part> part) {
         double[][] out = {null};
         bp.forEachColumn(col -> {
             for (int i = 0; i < col.codes().length && out[0] == null; i++) {
                 int code = col.codes()[i];
-                if (code == 0 || com.sablednah.crawlspace.build.Blueprint.part(code) != part
+                if (code == 0 || !part.test(com.sablednah.crawlspace.build.Blueprint.part(code))
                         || com.sablednah.crawlspace.build.Blueprint.level(code) != level.index) {
                     continue;
                 }
                 for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
                     int x = col.x() + 2 * d[0];
                     int z = col.z() + 2 * d[1];
-                    if (level.cell(x, z) == Cell.FLOOR && level.cell(col.x() + d[0], col.z() + d[1]) == Cell.FLOOR) {
+                    if (level.cell(x, z).isWalkable() && level.cell(col.x() + d[0], col.z() + d[1]).isWalkable()) {
                         out[0] = new double[] {x + 0.5, z + 0.5, yaw(-d[0], -d[1])};
                         return;
                     }
