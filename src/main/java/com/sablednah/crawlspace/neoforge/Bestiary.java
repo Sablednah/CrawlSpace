@@ -280,6 +280,9 @@ public final class Bestiary {
             } else if (elites < 2 && random.nextDouble() < Powers.eliteChance(depth) && Powers.elite(mob, depth, random)) {
                 elites++;
             }
+            if (t.kind() == Trigger.Kind.ORDERED && !boss && !follower) {
+                Powers.number(mob, o.offset(t.x(), t.y(), t.z()), k + 1, t.targets().length);
+            }
             mob.addTag(KIN);
             mob.setPersistenceRequired();
             level.addFreshEntityWithPassengers(mob);
@@ -298,6 +301,9 @@ public final class Bestiary {
                     w.increaseAngerAt(near, 80, false);
                 }
             }
+        }
+        if (t.kind() == Trigger.Kind.ORDERED) {
+            return "Numerals burn on their brows. Kill them in order: I to " + Powers.roman(t.targets().length) + ".";
         }
         return bossName != null ? capitalise(bossName) + " rises from its lair!" : "Something stirs in the dark.";
     }
