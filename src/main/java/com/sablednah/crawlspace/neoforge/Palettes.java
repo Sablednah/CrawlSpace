@@ -297,6 +297,7 @@ public final class Palettes {
             m.put("pit_tile", Mix.of(Blocks.STONE_BRICKS, 1));
             m.put("portcullis", Mix.of(Blocks.IRON_BARS, 1));
             m.put("window_bars", Mix.of(Blocks.IRON_BARS, 1));
+            m.put("pedestal", Mix.of(Blocks.CHISELED_STONE_BRICKS, 1));
             m.put("portcullis_sill", m.get("floor_inlay"));
             DEFAULT_SKINS.put(theme, m);
         }
@@ -508,6 +509,7 @@ public final class Palettes {
             case PIT_TILE -> b.apply("pit_tile");
             case PORTCULLIS -> b.apply("portcullis");
             case WINDOW_BARS -> b.apply("window_bars");
+            case PEDESTAL -> b.apply("pedestal");
             case PORTCULLIS_GAP -> Blocks.AIR.defaultBlockState();
             // With hints on, the sill gives the trap away; otherwise it is the corridor's floor.
             case PORTCULLIS_SILL -> b.apply(CrawlConfig.hints() ? "portcullis_sill" : "corridor_floor");
