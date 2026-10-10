@@ -70,6 +70,16 @@ public final class Triggers {
                 && !player.isSpectator() && inPuzzleRoom(site, pos)) {
             Powers.bless(level, player, pos);
         }
+        if (!player.isSpectator() && !player.isCreative() && Mimics.open(level, player, site, pos)) {
+            e.setCanceled(true);
+            e.setCancellationResult(InteractionResult.SUCCESS);
+            return;
+        }
+        if (!player.isSpectator() && Shrines.use(level, player, site, pos)) {
+            e.setCanceled(true);
+            e.setCancellationResult(InteractionResult.SUCCESS);
+            return;
+        }
         Trigger pedestal = triggerAt(site, pos);
         if (pedestal != null && Vaults.use(level, player, site, pedestal)) {
             e.setCanceled(true);
