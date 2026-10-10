@@ -560,6 +560,67 @@ class BlueprintTest {
         assertTrue(per.applyAsDouble(com.sablednah.crawlspace.plan.Feeling.DAMP, 3) > 2 * per.applyAsDouble(none, 3), b.toString());
     }
 
+    /**
+     * Every ice board can be crossed, each tile once, from whichever tile you
+     * step on first: checked by search for every board size the builder makes.
+     * And boards turn up.
+     */
+    @Test
+    void iceBoardsCanBeSolved() {
+        java.util.Set<String> sizes = new java.util.TreeSet<>();
+        int boards = 0;
+        for (long seed = 0; seed < 40; seed++) {
+            Blueprint bp = Blueprinter.blueprint(Planner.plan(seed, 6));
+            for (Trigger t : bp.triggers()) {
+                if (t.kind() != Trigger.Kind.ICE_BOARD) {
+                    continue;
+                }
+                boards++;
+                int minX = Integer.MAX_VALUE, maxX = Integer.MIN_VALUE, minZ = Integer.MAX_VALUE, maxZ = Integer.MIN_VALUE;
+                for (int k = 1; k < t.targets().length; k++) {
+                    minX = Math.min(minX, t.targets()[k][0]);
+                    maxX = Math.max(maxX, t.targets()[k][0]);
+                    minZ = Math.min(minZ, t.targets()[k][2]);
+                    maxZ = Math.max(maxZ, t.targets()[k][2]);
+                }
+                int w = maxX - minX + 1;
+                int h = maxZ - minZ + 1;
+                assertEquals(w * h, t.targets().length - 1, "seed " + seed + ": a board that is not a full rectangle");
+                sizes.add(w + "x" + h);
+            }
+        }
+        for (String size : sizes) {
+            int w = Integer.parseInt(size.split("x")[0]);
+            int h = Integer.parseInt(size.split("x")[1]);
+            for (int sx = 0; sx < w; sx++) {
+                for (int sz = 0; sz < h; sz++) {
+                    assertTrue(tour(w, h, sx, sz, new boolean[w][h], 1), "a " + size + " board cannot be crossed from " + sx + "," + sz);
+                }
+            }
+        }
+        System.out.println("ice boards: " + boards + " in 40 dungeons, sizes " + sizes);
+        assertTrue(boards >= 5, "only " + boards + " ice boards");
+    }
+
+    /** Whether every cell can be visited once, from (x, z), with {@code n} visited so far. */
+    private static boolean tour(int w, int h, int x, int z, boolean[][] seen, int n) {
+        seen[x][z] = true;
+        if (n == w * h) {
+            seen[x][z] = false;
+            return true;
+        }
+        for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+            int nx = x + d[0];
+            int nz = z + d[1];
+            if (nx >= 0 && nz >= 0 && nx < w && nz < h && !seen[nx][nz] && tour(w, h, nx, nz, seen, n + 1)) {
+                seen[x][z] = false;
+                return true;
+            }
+        }
+        seen[x][z] = false;
+        return false;
+    }
+
     /** Somewhere to stand: two clear blocks over something solid. */
     private static boolean stands(Blueprint bp, int x, int y, int z) {
         int under = bp.get(x, y - 1, z);
@@ -861,6 +922,10 @@ class BlueprintTest {
             for (com.sablednah.crawlspace.plan.Room r : level.rooms) {
                 if (r.role != com.sablednah.crawlspace.plan.Role.PUZZLE) {
                     continue;
+                }
+                final int li = i;
+                if (bp.triggers().stream().anyMatch(t -> t.kind() == Trigger.Kind.ICE_BOARD && t.level() == li && r.contains(t.x(), t.z()))) {
+                    continue; // an ice board, not a maze: iceBoardsCanBeSolved
                 }
                 int cx = r.centerX();
                 int cz = r.centerZ();
