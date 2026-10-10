@@ -1130,8 +1130,60 @@ public final class Blueprinter {
 
     private static final int[][] DIRS4 = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 
+    /** How often a puzzle room from the second level down is an ice board instead of a maze. */
+    static final double ICE_CHANCE = 0.3;
+
+    /**
+     * An ice board (Hypixel's Ice Fill): a rectangle of ice in the middle of the
+     * room, two cells in from every edge, at most 5 by 4 and always an even
+     * number of tiles, so it can be crossed once each from any tile
+     * (BlueprintTest proves it for every size used). The hoard appears beyond
+     * it when it is solved. Returns false, changing nothing, where it does not fit.
+     */
+    private static boolean iceBoard(Blueprint bp, DungeonPlan plan, int i, Room r) {
+        LevelPlan level = plan.levels().get(i);
+        int bw = Math.min(r.w - 4, 5);
+        int bh = Math.min(r.h - 4, 4);
+        if (bw * bh % 2 == 1) {
+            bw--;
+        }
+        if (bw < 3 || bh < 3) {
+            return false;
+        }
+        int x0 = r.centerX() - bw / 2;
+        int z0 = r.centerZ() - bh / 2;
+        int f = floorAt(plan, i, r.centerX(), r.centerZ());
+        for (int x = x0; x < x0 + bw; x++) {
+            for (int z = z0; z < z0 + bh; z++) {
+                if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR || floorAt(plan, i, x, z) != f) {
+                    return false;
+                }
+            }
+        }
+        int rx = r.centerX();
+        int rz = z0 + bh + 1;
+        if (!r.contains(rx, rz) || level.cell(rx, rz) != Cell.FLOOR) {
+            return false;
+        }
+        int[][] targets = new int[bw * bh + 1][];
+        targets[0] = new int[] {rx, f, rz};
+        int k = 1;
+        for (int x = x0; x < x0 + bw; x++) {
+            for (int z = z0; z < z0 + bh; z++) {
+                bp.set(x, f - 1, z, Part.ICE_TILE, 0, i);
+                targets[k++] = new int[] {x, f - 1, z};
+            }
+        }
+        bp.addTrigger(new Trigger(Trigger.Kind.ICE_BOARD, r.centerX(), f + 2, r.centerZ(), i, targets));
+        return true;
+    }
+
     private static void maze(Blueprint bp, DungeonPlan plan, int i, Room r, com.sablednah.crawlspace.plan.Dice dice) {
         LevelPlan level = plan.levels().get(i);
+        // Its own dice, so the mazes of rooms that stay mazes are as they were.
+        if (i >= 1 && com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x1CEL).chance(ICE_CHANCE) && iceBoard(bp, plan, i, r)) {
+            return;
+        }
         int cx = r.centerX();
         int cz = r.centerZ();
         java.util.function.BiPredicate<Integer, Integer> floor = (x, z) -> r.contains(x, z) && level.cell(x, z) == Cell.FLOOR;

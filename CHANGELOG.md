@@ -5,6 +5,7 @@
 - **Dungeons can no longer be dug round.** In survival, the dungeon's walls, floors, ceilings, stairs, tower, locked doors and puzzle rooms will not break: the way down is through it. Hitting them says so: "The dungeon's stonework holds. Find another way." Chests, spawners, pots, cobwebs, furniture, wooden doors, trap plates and anything you placed yourself still break as usual. Creative is unaffected.
 - Explosions still hurt and still break the dressing, but not the walls. Pistons cannot move them, and blocks that mining machines remove without the usual break event are put back after a few seconds.
 - No building over a puzzle room's void.
+- **Ice boards.** Some puzzle rooms are a floor of ice: cross every tile exactly once. Step on one twice and the board cracks back. Cross them all and a chest appears.
 - **Vaults.** Some treasure rooms hold three treasures on three pedestals. Take one, and the cages slam shut on the others.
 - **The dungeon clock.** Every 45 seconds the dungeon rolls a die (`play.eventSeconds`, 0 for never), and on a 1 something happens: a wandering band you hear coming and from where, a sound in the dark, the light snuffed out, a swarm, a curse, a ghostly knight's warning, a stranger who will trade, falling rocks, or something glinting at your feet. Fighting is noisy and makes it likelier. `/crawlspace event <name>` to try one.
 - **Solving a puzzle room blesses you**: opening its hoard gives a buff for six minutes.

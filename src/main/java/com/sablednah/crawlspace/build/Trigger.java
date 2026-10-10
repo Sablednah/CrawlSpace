@@ -44,6 +44,11 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         PORTCULLIS_TRAP,
         /** A lever that raises a dropped portcullis; the targets are its bars. */
         WINCH,
+        /**
+         * An ice board (Hypixel's Ice Fill): cross every tile exactly once. At the room's centre; the
+         * first target is where the hoard appears when it is solved, the rest are the tiles.
+         */
+        ICE_BOARD,
         /** A vault's pedestal; the targets are all three pedestals, its own first among them for the group's first. */
         VAULT,
         /** Hidden floor tiles, as the plan's {@code TrapKind}s of the same names. */

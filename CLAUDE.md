@@ -707,6 +707,35 @@ targets are all three, the first being the group's.
   and makes every later teleport a silent no-op. Check health first, and
   click Respawn at (640,343).
 
+## Ice boards (Hypixel's Ice Fill, 2026-10-10)
+
+A puzzle room from level 2 is an ice board instead of a maze at `ICE_CHANCE`
+(0.3), on its own dice (`Dice(seed, level, room, 0x1CE)`), so the rooms that
+stay mazes are unchanged.
+- **The board** (`Blueprinter.iceBoard`) is a rectangle of `ICE_TILE` at f-1,
+  two in from every edge, at most 5x4, always an even number of tiles. The
+  room is otherwise plain floor.
+- **The trigger,** `Trigger.Kind.ICE_BOARD` at the centre, f+2: its first
+  target is where the hoard appears, the rest are the tiles.
+- **`neoforge/IceBoards`:**
+  - A tile stepped on turns to packed ice.
+  - Stepping on one twice cracks the board back to ice, but **the tile you
+    are on counts as your new start.** Without that, on the rig, a perfect
+    walk after a reset fell one short.
+  - Every tile packed: a chest (loot a tier up) appears beyond the board,
+    with a blessing.
+  - Progress is held in memory.
+- **Test:** `iceBoardsCanBeSolved` searches every size used (all 5x4 in 40
+  dungeons) and proves it can be crossed once from every tile.
+  `puzzleRoomsAreSolvable` skips ice rooms.
+- **Seen on the rig** (seed 4, level 2): two tiles packed; the repeat reset
+  the board, leaving 1 (your start); a snake packed all 20; the chest
+  appeared; Speed was given.
+- **Rig gotcha:** a command-built dungeon over a worldgen one loses to it in
+  `Dungeons.at`, so its triggers are not the ones read. `/crawlspace info`
+  saying "level 4" of a 2-level build was the giveaway. Build at least 300
+  blocks from `/locate structure crawlspace:dungeon`.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the
