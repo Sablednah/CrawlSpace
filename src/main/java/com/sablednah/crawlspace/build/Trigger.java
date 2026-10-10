@@ -24,6 +24,8 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         ENCOUNTER,
         /** A lair's boss and its followers; the first target is the boss's place. */
         BOSS,
+        /** A guard room's numbered monsters, to be killed in order (Hypixel's Higher or Lower). */
+        ORDERED,
         /** Not a trigger: a plate or wire that does nothing, kept here so dressing leaves it alone. */
         DECOY,
         /**
@@ -69,7 +71,7 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         }
 
         public boolean isEncounter() {
-            return this == ENCOUNTER || this == BOSS;
+            return this == ENCOUNTER || this == BOSS || this == ORDERED;
         }
     }
 

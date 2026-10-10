@@ -90,6 +90,9 @@ public final class Powers {
     public static final String NOROLL = "zombiemod.noroll";
     /** Made small or large by us: sonic booms are scaled by size. */
     static final String SCALED = "crawlspace_scaled";
+    /** A numbered monster: "crawlspace_order_<group>" and "crawlspace_num_<n>"; the group is its trigger's position. */
+    static final String ORDER = "crawlspace_order_";
+    static final String NUM = "crawlspace_num_";
     /** A hunted level's hunter: it stalks, room by room, toward whoever is on its level. */
     static final String HUNTER = "crawlspace_hunter";
     /** A summoned minion: it carries no loot and its summoner counts it. */
@@ -403,6 +406,7 @@ public final class Powers {
             return;
         }
         java.util.Set<String> tags = mob.getTags();
+        ordered(level, mob, e.getSource());
         if (tags.contains(Affix.SPLITTING.tag())) {
             int n = 2 + mob.getRandom().nextInt(2);
             for (int k = 0; k < n; k++) {
@@ -513,6 +517,102 @@ public final class Powers {
                     }
                 }
             });
+        }
+    }
+
+    static String roman(int n) {
+        return switch (n) {
+            case 1 -> "I";
+            case 2 -> "II";
+            case 3 -> "III";
+            case 4 -> "IV";
+            case 5 -> "V";
+            default -> String.valueOf(n);
+        };
+    }
+
+    /** Numbers a monster of an ordered group: its numeral in its name, its group and number in its tags. */
+    static void number(Mob mob, net.minecraft.core.BlockPos group, int n, int of) {
+        mob.addTag(ORDER + group.asLong());
+        mob.addTag(NUM + n);
+        mob.setCustomName(Component.literal(roman(n) + ": " + mob.getType().getDescription().getString()).withStyle(ChatFormatting.GOLD));
+        mob.setCustomNameVisible(true);
+    }
+
+    private static long tagged(Mob mob, String prefix) {
+        for (String t : mob.getTags()) {
+            if (t.startsWith(prefix)) {
+                try {
+                    return Long.parseLong(t.substring(prefix.length()));
+                } catch (NumberFormatException ignored) {
+                    // not ours
+                }
+            }
+        }
+        return Long.MIN_VALUE;
+    }
+
+    /**
+     * A numbered monster dies: in order (the lowest number left), and the group
+     * moves on, its last opening a chest at the room's middle with a blessing;
+     * out of order, and it rises again where it fell, saying so.
+     */
+    private static void ordered(ServerLevel level, Mob mob, net.minecraft.world.damagesource.DamageSource source) {
+        long group = tagged(mob, ORDER);
+        long n = tagged(mob, NUM);
+        if (group == Long.MIN_VALUE || n == Long.MIN_VALUE) {
+            return;
+        }
+        long lowest = Long.MAX_VALUE;
+        int left = 0;
+        for (Mob m : level.getEntitiesOfClass(Mob.class, mob.getBoundingBox().inflate(48), m -> m != mob && m.isAlive()
+                && m.getTags().contains(ORDER + group))) {
+            lowest = Math.min(lowest, tagged(m, NUM));
+            left++;
+        }
+        ServerPlayer killer = source.getEntity() instanceof ServerPlayer p ? p : null;
+        if (left > 0 && n > lowest) {
+            Entity e = mob.getType().create(level, EntitySpawnReason.MOB_SUMMONED);
+            if (e instanceof Mob again) {
+                again.snapTo(mob.getX(), mob.getY(), mob.getZ(), mob.getYRot(), 0);
+                again.addTag(NOROLL);
+                again.finalizeSpawn(level, level.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.MOB_SUMMONED, null);
+                number(again, net.minecraft.core.BlockPos.of(group), (int) n, 0);
+                again.addTag(Bestiary.KIN);
+                again.setPersistenceRequired();
+                level.addFreshEntity(again);
+                if (killer != null) {
+                    again.setTarget(killer);
+                }
+                level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, mob.getX(), mob.getY() + 1, mob.getZ(), 20, 0.3, 0.6, 0.3, 0.02);
+            }
+            if (killer != null) {
+                Triggers.tell(killer, "Out of order! " + roman((int) n) + " rises again. Kill " + roman((int) lowest) + " first.");
+            }
+            return;
+        }
+        if (left == 0) {
+            net.minecraft.core.BlockPos at = net.minecraft.core.BlockPos.of(group).below();
+            CrawlState state = CrawlState.of(level);
+            if (state.hasFired(at.above(300))) {
+                return;
+            }
+            state.fire(at.above(300));
+            if (!level.getBlockState(at).isAir()) {
+                at = at.above();
+            }
+            level.setBlock(at, net.minecraft.world.level.block.Blocks.CHEST.defaultBlockState(), 3);
+            CrawlSpace.LOGGER.info("CrawlSpace: a numbered group cleared in order; its chest is at {}", at);
+            int depth = (int) Math.max(0, tagged(mob, DEPTH));
+            net.minecraft.world.RandomizableContainer.setBlockEntityLootTable(level, level.getRandom(), at,
+                    net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,
+                            Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + Math.min(5, 2 + depth / 2))));
+            level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, at.getX() + 0.5, at.getY() + 1, at.getZ() + 0.5, 30, 0.4, 0.6, 0.4, 0.2);
+            level.playSound(null, at, SoundEvents.PLAYER_LEVELUP, SoundSource.BLOCKS, 1f, 1f);
+            if (killer != null) {
+                Triggers.tell(killer, "All in order! A chest appears in the middle of the room.");
+                bless(level, killer, at);
+            }
         }
     }
 

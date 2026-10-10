@@ -736,6 +736,25 @@ stay mazes are unchanged.
   saying "level 4" of a 2-level build was the giveaway. Build at least 300
   blocks from `/locate structure crawlspace:dungeon`.
 
+## Ordered kills (Hypixel's Higher or Lower, 2026-10-10)
+
+A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
+`ENCOUNTER` at `ORDERED_CHANCE` (0.3), on its own dice
+(`Dice(seed, level, room, 0x0DE5)`), with 3 or 4 monsters.
+- `Powers.number` names each "I: Zombie" and so on, and tags its group (the
+  trigger's position) and number. The room says "Numerals burn on their
+  brows. Kill them in order: I to IV."
+- **`Powers.ordered`, on death:** killed while a lower number lives, it rises
+  again where it fell, set on the killer, with "Out of order! II rises again.
+  Kill I first." The last of the group opens a chest, with loot a tier up,
+  at the room's middle (the trigger's position, one down), with a blessing.
+  The chest is logged.
+- **Seen on the rig** (seed 1, level 2): four numbered monsters; killing II
+  first brought II back; I to IV in order put a chest of
+  `crawlspace:chests/tier2` in the room's middle. The room's floor was 5
+  below the stairs' landing, so search by the logged position.
+- `PLANNER_VERSION` 11.
+
 ## Protection (Sable, 2026-10-09)
 
 **`neoforge/Protection`** keeps the shell whole, so the way down is through the
