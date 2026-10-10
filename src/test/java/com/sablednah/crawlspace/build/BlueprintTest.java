@@ -506,6 +506,32 @@ class BlueprintTest {
         assertTrue(found > 5, "only " + found + " pit rooms in 40 dungeons");
     }
 
+    /** Most traps have a tell, and every kind that has one shows it somewhere in 40 dungeons. */
+    @Test
+    void trapsHaveTells() {
+        int traps = 0;
+        java.util.Set<Part> seen = java.util.EnumSet.noneOf(Part.class);
+        int[] tells = {0};
+        for (long seed = 1; seed <= 40; seed++) {
+            Blueprint bp = Blueprinter.blueprint(Planner.plan(seed, 4));
+            for (Trigger t : bp.triggers()) {
+                if (t.kind().isTrap() && t.kind() != Trigger.Kind.PIT && t.kind() != Trigger.Kind.PORTCULLIS_TRAP) {
+                    traps++;
+                }
+            }
+            bp.forEachColumn(col -> {
+                for (int code : col.codes()) {
+                    if (code != 0 && Blueprint.part(code).name().startsWith("TELL_")) {
+                        seen.add(Blueprint.part(code));
+                        tells[0]++;
+                    }
+                }
+            });
+        }
+        System.out.println("TELLS " + tells[0] + " non-skull/web tells; " + traps + " traps; kinds " + seen);
+        assertEquals(java.util.EnumSet.of(Part.TELL_PEBBLE, Part.TELL_FROST, Part.TELL_SCORCH, Part.TELL_SCULK, Part.TELL_DEAD), seen);
+    }
+
     /** Every dungeon has its rumour book: one lectern, on level 1, with clear air above it. */
     @Test
     void everyDungeonHasItsRumours() {
@@ -749,7 +775,8 @@ class BlueprintTest {
         return switch (Blueprint.part(code)) {
             case AIR, CARPET, MOSS, RAIL, WATER, DOOR_LOWER, LOCKED_LOWER, SECRET_WALL, LIGHT, BANNER, WALL_TORCH, CHAIN, STEP, LANDING,
                     RUG, PLANT, MUSHROOM, VINE, ROOTS, TABLE_TOP, TRAP_PLATE, TRAP_WIRE, DECOY_PLATE, DECOY_WIRE,
-                    PORTCULLIS, PORTCULLIS_GAP, ONEWAY_LOWER, LEVER, WINCH -> true; // a lever has no collision
+                    PORTCULLIS, PORTCULLIS_GAP, ONEWAY_LOWER, LEVER, WINCH,
+                    TELL_PEBBLE, TELL_FROST, TELL_SCORCH, TELL_SCULK, TELL_DEAD -> true; // a lever has no collision
             default -> false;
         };
     }

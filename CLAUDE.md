@@ -755,6 +755,39 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Trap tells (Goblin Punch's checklist, 2026-10-10)
+
+`Blueprinter.tells` runs after dressing, on `Dice(seed, level, 0x7E11)`. It
+gives 3 traps in 4 a sign within two blocks, never on the trap and never by a
+door:
+
+| Trap | Tell |
+|---|---|
+| darts, alarm | a skull |
+| gas | a dead coral fan |
+| webs | a cobweb |
+| rockfall | a pebble (a stone button on the floor) |
+| frost | a snow layer |
+| fire | a scorch (black carpet) |
+| summon | sculk vein |
+
+- A skull or a web is in the way, so those go only on room floor against a
+  wall. The flat ones also go in corridors and mid-room.
+- All of them stand only on plain floor (`SOLID_FLOOR`), never on a tile that
+  does something.
+- Corridor darts, the commonest trap, mostly have none. That is fine: a
+  delver who reads tells should still be careful.
+- **Measured** over 40 four-level dungeons: 155 flat tells for 697 traps.
+  `trapsHaveTells` asserts that every flat kind appears. `goto <n> tell`
+  visits one.
+- **Seen on the rig** (seed 7): a dead fan beside a gas wire on level 3, and
+  a pebble beside a rockfall plate in a level 4 corridor.
+- **Rig gotchas:**
+  - `fill X replace X` counts only changed blocks, so it reports 0 for
+    blocks that are there.
+  - `execute as <player> run fill` sends its reply to the player, not to
+    RCON.
+
 ## Mimics and trapped chests (2026-10-10)
 
 `neoforge/Mimics`: from level 3, an ordinary dungeon chest (`Part.CHEST`) is

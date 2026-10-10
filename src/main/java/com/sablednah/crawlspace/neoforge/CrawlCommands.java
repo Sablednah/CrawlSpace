@@ -263,6 +263,7 @@ public final class CrawlCommands {
             case "arena" -> Tour.findArena(level, last.built().blueprint());
             case "altar" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.ALTAR);
             case "rumours" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.RUMOURS);
+            case "tell" -> Tour.findPart(level, last.built().blueprint(), p -> p.name().startsWith("TELL_"));
             default -> Tour.find(level, what, level.index * 31L + System.nanoTime() % 7);
         };
         if (spot == null) {

@@ -250,6 +250,7 @@ public final class Blueprinter {
         if (i == 0) {
             rumours(bp, plan);
         }
+        tells(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x7E11L));
         lights(bp, plan, i, dark);
         if (finale != null) {
             arena(bp, plan, i, finale);
@@ -785,6 +786,73 @@ public final class Blueprinter {
                             && bp.triggerAt(x, f, z) == null) {
                         bp.set(x, f, z, Part.RUMOURS, facingOf(-d[0], -d[1]), 0);
                         return;
+                    }
+                }
+            }
+        }
+    }
+
+    /** How often a trap has a tell beside it. Not every one: a delver who learns to read them should still be careful. */
+    static final double TELL_CHANCE = 0.75;
+    /** What a tell may stand on: plain floor, never a tile that does something. */
+    private static final java.util.Set<Part> SOLID_FLOOR = java.util.EnumSet.of(Part.FLOOR, Part.CORRIDOR_FLOOR, Part.FLOOR_ACCENT,
+            Part.FLOOR_INLAY, Part.MOSS_FLOOR);
+
+    private static Part tellFor(Trigger.Kind kind) {
+        return switch (kind) {
+            case DARTS, ALARM -> Part.SKULL;
+            case GAS -> Part.TELL_DEAD;
+            case WEBS -> Part.COBWEB;
+            case ROCKFALL -> Part.TELL_PEBBLE;
+            case FROST -> Part.TELL_FROST;
+            case FIRE -> Part.TELL_SCORCH;
+            case SUMMON -> Part.TELL_SCULK;
+            default -> null;
+        };
+    }
+
+    /**
+     * Telegraphed traps (Goblin Punch): beside most traps, on room floor
+     * against a wall and never on the trap, something that says what it does.
+     * Placed after dressing, into cells it left empty, on their own dice.
+     */
+    private static void tells(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice dice) {
+        LevelPlan level = plan.levels().get(i);
+        for (Trigger t : bp.triggers()) {
+            if (t.level() != i || !t.kind().isTrap()) {
+                continue;
+            }
+            Part tell = tellFor(t.kind());
+            if (tell == null || !dice.chance(TELL_CHANCE)) {
+                continue;
+            }
+            search:
+            for (int r = 1; r <= 2; r++) {
+                for (int dx = -r; dx <= r; dx++) {
+                    for (int dz = -r; dz <= r; dz++) {
+                        if (Math.max(Math.abs(dx), Math.abs(dz)) != r) {
+                            continue;
+                        }
+                        int x = t.x() + dx;
+                        int z = t.z() + dz;
+                        // A skull or a web is in the way, so only against a room's wall; the rest lie flat, anywhere.
+                        boolean bulky = tell == Part.SKULL || tell == Part.COBWEB;
+                        Cell c = level.cell(x, z);
+                        if ((c != Cell.FLOOR && (bulky || c != Cell.CORRIDOR)) || nearDoor(level, x, z) || floorAt(plan, i, x, z) != t.y()) {
+                            continue;
+                        }
+                        boolean wall = !bulky;
+                        for (int[] d : DIRS4) {
+                            wall |= level.cell(x + d[0], z + d[1]) == Cell.WALL;
+                        }
+                        int here = bp.get(x, t.y(), z);
+                        int below = bp.get(x, t.y() - 1, z);
+                        if (!wall || here != 0 && Blueprint.part(here) != Part.AIR || below == 0 || !SOLID_FLOOR.contains(Blueprint.part(below))
+                                || bp.triggerAt(x, t.y(), z) != null) {
+                            continue;
+                        }
+                        bp.set(x, t.y(), z, tell, dice.nextInt(4), i);
+                        break search;
                     }
                 }
             }
