@@ -352,7 +352,13 @@ public final class Blueprinter {
                 spots = pit;
             }
             int n = Math.min(spots.size(), (r.role == Role.LAIR ? 4 + i / 2 : 2 + i / 2 + dice.nextInt(3)) + (crowded ? 2 : 0));
-            Trigger.Kind kind = r.role == Role.LAIR ? Trigger.Kind.BOSS : Trigger.Kind.ENCOUNTER;
+            // Its own dice, so no other room's encounter changes: some guard rooms, from level 2, are numbered.
+            boolean ordered = r.role == Role.GUARD && i >= 1
+                    && com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x0DE5L).chance(ORDERED_CHANCE) && n >= 3;
+            if (ordered) {
+                n = Math.min(n, 4);
+            }
+            Trigger.Kind kind = r.role == Role.LAIR ? Trigger.Kind.BOSS : ordered ? Trigger.Kind.ORDERED : Trigger.Kind.ENCOUNTER;
             int f = floorAt(plan, i, r.centerX(), r.centerZ());
             bp.addTrigger(new Trigger(kind, r.centerX(), f + 1, r.centerZ(), i,
                     spots.subList(0, n).toArray(new int[0][])));
@@ -747,6 +753,9 @@ public final class Blueprinter {
         bp.addTrigger(new Trigger(Trigger.Kind.TREASURE, hx, bottom + 1, hz, i, new int[0][]));
         hang(bp, plan, i, r.centerX(), r.centerZ());
     }
+
+    /** How often a guard room from the second level down wakes numbered monsters, to be killed in order. */
+    static final double ORDERED_CHANCE = 0.3;
 
     /** How often a treasure room from the second level down is a vault: take one of three. */
     static final double VAULT_CHANCE = 0.4;
