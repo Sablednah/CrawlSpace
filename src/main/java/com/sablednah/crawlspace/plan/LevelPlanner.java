@@ -60,7 +60,7 @@ public final class LevelPlanner {
         List<String> lastProblems = List.of();
         for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
             Dice dice = Dice.of(seed, index, attempt);
-            LevelPlan level = tryPlan(dice, index, arrival, theme, attempt, bottom, feeling);
+            LevelPlan level = tryPlan(dice, index, arrival, theme, attempt, bottom, feeling, Showcase.on(seed));
             if (level == null) {
                 continue;
             }
@@ -80,16 +80,18 @@ public final class LevelPlanner {
                 + " after " + ATTEMPTS + " attempts; last problems: " + lastProblems);
     }
 
-    private static LevelPlan tryPlan(Dice dice, int index, int[] arrival, Theme theme, int attempt, boolean bottom, Feeling feeling) {
+    private static LevelPlan tryPlan(Dice dice, int index, int[] arrival, Theme theme, int attempt, boolean bottom, Feeling feeling,
+            boolean show) {
         LevelPlan level = new LevelPlan(index, theme);
         level.feeling = feeling;
+        level.showcase = show;
         boolean hollow = feeling == Feeling.HOLLOW;
         int depth = Math.min(index, 8);
 
         // ---- Topology ----
         int loopSize = 5 + depth / 2 + dice.between(0, 2);
         int branchCount = 2 + depth / 2 + dice.between(0, 2);
-        boolean lock = index >= 1 && dice.chance(0.55);
+        boolean lock = index >= 1 && (show || dice.chance(0.55));
 
         List<Room> loop = new ArrayList<>();
         int exitAt = loopSize / 2 + dice.between(0, loopSize % 2);
@@ -531,7 +533,7 @@ public final class LevelPlanner {
             Room[] pair = candidates.remove(dice.nextInt(candidates.size()));
             int ha = fromEntry.getOrDefault(pair[0], -1);
             int hb = fromEntry.getOrDefault(pair[1], -1);
-            boolean oneway = ha >= 0 && hb >= 0 && ha != hb && dice.chance(ONEWAY_CHANCE);
+            boolean oneway = ha >= 0 && hb >= 0 && ha != hb && (level.showcase || dice.chance(ONEWAY_CHANCE));
             LinkKind kind = oneway ? LinkKind.ONEWAY
                     : dice.chance(secretChance) ? LinkKind.SECRET : dice.chance(0.5) ? LinkKind.DOOR : LinkKind.OPEN;
             Room a = oneway && hb > ha ? pair[1] : pair[0];
@@ -590,7 +592,7 @@ public final class LevelPlanner {
                 i--;
                 continue;
             }
-            TrapKind kind = TrapKind.roll(dice, level.index);
+            TrapKind kind = level.showcase ? Showcase.trap(level.index, level.traps.size()) : TrapKind.roll(dice, level.index);
             level.traps.add(new int[] {s[0], s[1], kind.ordinal()});
         }
     }

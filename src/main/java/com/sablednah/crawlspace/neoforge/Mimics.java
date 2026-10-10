@@ -46,7 +46,7 @@ public final class Mimics {
             return false;
         }
         int li = Blueprint.level(code);
-        if (li < 2) {
+        if (li < 2 && !com.sablednah.crawlspace.plan.Showcase.on(site.seed())) {
             return false;
         }
         int what = kind(site, pos);
@@ -76,6 +76,9 @@ public final class Mimics {
 
     /** What a dungeon chest at {@code pos} is: 0 a chest, 1 a mimic, 2 trapped. Its dice, the same every time. */
     static int kind(Site site, BlockPos pos) {
+        if (com.sablednah.crawlspace.plan.Showcase.on(site.seed())) {
+            return Math.floorMod(pos.getX() + pos.getY() * 7 + pos.getZ() * 13, 3); // plain, mimic, trapped in turn
+        }
         com.sablednah.crawlspace.plan.Dice dice = com.sablednah.crawlspace.plan.Dice.of(site.seed(), pos.asLong(), 0x31CL);
         if (!dice.chance(CHANCE)) {
             return 0;
@@ -95,7 +98,7 @@ public final class Mimics {
                     continue;
                 }
                 BlockPos p = o.offset(col.x(), col.y0() + k, col.z());
-                int what = li >= 2 ? kind(site, p) : 0;
+                int what = li >= 2 || com.sablednah.crawlspace.plan.Showcase.on(site.seed()) ? kind(site, p) : 0;
                 n[what]++;
                 if (near[what] == null || p.distSqr(from) < near[what].distSqr(from)) {
                     near[what] = p;

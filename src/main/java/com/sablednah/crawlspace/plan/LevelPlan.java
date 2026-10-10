@@ -41,6 +41,8 @@ public final class LevelPlan {
     public final List<int[]> traps = new ArrayList<>();
     /** Its mood: what it is announced as, and what that changed. */
     public Feeling feeling = Feeling.NONE;
+    /** A showcase level: every feature that can, appears (see {@link Showcase}). */
+    public boolean showcase;
     /** How many tries the planner needed. 1 is the healthy figure. */
     public int attempts;
 

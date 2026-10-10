@@ -48,6 +48,14 @@ public final class CrawlCommands {
                                 .then(Commands.argument("seed", LongArgumentType.longArg())
                                         .executes(ctx -> build(ctx, IntegerArgumentType.getInteger(ctx, "levels"),
                                                 LongArgumentType.getLong(ctx, "seed"))))))
+                .then(Commands.literal("showcase")
+                        // Every feature at once, to see them without hunting (Sable). Six levels: one of each feeling.
+                        .executes(ctx -> build(ctx, 6, com.sablednah.crawlspace.plan.Showcase.seed(1)))
+                        .then(Commands.argument("levels", IntegerArgumentType.integer(1, MAX_LEVELS))
+                                .executes(ctx -> build(ctx, IntegerArgumentType.getInteger(ctx, "levels"), com.sablednah.crawlspace.plan.Showcase.seed(1)))
+                                .then(Commands.argument("seed", LongArgumentType.longArg(0, 0xFFFFFFFFL))
+                                        .executes(ctx -> build(ctx, IntegerArgumentType.getInteger(ctx, "levels"),
+                                                com.sablednah.crawlspace.plan.Showcase.seed(LongArgumentType.getLong(ctx, "seed")))))))
                 .then(Commands.literal("goto")
                         .then(Commands.argument("level", IntegerArgumentType.integer(0, MAX_LEVELS))
                                 .executes(ctx -> go(ctx, IntegerArgumentType.getInteger(ctx, "level")))
