@@ -95,6 +95,9 @@ final class Dresser {
                     if (!r.pool && centreFree) {
                         props.add(new Prop(centre[0], f, centre[1], Part.ALTAR, 0, true));
                         props.add(new Prop(centre[0], f + 1, centre[1], Part.CANDLES, 2 + dice.nextInt(2), false));
+                    } else {
+                        // Every shrine has its altar, the thing to use: a pooled one's stands by the wall.
+                        take(perim, 1, p -> props.add(floor(p, f, Part.ALTAR, 0, true)));
                     }
                     take(perim, 4, p -> props.add(floor(p, f, Part.CANDLES, dice.nextInt(4), true)));
                     take(perim, 1, p -> props.add(banner(p, f)));

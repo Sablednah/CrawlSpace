@@ -573,6 +573,13 @@ public final class Bestiary {
         level.sendParticles(net.minecraft.core.particles.ParticleTypes.WAX_OFF, p.getX(), p.getY() + 0.2, p.getZ(), 8, 0.4, 0.1, 0.4, 0.01);
     }
 
+    /** The name of the boss whose lair is on level {@code li}: the same choice its lair makes when it wakes. */
+    static String bossName(Site site, int li) {
+        String theme = site.built().plan().levels().get(li).theme.name();
+        List<BossSpec> choices = bosses.getOrDefault(theme, bosses.get("Crypt"));
+        return choices.get(com.sablednah.crawlspace.plan.Dice.of(site.seed(), li, 0xB055L).nextInt(choices.size())).name();
+    }
+
     /** How many bosses a theme has, for the command's help. */
     static int bossCount(String theme) {
         return bosses.getOrDefault(theme, List.of()).size();

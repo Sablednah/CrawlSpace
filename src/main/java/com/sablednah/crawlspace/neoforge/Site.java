@@ -32,10 +32,10 @@ import net.minecraft.world.level.block.state.BlockState;
 public record Site(long seed, int levels, int top, String style, BlockPos origin, int planner) {
 
     /** Bump whenever a planner or blueprint change would alter an existing seed's dungeon. */
-    public static final int PLANNER_VERSION = 11; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
+    public static final int PLANNER_VERSION = 12; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
                                                  // 6: portcullises and the layout push; 7: feelings;
                                                  // 8: more kinds of trap; 9: vaults; 10: ice boards;
-                                                 // 11: ordered kills
+                                                 // 11: ordered kills; 12: shrine altars, the rumour lectern
 
     /**
      * A plan and its blueprint, built once and shared by every chunk that asks.
@@ -145,6 +145,10 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
             case BARREL -> "chests/supplies";
             default -> null;
         };
+        if (part == Part.RUMOURS && level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.LecternBlockEntity lectern) {
+            lectern.setBook(Rumours.book(this, built));
+            return;
+        }
         if (part == Part.KEY_CHEST && level.getBlockEntity(pos) instanceof net.minecraft.world.Container chest) {
             // Only the key, and no loot table: a per-player loot mod (Lootr) takes over containers that have
             // one, and the key must stay a real item in a plain chest that everyone shares.
