@@ -132,7 +132,7 @@ public final class Vaults {
         ItemStack item = d.getSlot(0).get().copy();
         d.discard();
         if (!player.getInventory().add(item)) {
-            player.drop(item, false);
+            level.addFreshEntity(new net.minecraft.world.entity.item.ItemEntity(level, player.getX(), player.getY() + 0.5, player.getZ(), item));
         }
         for (int[] o : t.targets()) {
             BlockPos p = site.origin().offset(o[0], o[1], o[2]);
