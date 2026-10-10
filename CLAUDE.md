@@ -755,6 +755,64 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## The showcase dungeon (Sable, 2026-10-10)
+
+`/crawlspace showcase [levels] [n]` builds a dungeon with every feature in
+it, for seeing them without hunting. Six levels by default, one per feeling.
+It is an ordinary dungeon, planned and built the ordinary way, so what comes
+in pairs still comes in pairs: a lever and its door, a portcullis and its
+key's chest. `plan/Showcase` only bends the rolls:
+- A feature's chance is always yes: puzzle and pit rooms, locks, one-way
+  doors, tells, vaults, windows, portcullis traps, leaps.
+- The rest take turns:
+  - each level gets the next theme and the next feeling;
+  - trap kinds rotate, whatever the depth;
+  - puzzle rooms alternate maze and ice;
+  - locks alternate lever and key;
+  - guard rooms alternate numbered and not;
+  - chests cycle plain, mimic, trapped (on every level);
+  - shrines cycle their gifts.
+- Encounters and ambushes keep their normal odds, so it is not a swarm.
+
+**It is marked in the seed** (top 32 bits `0x5C0E5C0E`), so it stays a
+showcase after a restart with nothing more to save: everything about a
+dungeon is rebuilt from its seed. A random seed hits the tag about once in
+four billion.
+
+**Tested:**
+- `theShowcaseHasEverything` checks that it has all 5 themes, all 6
+  feelings, every trap kind, lever, portcullis, vault, ice board, numbered
+  room, boss, pit and one-way.
+- On the rig: built, and `goto` found the vault, portcullis, lever,
+  one-way, drop trap, tell, altar, puzzle and a window (level 1).
+- Windows need a corridor near a lair or treasure room, so not every level
+  can have one.
+
+## Bars and railings across a chunk line (Sable, 2026-10-10)
+
+A portcullis whose bars did not join across a chunk line. `postProcess`
+re-shapes connecting parts against their neighbours, but only within the
+chunk being built. A bar at its edge saw bare rock where the next chunk's
+bar would go, and nothing went back to it once that bar arrived. Each
+connecting part is now also passed to `markPosForPostprocessing`. That is
+vanilla's own pass: it re-shapes the block when its chunk becomes full, by
+which time every neighbour has placed its blocks.
+- It mends new chunks only. A bar already placed wrong stays wrong (break and
+  replace it).
+- On the rig, five fresh dungeons had 16 neighbouring bar pairs and none
+  unjoined. None was clearly on a chunk line, though, so the evidence is the
+  mechanism.
+- `/place structure` places into chunks that are already full, so it gets no
+  such pass.
+- `~/rig/crawlspace/bars.py x y z r h` counts the bars in a box that face
+  another bar without joining it.
+
+**Vault cages are waxed copper grates.** A lone iron bar over a pedestal has
+nothing to join, and stood as one thin post through the item (Sable's
+screenshot). A grate is a whole see-through cage, and waxed, so it never
+turns green. `Protection` holds `Vaults.CAGE`. Seen on the rig: the two
+pedestals not taken became grates, their books visible inside.
+
 ## Trap tells (Goblin Punch's checklist, 2026-10-10)
 
 `Blueprinter.tells` runs after dressing, on `Dice(seed, level, 0x7E11)`. It

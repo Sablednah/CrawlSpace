@@ -28,12 +28,13 @@ public final class Planner {
         int[] arrival = {0, 0};
         for (int i = 0; i < levels; i++) {
             boolean bottom = i == levels - 1;
-            Feeling feeling = Feeling.roll(Dice.of(seed, i, 0xFEE1L), i);
-            LevelPlan level = LevelPlanner.plan(seed, i, arrival, Theme.forDepth(i), bottom, feeling);
+            boolean show = Showcase.on(seed);
+            Feeling feeling = show ? Showcase.feeling(i) : Feeling.roll(Dice.of(seed, i, 0xFEE1L), i);
+            LevelPlan level = LevelPlanner.plan(seed, i, arrival, show ? Showcase.theme(i) : Theme.forDepth(i), bottom, feeling);
             out.add(level);
             if (i > 0) {
                 extraRoutes(out.get(i - 1), level, Dice.of(seed, i, 0xD0D0L));
-                pitRoom(out.get(i - 1), level, Dice.of(seed, i, 0x917A0L));
+                pitRoom(out.get(i - 1), level, Dice.of(seed, i, 0x917A0L), Showcase.on(seed));
             }
             if (!bottom) {
                 arrival = level.stairsDown.get(0);
@@ -42,7 +43,7 @@ public final class Planner {
         // Puzzle rooms last, from their own dice, once pits and second stairs are in: so adding them
         // moved no wall, room or role anywhere else.
         for (int i = 0; i < out.size(); i++) {
-            puzzleRoom(out.get(i), Dice.of(seed, i, 0x9022EL));
+            puzzleRoom(out.get(i), Dice.of(seed, i, 0x9022EL), Showcase.on(seed));
         }
         return new DungeonPlan(seed, LEVEL_SPACING, DungeonPlan.MIN_TOP, out);
     }
@@ -55,8 +56,8 @@ public final class Planner {
      * into a puzzle room. Its doorways stay where they are: the maze is built
      * to meet them.
      */
-    static void puzzleRoom(LevelPlan level, Dice dice) {
-        if (!dice.chance(PUZZLE_CHANCE)) {
+    static void puzzleRoom(LevelPlan level, Dice dice, boolean show) {
+        if (!show && !dice.chance(PUZZLE_CHANCE)) {
             return;
         }
         List<Room> candidates = new ArrayList<>();
@@ -97,8 +98,8 @@ public final class Planner {
      * door that will not open, and from inside, the way out. Kept only if both
      * levels still pass the check.
      */
-    static void pitRoom(LevelPlan upper, LevelPlan lower, Dice dice) {
-        if (!dice.chance(PIT_ROOM_CHANCE)) {
+    static void pitRoom(LevelPlan upper, LevelPlan lower, Dice dice, boolean show) {
+        if (!show && !dice.chance(PIT_ROOM_CHANCE)) {
             return;
         }
         List<Room> leaves = new ArrayList<>();

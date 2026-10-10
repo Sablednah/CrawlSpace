@@ -358,7 +358,8 @@ public final class Blueprinter {
             int n = Math.min(spots.size(), (r.role == Role.LAIR ? 4 + i / 2 : 2 + i / 2 + dice.nextInt(3)) + (crowded ? 2 : 0));
             // Its own dice, so no other room's encounter changes: some guard rooms, from level 2, are numbered.
             boolean ordered = r.role == Role.GUARD && i >= 1
-                    && com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x0DE5L).chance(ORDERED_CHANCE) && n >= 3;
+                    && (level.showcase ? r.id % 2 == 0 : com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x0DE5L).chance(ORDERED_CHANCE))
+                    && n >= 3;
             if (ordered) {
                 n = Math.min(n, 4);
             }
@@ -823,7 +824,7 @@ public final class Blueprinter {
                 continue;
             }
             Part tell = tellFor(t.kind());
-            if (tell == null || !dice.chance(TELL_CHANCE)) {
+            if (tell == null || !level.showcase && !dice.chance(TELL_CHANCE)) {
                 continue;
             }
             search:
@@ -873,7 +874,7 @@ public final class Blueprinter {
      */
     private static void vault(Blueprint bp, DungeonPlan plan, int i, Room r, com.sablednah.crawlspace.plan.Dice dice) {
         LevelPlan level = plan.levels().get(i);
-        if (i < 1 || !dice.chance(VAULT_CHANCE)) {
+        if (i < 1 || !plan.levels().get(i).showcase && !dice.chance(VAULT_CHANCE)) {
             return;
         }
         for (int[] d : DIRS4) {
@@ -942,7 +943,7 @@ public final class Blueprinter {
                 case LAIR, TREASURE, KEY, SHRINE -> true;
                 default -> false;
             };
-            if (!worth || !dice.chance(WINDOW_CHANCE)) {
+            if (!worth || !level.showcase && !dice.chance(WINDOW_CHANCE)) {
                 continue;
             }
             java.util.List<int[]> fits = new java.util.ArrayList<>(); // {x, z, dx, dz}: a room cell and the way out
@@ -1047,7 +1048,8 @@ public final class Blueprinter {
 
     /** Whether level {@code i}'s lock is a keyed portcullis. Its own dice: it moves nothing else. */
     public static boolean keyLock(DungeonPlan plan, int i) {
-        return com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x6E70L).chance(KEY_LOCK_CHANCE);
+        // A showcase takes turns, so it shows a lever's door as well as a portcullis and its key.
+        return plan.levels().get(i).showcase ? i % 2 == 0 : com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x6E70L).chance(KEY_LOCK_CHANCE);
     }
 
     /** A facing from a spot toward a room's centre, for a chest that should open toward the room. */
@@ -1070,7 +1072,7 @@ public final class Blueprinter {
      */
     private static void portcullisTrap(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice dice) {
         LevelPlan level = plan.levels().get(i);
-        if (i < 1 || !dice.chance(PORTCULLIS_TRAP_CHANCE)) {
+        if (i < 1 || !plan.levels().get(i).showcase && !dice.chance(PORTCULLIS_TRAP_CHANCE)) {
             return;
         }
         java.util.Map<Room, Integer> doorways = new java.util.HashMap<>();
@@ -1295,7 +1297,9 @@ public final class Blueprinter {
     private static void maze(Blueprint bp, DungeonPlan plan, int i, Room r, com.sablednah.crawlspace.plan.Dice dice) {
         LevelPlan level = plan.levels().get(i);
         // Its own dice, so the mazes of rooms that stay mazes are as they were.
-        if (i >= 1 && com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x1CEL).chance(ICE_CHANCE) && iceBoard(bp, plan, i, r)) {
+        boolean ice = plan.levels().get(i).showcase ? i % 2 == 1
+                : com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x1CEL).chance(ICE_CHANCE);
+        if (i >= 1 && ice && iceBoard(bp, plan, i, r)) {
             return;
         }
         int cx = r.centerX();
@@ -1374,7 +1378,7 @@ public final class Blueprinter {
         // right there that sent them back (Sable could not cross a room). Otherwise the void takes the
         // floor block's place, as at first.
         boolean sunk = f - 3 >= bp.minY && roomFree(bp, r, floor, f - 3, f - 2);
-        boolean leap = i >= 2 && dice.chance(LEAP_CHANCE) && sunk;
+        boolean leap = i >= 2 && (plan.levels().get(i).showcase || dice.chance(LEAP_CHANCE)) && sunk;
         double gaps = leap ? 0 : Math.min(0.35, 0.08 * (i - 0.5));
         double crumble = leap ? 0 : Math.min(0.25, 0.06 * (i - 0.5));
         double leaves = leap ? 0 : Math.min(0.15, 0.04 * (i - 0.5));

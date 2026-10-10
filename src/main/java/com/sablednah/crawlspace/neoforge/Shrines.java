@@ -109,6 +109,9 @@ public final class Shrines {
     }
 
     private static Kind kindOf(Site site, int li, Room r) {
+        if (com.sablednah.crawlspace.plan.Showcase.on(site.seed())) {
+            return Kind.values()[(li + r.id) % Kind.values().length];
+        }
         com.sablednah.crawlspace.plan.Dice dice = com.sablednah.crawlspace.plan.Dice.of(site.seed(), li, r.id, 0x5A1L);
         int total = 0;
         for (Kind k : Kind.values()) {

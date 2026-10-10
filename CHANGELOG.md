@@ -5,6 +5,9 @@
 - **Dungeons can no longer be dug round.** In survival, the dungeon's walls, floors, ceilings, stairs, tower, locked doors and puzzle rooms will not break: the way down is through it. Hitting them says so: "The dungeon's stonework holds. Find another way." Chests, spawners, pots, cobwebs, furniture, wooden doors, trap plates and anything you placed yourself still break as usual. Creative is unaffected.
 - Explosions still hurt and still break the dressing, but not the walls. Pistons cannot move them, and blocks that mining machines remove without the usual break event are put back after a few seconds.
 - No building over a puzzle room's void.
+- **A showcase dungeon.** `/crawlspace showcase` builds one with everything in it: every theme, feeling, trap, puzzle, vault and lock, to look round without hunting.
+- **Vault cages are copper grates**, not a single iron bar through the item.
+- **Fixed:** portcullis and window bars that did not join across a chunk line.
 - **Tells.** Most traps leave signs nearby: a skull, a dead plant, a pebble, frost, a scorch mark, sculk. Learn to read them.
 - **Mimics.** From the third level, the odd chest bites, or is trapped. Kill a mimic for what the chest held.
 - **Shrines.** Every shrine has an altar. Use it for its gift, once: Sight, Vigour, Swiftness, Warding or Fortune. Some are cursed.
