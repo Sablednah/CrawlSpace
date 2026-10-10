@@ -173,7 +173,9 @@ public enum Part {
     /** Iron bars at eye level through the wall between a corridor and a room: the goal seen before it is reached. */
     WINDOW_BARS,
     /** A vault's pedestal: an item floats over it, and taking one cages the others. */
-    PEDESTAL;
+    PEDESTAL,
+    /** An ice board's tile: cross every one exactly once. */
+    ICE_TILE;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).
@@ -191,7 +193,7 @@ public enum Part {
                     TOWER, TOWER_FLOOR, TOWER_TOP, TOWER_TRIM, TOWER_STAIR, TOWER_CORBEL, TOWER_WINDOW, TOWER_PILLAR, TOWER_ROOF,
                     SHELF, WALL_ACCENT, FLOOR_ACCENT, FLOOR_INLAY, PILASTER, COVE, PANEL, DADO, MOSS_FLOOR, BEAM,
                     VOID, RESTART, PATH_HIDDEN, CRUMBLE, DRIPLEAF, PIT_TILE,
-                    PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER, WINDOW_BARS, PEDESTAL -> true;
+                    PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER, WINDOW_BARS, PEDESTAL, ICE_TILE -> true;
             default -> false;
         };
     }
