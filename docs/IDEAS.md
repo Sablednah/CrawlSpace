@@ -2,8 +2,8 @@
 
 Research from 2026-10-08, done overnight at Sable's request. It looked at three
 sources: other Minecraft dungeon mods, classic pen-and-paper dungeons and their
-design theory, and roguelike and video-game dungeons. Nothing here is built yet.
-Each idea names its source and fits CrawlSpace's rules:
+design theory, and roguelike and video-game dungeons. Each idea names its
+source and fits CrawlSpace's rules:
 
 - vanilla clients see everything;
 - interactive things are ordinary blocks the mod watches;
@@ -12,6 +12,44 @@ Each idea names its source and fits CrawlSpace's rules:
 
 Effort: **S** is a day or so, **M** several days, **L** a subsystem.
 **LQ** marks an idea that gets better with LegendQuest.
+
+## Status (2026-10-10)
+
+**Built for 0.3.0, on all four lines** (CLAUDE.md has each one's design and
+what the rig showed):
+- level feelings;
+- the wider trap pool, with tells;
+- trapped chests and mimics;
+- puzzle blessings;
+- take one of three (vaults);
+- rumours, as a book;
+- named shrines;
+- champions (elites with affixes) and scaled bosses;
+- portcullis and key, and the portcullis trap;
+- one-way valves;
+- windows;
+- the finale arena;
+- pit rooms;
+- the dungeon clock;
+- protection;
+- Lootr compatibility;
+- spawner burn-out;
+- the ice-fill and ordered-kills puzzles.
+
+**Partly built:**
+- A rematch or deliberate summon: `/crawlspace summon boss` exists for
+  testing, but there is no altar yet.
+- LegendQuest's WIS/DEX hooks reach CrawlSpace's Perception provider (traps,
+  secret doors), but not the newer things (tells, mimics, shrines).
+
+**Not built:**
+- door reward previews;
+- alarm sentries;
+- the teleport maze and the other puzzles in section 3;
+- the objective rooms' jobs (2b);
+- cycle types on the planner;
+- seals for the deepest door;
+- restocking, heroic re-entry, rival factions, the prisoner.
 
 ## 1. Cheap, high impact, built on what exists
 
