@@ -57,6 +57,32 @@ public final class CrawlCommands {
                                                 StringArgumentType.getString(ctx, "what"))))))
                 .then(Commands.literal("info").executes(CrawlCommands::info))
                 .then(Commands.literal("breaches").executes(CrawlCommands::breaches))
+                .then(Commands.literal("chests")
+                        .then(Commands.literal("open").then(Commands.argument("pos", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
+                                .executes(ctx -> {
+                                    // What a click on that chest does, for testing without aiming one.
+                                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                                    net.minecraft.core.BlockPos at = net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(ctx, "pos");
+                                    Site site = Dungeons.at(ctx.getSource().getLevel(), at).orElse(null);
+                                    if (site == null || p.isCreative()) {
+                                        fail(ctx.getSource(), "That is not in a dungeon, or you are in creative.");
+                                        return 0;
+                                    }
+                                    boolean bit = Mimics.open(ctx.getSource().getLevel(), p, site, at);
+                                    say(ctx.getSource(), bit ? "It bit." : "It opened (trapped or plain).");
+                                    return 1;
+                                })))
+                        .executes(ctx -> {
+                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                    Site site = Dungeons.at(ctx.getSource().getLevel(), p.blockPosition()).orElse(null);
+                    int li = site == null ? -1 : Arrivals.levelAt(site, p.blockPosition());
+                    if (li < 0) {
+                        fail(ctx.getSource(), "Stand inside a dungeon.");
+                        return 0;
+                    }
+                    say(ctx.getSource(), "Level " + (li + 1) + ": " + Mimics.survey(site, li, p.blockPosition()));
+                    return 1;
+                }))
                 .then(Commands.literal("event")
                         .then(Commands.argument("name", StringArgumentType.word())
                                 .suggests((c, b) -> SharedSuggestionProvider.suggest(Clock.names(), b))
@@ -235,6 +261,8 @@ public final class CrawlCommands {
             case "lever", "trap", "pit", "decoy", "secretdoor", "locked", "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "vault" -> Tour.findTrigger(level, last.built().blueprint(), what);
             case "window" -> Tour.findWindow(level, last.built().blueprint());
             case "arena" -> Tour.findArena(level, last.built().blueprint());
+            case "altar" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.ALTAR);
+            case "rumours" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.RUMOURS);
             default -> Tour.find(level, what, level.index * 31L + System.nanoTime() % 7);
         };
         if (spot == null) {

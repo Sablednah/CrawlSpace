@@ -753,7 +753,73 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   first brought II back; I to IV in order put a chest of
   `crawlspace:chests/tier2` in the room's middle. The room's floor was 5
   below the stairs' landing, so search by the logged position.
-- `PLANNER_VERSION` 11.
+- `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
+
+## Mimics and trapped chests (2026-10-10)
+
+`neoforge/Mimics`: from level 3, an ordinary dungeon chest (`Part.CHEST`) is
+sometimes not what it seems. It is a surprise 1 time in 10, from its own dice
+(`Dice(seed, pos, 0x31C)`), so the same chest always does the same thing, and
+each one happens once (marker at pos+150).
+- **Half bite.** The chest becomes a Mimic: a Husk wearing a chest, 30+4/level
+  health. It keeps the chest's loot table in its persistent data, and
+  `Mimics.died` rolls it at its feet, plus the chest. Only a vanilla chest
+  bites: a Lootr chest is one per player, and a mimic would take it from all
+  of them.
+- **Half are trapped.** The chest opens as usual, and a web, gas, alarm or
+  rockfall trap springs on whoever opened it ("Click. The chest was
+  trapped!").
+- Creative players open them normally.
+- `/crawlspace chests` counts plain, mimic and trapped chests on your level
+  and names the nearest of each. That is how to find one on the rig.
+- `/crawlspace chests open <pos>` does what a click on that chest does,
+  without aiming.
+- **Seen on the rig:**
+  - A clicked mimic (seed 12, level 4) became the Husk wearing a chest.
+  - Opened by command (seed 14, level 3, `chests/tier2`) and killed, one
+    dropped 6 stacks and a chest.
+  - A trapped chest gassed its opener (Poison).
+- **Rig gotchas:**
+  - `mk.sh` leaves the player in creative, so nothing happens.
+  - A chest needs pitch set explicitly (`tp x y z yaw 60`); `tp ... facing`
+    did not reach the client's pitch.
+  - An Escape left over from an earlier step opens the game menu, and the
+    next click is lost.
+
+## Shrines (Diablo's; Pixel Dungeon's wells, 2026-10-10)
+
+Every SHRINE room now has an altar. A pooled shrine's stands by the wall (the
+pool takes the middle). Using it (`neoforge/Shrines`) gives that shrine's gift
+once per player, and the action bar names it:
+- Sight: monsters within 40 glow for 90 s.
+- Vigour: a full heal, then Absorption II.
+- Swiftness: Speed II and Haste.
+- Warding: Resistance and Fire Resistance.
+- Fortune: Luck, plus a clock "glint" at your feet.
+- Cursed (weight 2 of 16): Nausea and an ambush.
+
+Which one comes from `Dice(seed, level, room, 0x5A1)`, so the same room is
+always the same shrine. A second use says it is quiet. **Seen on the rig:**
+"Shrine of Vigour" gave Absorption; a second use said it was quiet. Use is held in memory
+(a restart refills them; fine for a once-each gift). `goto <n> altar` stands
+you two from one.
+
+## The rumour book (Keep on the Borderlands, 2026-10-10)
+
+`Part.RUMOURS` is a lectern against a wall of level 1's entry room, three or
+more from its middle, never by a door. `Site` puts a written book in it from
+`Rumours.book`. The book is made from the plan itself:
+- each level's feeling;
+- portcullis keys;
+- vaults;
+- the bottom boss, by name (`Bestiary.bossName` makes the same pick as the
+  lair's wake);
+- two lies, at random places from the dungeon's dice.
+
+It is a vanilla written book, so any client can read it. `goto 1 rumours`.
+**Seen on the rig** (seed 5): "The Crypt is safe. Nothing lives there now."
+(a lie), "Level 2 is flooded" (DAMP), the keys on levels 2 and 4, a fire lie,
+and "At the very bottom waits the Drowned Reeve."
 
 ## Protection (Sable, 2026-10-09)
 

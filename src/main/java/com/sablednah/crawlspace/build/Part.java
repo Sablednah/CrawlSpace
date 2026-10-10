@@ -175,7 +175,9 @@ public enum Part {
     /** A vault's pedestal: an item floats over it, and taking one cages the others. */
     PEDESTAL,
     /** An ice board's tile: cross every one exactly once. */
-    ICE_TILE;
+    ICE_TILE,
+    /** The rumour book's lectern, in the first level's entry room. Facing is toward the room. */
+    RUMOURS;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).

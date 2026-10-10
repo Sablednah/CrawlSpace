@@ -407,6 +407,7 @@ public final class Powers {
         }
         java.util.Set<String> tags = mob.getTags();
         ordered(level, mob, e.getSource());
+        Mimics.died(level, mob);
         if (tags.contains(Affix.SPLITTING.tag())) {
             int n = 2 + mob.getRandom().nextInt(2);
             for (int k = 0; k < n; k++) {
