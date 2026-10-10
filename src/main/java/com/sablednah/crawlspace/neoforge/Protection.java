@@ -79,7 +79,7 @@ public final class Protection {
             return false;
         }
         int code = codeAt(site, pos);
-        if (level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.IRON_BARS) && current(site)) {
+        if (level.getBlockState(pos).is(Vaults.CAGE)) {
             // A vault's cage, over a pedestal: it is what keeps the choice a choice.
             int under = codeAt(site, pos.below());
             if (under != 0 && Blueprint.part(under) == Part.PEDESTAL) {

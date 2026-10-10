@@ -506,6 +506,36 @@ class BlueprintTest {
         assertTrue(found > 5, "only " + found + " pit rooms in 40 dungeons");
     }
 
+    /**
+     * The showcase dungeon has everything: every theme and every feeling, every
+     * trap kind, a vault, a puzzle, a portcullis and a window, a pit room, an ice
+     * board and a numbered guard room.
+     */
+    @Test
+    void theShowcaseHasEverything() {
+        DungeonPlan plan = Planner.plan(com.sablednah.crawlspace.plan.Showcase.seed(1), 6);
+        Blueprint bp = Blueprinter.blueprint(plan);
+        java.util.Set<String> themes = new java.util.HashSet<>();
+        java.util.Set<com.sablednah.crawlspace.plan.Feeling> feelings = java.util.EnumSet.noneOf(com.sablednah.crawlspace.plan.Feeling.class);
+        for (LevelPlan l : plan.levels()) {
+            themes.add(l.theme.name());
+            feelings.add(l.feeling);
+        }
+        assertEquals(5, themes.size(), "themes");
+        assertEquals(6, feelings.size(), "feelings " + feelings);
+        java.util.Set<Trigger.Kind> kinds = java.util.EnumSet.noneOf(Trigger.Kind.class);
+        for (Trigger t : bp.triggers()) {
+            kinds.add(t.kind());
+        }
+        System.out.println("SHOWCASE triggers " + kinds);
+        for (Trigger.Kind k : new Trigger.Kind[] {Trigger.Kind.DARTS, Trigger.Kind.GAS, Trigger.Kind.ALARM, Trigger.Kind.WEBS,
+                Trigger.Kind.ROCKFALL, Trigger.Kind.FROST, Trigger.Kind.FIRE, Trigger.Kind.SUMMON, Trigger.Kind.VAULT,
+                Trigger.Kind.PORTCULLIS, Trigger.Kind.ICE_BOARD, Trigger.Kind.ORDERED, Trigger.Kind.BOSS, Trigger.Kind.LEVER}) {
+            assertTrue(kinds.contains(k), "the showcase has no " + k);
+        }
+        assertFalse(com.sablednah.crawlspace.plan.Showcase.on(12345L), "an ordinary seed is not a showcase");
+    }
+
     /** Most traps have a tell, and every kind that has one shows it somewhere in 40 dungeons. */
     @Test
     void trapsHaveTells() {

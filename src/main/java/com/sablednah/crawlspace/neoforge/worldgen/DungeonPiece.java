@@ -112,9 +112,14 @@ public final class DungeonPiece extends StructurePiece {
                 }
             }
         }
-        // Railings and fences join up with what is now around them.
+        // Railings and fences join up with what is now around them. That is only this chunk: a bar at
+        // its edge sees bare rock where the next chunk's bar will be, and nothing revisits it when that
+        // bar arrives (Sable: a portcullis that did not join across a chunk line). So each is also
+        // marked for vanilla's own pass, which joins it again when the chunk becomes full, by which
+        // time every neighbour has placed its blocks.
         for (BlockPos p : connect) {
             level.setBlock(p, Block.updateFromNeighbourShapes(level.getBlockState(p), level, p), 2);
+            level.getChunk(p).markPosForPostprocessing(p);
         }
     }
 }

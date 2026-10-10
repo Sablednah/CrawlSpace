@@ -136,7 +136,7 @@ public final class Vaults {
         for (int[] o : t.targets()) {
             BlockPos p = site.origin().offset(o[0], o[1], o[2]);
             if (!p.equals(mine)) {
-                level.setBlock(p.above(), Blocks.IRON_BARS.defaultBlockState(), 3);
+                level.setBlock(p.above(), CAGE.defaultBlockState(), 3);
                 level.sendParticles(ParticleTypes.CLOUD, p.getX() + 0.5, p.getY() + 1.5, p.getZ() + 0.5, 6, 0.2, 0.2, 0.2, 0.01);
             }
         }
@@ -145,6 +145,13 @@ public final class Vaults {
                 .append(Component.literal(". The other cages slam shut.")).withStyle(ChatFormatting.GOLD));
         return true;
     }
+
+    /**
+     * What closes over a pedestal not chosen. A lone iron bar has nothing to
+     * join and stands as one thin post (Sable); a grate is a whole cage.
+     * Waxed, so it never turns green.
+     */
+    static final net.minecraft.world.level.block.Block CAGE = Blocks.WAXED_COPPER_GRATE;
 
     private static Display.ItemDisplay display(ServerLevel level, BlockPos pedestal) {
         List<Display.ItemDisplay> found = level.getEntitiesOfClass(Display.ItemDisplay.class, new AABB(pedestal.above()).inflate(0.5),
