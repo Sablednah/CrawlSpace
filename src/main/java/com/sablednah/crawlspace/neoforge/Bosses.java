@@ -38,6 +38,14 @@ public final class Bosses {
     private Bosses() {
     }
 
+    /** A boss renamed after it woke (a recalled one): its bar follows. */
+    static void rename(Mob mob) {
+        Tracked t = TRACKED.get(mob.getUUID());
+        if (t != null) {
+            t.bar().setName(mob.getDisplayName());
+        }
+    }
+
     static void track(ServerLevel level, Mob mob, BossEvent.BossBarColor colour) {
         ServerBossEvent bar = new ServerBossEvent(mob.getDisplayName(), colour, BossEvent.BossBarOverlay.NOTCHED_10);
         TRACKED.put(mob.getUUID(), new Tracked(level, mob.getUUID(), bar));

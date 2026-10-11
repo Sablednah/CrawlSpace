@@ -755,6 +755,30 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Alarm sentries (the Caves of Chaos; Sable's pick, 2026-10-11)
+
+`neoforge/Sentries` runs a sentry; `Bestiary.wake` posts it as the room wakes.
+- **Which rooms:** half of guard rooms (`Sentries.posts`:
+  `Dice(seed, level, trigger, 0x5E47)`; every one in a showcase), never a
+  numbered room. The first monster without a name of its own becomes the
+  sentry: an elite keeps its name.
+- **The sentry:** "Sentry" in gold, a goat horn in its off hand.
+- **The watch:** it sees the nearest survival player within 16 blocks (8 if
+  they are sneaking), with a clear line of sight. It raises the horn: the
+  action bar says "The sentry raises its horn! Kill it before it sounds the
+  alarm."
+- **Three seconds later,** if it lives, the horn sounds. The two nearest rooms
+  still asleep on its level wake (marked fired, as an alarm trap does), and
+  their monsters get a follow range of 64 and are set on the player.
+- Killed in time, it says "The sentry falls before it can sound the alarm."
+  Each sentry sounds at most once. The watch list is in memory, so a restart
+  stands sentries down.
+- **Seen on the rig** (showcase):
+  - Left alone on level 2: the guard room woke, then 0 of 8 awake became 3
+    of 8.
+  - Killed within the three seconds on level 5: only its own room woke
+    (1 of 11).
+
 ## Door previews (Hades; Sable's pick, 2026-10-11)
 
 `Blueprinter.previews` runs after dressing. On every door into a room that

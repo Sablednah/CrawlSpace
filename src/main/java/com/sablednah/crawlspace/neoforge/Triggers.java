@@ -75,6 +75,11 @@ public final class Triggers {
             e.setCancellationResult(InteractionResult.SUCCESS);
             return;
         }
+        if (!player.isSpectator() && Altars.use(level, player, site, pos)) {
+            e.setCanceled(true);
+            e.setCancellationResult(InteractionResult.SUCCESS);
+            return;
+        }
         if (!player.isSpectator() && Shrines.use(level, player, site, pos)) {
             e.setCanceled(true);
             e.setCancellationResult(InteractionResult.SUCCESS);
@@ -415,7 +420,8 @@ public final class Triggers {
         int woke = 0;
         for (Trigger e : site.built().blueprint().triggers()) {
             BlockPos p = o.offset(e.x(), e.y(), e.z());
-            if (!e.kind().isEncounter() || e.level() != t.level() || state.hasFired(p) || p.distSqr(at) > 24 * 24) {
+            if (!e.kind().isEncounter() || e.level() != t.level() || state.hasFired(p) || p.distSqr(at) > 24 * 24
+                    || Altars.sleeps(site, e)) {
                 continue;
             }
             state.fire(p);
@@ -535,6 +541,7 @@ public final class Triggers {
         if (player.tickCount % 20 == 0 && here.site().planner() == Site.PLANNER_VERSION) {
             Arrivals.tick(level, player, here.site(), feet);
             Vaults.tick(level, player, here.site());
+            Altars.tick(level, player, here.site());
         }
         if (player.tickCount % 20 == 0) {
             final Site site = here.site();
@@ -615,7 +622,7 @@ public final class Triggers {
         CrawlState state = CrawlState.of(level);
         BlockPos o = site.origin();
         for (Trigger t : site.built().blueprint().triggers()) {
-            if (!t.kind().isEncounter()) {
+            if (!t.kind().isEncounter() || Altars.sleeps(site, t)) {
                 continue;
             }
             BlockPos p = o.offset(t.x(), t.y(), t.z());

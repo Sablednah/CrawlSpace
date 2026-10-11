@@ -7,6 +7,7 @@
 - No building over a puzzle room's void.
 - **A showcase dungeon.** `/crawlspace showcase` builds one with everything in it: every theme, feeling, trap, puzzle, vault and lock, to look round without hunting.
 - **Vault cages are copper grates**, not a single iron bar through the item.
+- **Sentries.** Some guard rooms post a Sentry with a goat horn. If it sees you, you have three seconds to kill it before it sounds the alarm and the nearest rooms come for you. Sneak to get closer.
 - **Door previews.** The block over a doorway says what's inside: gold-flecked blackstone for treasure, amethyst for a shrine, a bookshelf for a puzzle, iron for a guard room, and a wither skull over a lair.
 - **Fixed: ice boards that could not be finished** because a tile melted to water by a torch or lantern. Tiles are blue ice now, and a damaged board mends itself as you step on.
 - **Fixed: a crash two minutes after a portcullis dropped behind you**, as it lifted itself.

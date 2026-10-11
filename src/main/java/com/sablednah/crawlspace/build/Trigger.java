@@ -26,6 +26,8 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         BOSS,
         /** A guard room's numbered monsters, to be killed in order (Hypixel's Higher or Lower). */
         ORDERED,
+        /** The finale's altar: the lair's boss sleeps until an offering here wakes it, and can be called back. */
+        ALTAR,
         /** Not a trigger: a plate or wire that does nothing, kept here so dressing leaves it alone. */
         DECOY,
         /**
