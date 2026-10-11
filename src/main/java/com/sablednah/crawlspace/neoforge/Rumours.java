@@ -32,6 +32,15 @@ public final class Rumours {
     static ItemStack book(Site site, Site.Built built) {
         DungeonPlan plan = built.plan();
         Dice dice = Dice.of(site.seed(), 0x5EADL);
+        List<String> rumours = truths(site, built);
+        int bottom = plan.levels().size() - 1;
+        writeLies(site, plan, bottom, dice, rumours);
+        return write(rumours);
+    }
+
+    /** What is so about this dungeon: the book's rumours without its lies. A freed prisoner tells one of these. */
+    static List<String> truths(Site site, Site.Built built) {
+        DungeonPlan plan = built.plan();
         List<String> rumours = new ArrayList<>();
         for (int i = 1; i < plan.levels().size(); i++) {
             LevelPlan l = plan.levels().get(i);
@@ -63,6 +72,10 @@ public final class Rumours {
         if (plan.levels().get(bottom).roomWith(Role.LAIR) != null) {
             rumours.add("At the very bottom waits " + Bestiary.bossName(site, bottom) + ".");
         }
+        return rumours;
+    }
+
+    private static void writeLies(Site site, DungeonPlan plan, int bottom, Dice dice, List<String> rumours) {
         // Two that are not so.
         String[] lies = {
                 "The " + plan.levels().get(Math.min(1, bottom)).theme.name() + " is safe. Nothing lives there now.",
@@ -74,6 +87,9 @@ public final class Rumours {
             int at = dice.nextInt(rumours.size() + 1);
             rumours.add(at, lies[dice.nextInt(lies.length)]);
         }
+    }
+
+    private static ItemStack write(List<String> rumours) {
         List<Filterable<Component>> pages = new ArrayList<>();
         StringBuilder page = new StringBuilder("What they say of this place, and not all of it is true:\n\n");
         for (String r : rumours) {
