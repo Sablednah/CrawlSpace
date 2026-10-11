@@ -493,6 +493,14 @@ public final class Palettes {
                     .setValue(net.minecraft.world.level.block.GrindstoneBlock.FACING, dir);
             case CAULDRON -> Blocks.CAULDRON.defaultBlockState();
             case LECTERN -> Blocks.LECTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LecternBlock.FACING, dir);
+            case PREVIEW_TREASURE -> Blocks.GILDED_BLACKSTONE.defaultBlockState();
+            case PREVIEW_SHRINE -> Blocks.AMETHYST_BLOCK.defaultBlockState();
+            case PREVIEW_PUZZLE -> Blocks.CHISELED_BOOKSHELF.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.ChiseledBookShelfBlock.FACING, dir);
+            case PREVIEW_GUARD -> Blocks.IRON_BLOCK.defaultBlockState();
+            case PREVIEW_LAIR -> Blocks.POLISHED_BLACKSTONE.defaultBlockState();
+            case PREVIEW_SKULL -> Blocks.WITHER_SKELETON_WALL_SKULL.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.WallSkullBlock.FACING, dir);
             case TELL_PEBBLE -> Blocks.STONE_BUTTON.defaultBlockState()
                     .setValue(net.minecraft.world.level.block.ButtonBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR)
                     .setValue(net.minecraft.world.level.block.ButtonBlock.FACING, dir);

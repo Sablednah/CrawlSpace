@@ -183,7 +183,20 @@ public enum Part {
     TELL_FROST,
     TELL_SCORCH,
     TELL_SCULK,
-    TELL_DEAD;
+    TELL_DEAD,
+    /**
+     * Door previews (Hades): the lintel over a room's doorway says what is
+     * inside. Gilded blackstone for treasure, amethyst for a shrine, a chiseled
+     * bookshelf for a puzzle, iron for a guard room; over a lair, blackstone
+     * with a wither skull hung on its corridor face.
+     */
+    PREVIEW_TREASURE,
+    PREVIEW_SHRINE,
+    PREVIEW_PUZZLE,
+    PREVIEW_GUARD,
+    PREVIEW_LAIR,
+    /** The lair's skull, on the lintel's corridor face. Facing is away from the wall. */
+    PREVIEW_SKULL;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).
@@ -201,7 +214,8 @@ public enum Part {
                     TOWER, TOWER_FLOOR, TOWER_TOP, TOWER_TRIM, TOWER_STAIR, TOWER_CORBEL, TOWER_WINDOW, TOWER_PILLAR, TOWER_ROOF,
                     SHELF, WALL_ACCENT, FLOOR_ACCENT, FLOOR_INLAY, PILASTER, COVE, PANEL, DADO, MOSS_FLOOR, BEAM,
                     VOID, RESTART, PATH_HIDDEN, CRUMBLE, DRIPLEAF, PIT_TILE,
-                    PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER, WINDOW_BARS, PEDESTAL, ICE_TILE -> true;
+                    PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER, WINDOW_BARS, PEDESTAL, ICE_TILE,
+                    PREVIEW_TREASURE, PREVIEW_SHRINE, PREVIEW_PUZZLE, PREVIEW_GUARD, PREVIEW_LAIR -> true;
             default -> false;
         };
     }
