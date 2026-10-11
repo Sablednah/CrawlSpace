@@ -105,7 +105,6 @@ public final class Prisoners {
         }
         prisoner.snapTo(best.getX() + 0.5, best.getY(), best.getZ() + 0.5, 0, 0);
         prisoner.setNoAi(true);
-        prisoner.setInvulnerable(true);
         prisoner.setPersistenceRequired();
         prisoner.addTag(TAG);
         prisoner.setCustomName(Component.literal("Prisoner").withStyle(ChatFormatting.AQUA));
@@ -123,6 +122,17 @@ public final class Prisoners {
             }
         }
         return false;
+    }
+
+    /**
+     * A caged prisoner takes no harm. A cancelled hurt rather than
+     * {@code setInvulnerable}, which 26.3 no longer has: this is the same on
+     * every line.
+     */
+    public static void onHurt(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) {
+        if (e.getEntity().entityTags().contains(TAG)) {
+            e.setCanceled(true);
+        }
     }
 
     /** Using a prisoner: freed, if the lair's boss is dead. Cancels the villager's own trade screen either way. */
