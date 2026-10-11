@@ -755,6 +755,27 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Sleeping guardians (Mowzie's Frostmaw, 2026-10-11)
+
+`neoforge/Sleepers`. A lair above the bottom level (the bottom has its altar)
+sleeps at `CHANCE` 0.4 (`Dice(seed, level, 0x5133)`; every one in a
+showcase).
+- `Bestiary.wake` lulls the boss and its pack: `NoAI` plus the tag
+  `crawlspace_asleep`, both saved with the mob. The room's line is "...
+  sleeps in its lair. Go quietly: sneak, and it may not wake."
+- Now and then it snores (`FOX_SLEEP`, a puff).
+- **It wakes**, roaring, with its whole pack set on the player, when:
+  - a survival player comes within 8 blocks (and 6 up or down) without
+    sneaking;
+  - it is hit;
+  - a chest or barrel within 12 is opened without sneaking. Sneaking, it
+    says "You ease the lid open. It does not stir."
+- Sleepers are re-registered as they load (`onJoin`), so a restart leaves
+  them asleep.
+- No planner change: it is all decided as the room wakes.
+- **Seen on the rig** (showcase, level 3, the Gnawing Mite and four): asleep
+  as I crept in sneaking to 3 blocks; awake the moment I stood up.
+
 ## Survival rooms (Hades, Dungeon Now Loading; Sable's pick, 2026-10-11)
 
 A guard room from level 2 that is not numbered is `Trigger.Kind.SURVIVAL` at

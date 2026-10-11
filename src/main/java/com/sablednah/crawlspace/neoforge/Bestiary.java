@@ -246,6 +246,7 @@ public final class Bestiary {
         List<BossSpec> choices = bosses.getOrDefault(theme, bosses.get("Crypt"));
         BossSpec spec = choices.get(com.sablednah.crawlspace.plan.Dice.of(site.seed(), t.level(), 0xB055L).nextInt(choices.size()));
         boolean lair = t.kind() == Trigger.Kind.BOSS;
+        boolean asleep = lair && Sleepers.sleeps(site, t);
         // A guard room may post a sentry: the first of its monsters, which raises the alarm if it sees you.
         com.sablednah.crawlspace.plan.LevelPlan lp = site.built().plan().levels().get(t.level());
         com.sablednah.crawlspace.plan.Room room = lp.room(lp.region(t.x(), t.z()));
@@ -297,6 +298,9 @@ public final class Bestiary {
             mob.setPersistenceRequired();
             level.addFreshEntityWithPassengers(mob);
             Powers.track(level, mob);
+            if (asleep) {
+                Sleepers.lull(level, mob);
+            }
             spawned++;
         }
         if (spawned == 0) {
@@ -317,6 +321,9 @@ public final class Bestiary {
         }
         if (t.kind() == Trigger.Kind.ORDERED) {
             return "Numerals burn on their brows. Kill them in order: I to " + Powers.roman(t.targets().length) + ".";
+        }
+        if (asleep && bossName != null) {
+            return capitalise(bossName) + " sleeps in its lair. Go quietly: sneak, and it may not wake.";
         }
         return bossName != null ? capitalise(bossName) + " rises from its lair!" : "Something stirs in the dark.";
     }
