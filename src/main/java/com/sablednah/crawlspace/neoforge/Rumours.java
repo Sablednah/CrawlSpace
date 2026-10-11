@@ -55,6 +55,9 @@ public final class Rumours {
                 default -> {
                 }
             }
+            if (l.roomWith(com.sablednah.crawlspace.plan.Role.FALSE_LAIR) != null) {
+                rumours.add("The lair on " + n + " is not what it seems. The true one hides behind it.");
+            }
             for (Trigger t : built.blueprint().triggers()) {
                 if (t.level() != i) {
                     continue;

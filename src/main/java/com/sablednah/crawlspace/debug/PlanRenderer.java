@@ -197,7 +197,7 @@ public final class PlanRenderer {
         return switch (r.role) {
             case ENTRY -> new Color(0x9c, 0xc9, 0xa4);
             case EXIT -> new Color(0xe6, 0xc0, 0x8c);
-            case LAIR -> new Color(0xc9, 0x86, 0x80);
+            case LAIR, FALSE_LAIR -> new Color(0xc9, 0x86, 0x80);
             case TREASURE -> new Color(0xe8, 0xd6, 0x6e);
             case SECRET -> new Color(0xb9, 0x98, 0xd6);
             case KEY -> new Color(0xe0, 0x9f, 0xa0);

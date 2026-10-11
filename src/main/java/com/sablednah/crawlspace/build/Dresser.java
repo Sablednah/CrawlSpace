@@ -82,7 +82,7 @@ final class Dresser {
                     take(perim, 2, p -> props.add(floor(p, f, Part.COBWEB, 0, true)));
                     take(perim, 1, p -> props.add(floor(p, f, Part.SKULL, dice.nextInt(4), true)));
                 }
-                case LAIR -> {
+                case LAIR, FALSE_LAIR -> {
                     take(perim, 1, p -> props.add(floor(p, f, Part.HOARD_CHEST, p[2], true)));
                     take(perim, 1, p -> props.add(floor(p, f, Part.THRONE, (p[2] + 2) % 4, true)));
                     take(perim, 3, p -> props.add(floor(p, f, Part.BONES, 0, true)));
@@ -251,7 +251,7 @@ final class Dresser {
         double any = switch (r.role) {
             case GUARD -> 0.65;
             case ROOM, HALL -> 0.35;
-            case LAIR -> i >= 2 ? 0.5 : 0;
+            case LAIR, FALSE_LAIR -> i >= 2 ? 0.5 : 0;
             default -> 0;
         };
         if (!dice.chance(any)) {
@@ -308,7 +308,7 @@ final class Dresser {
             return false;
         }
         return switch (r.role) {
-            case LAIR, SHRINE -> true;
+            case LAIR, FALSE_LAIR, SHRINE -> true;
             case HALL, GUARD, ROOM, EXIT, ENTRY -> dice.chance(0.4);
             default -> false;
         };
@@ -530,7 +530,7 @@ final class Dresser {
     private static void niches(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i, boolean[][] reserved, Dice dice) {
         int made = 0;
         // Crypts, lairs and shrines line their niches with statues, as a row (Sable's reference: a lair's wall of skeletons).
-        boolean statues = r.role == Role.LAIR || r.role == Role.SHRINE
+        boolean statues = r.role == Role.LAIR || r.role == Role.FALSE_LAIR || r.role == Role.SHRINE
                 || (level.theme.name().equals("Crypt") && dice.chance(0.5));
         int most = statues ? 8 : 4;
         for (int x = r.minX() - 1; x <= r.maxX() + 1 && made < most; x++) {

@@ -115,7 +115,7 @@ public final class Blueprinter {
             return 4;
         }
         Room r = level.room(reg);
-        if (r.shape == Shape.HALL || r.role == Role.LAIR) {
+        if (r.shape == Shape.HALL || r.role == Role.LAIR || r.role == Role.FALSE_LAIR) {
             return 6;
         }
         if (r.shape == Shape.CAVE) {
@@ -304,7 +304,7 @@ public final class Blueprinter {
             double chance = switch (r.role) {
                 case ENTRY -> 0;
                 case EXIT -> 0.5;
-                case GUARD, LAIR -> 1;
+                case GUARD, LAIR, FALSE_LAIR -> 1;
                 case HALL -> 0.85;
                 case TREASURE, KEY -> 0.75;
                 case SECRET -> 0.6;
@@ -357,7 +357,8 @@ public final class Blueprinter {
             if (!pit.isEmpty()) {
                 spots = pit;
             }
-            int n = Math.min(spots.size(), (r.role == Role.LAIR ? 4 + i / 2 : 2 + i / 2 + dice.nextInt(3)) + (crowded ? 2 : 0));
+            int n = Math.min(spots.size(), (r.role == Role.LAIR || r.role == Role.FALSE_LAIR ? 4 + i / 2 : 2 + i / 2 + dice.nextInt(3))
+                    + (crowded ? 2 : 0));
             // Its own dice, so no other room's encounter changes: some guard rooms, from level 2, are numbered.
             boolean ordered = r.role == Role.GUARD && i >= 1
                     && (level.showcase ? r.id % 3 == 0 : com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x0DE5L).chance(ORDERED_CHANCE))
@@ -368,7 +369,8 @@ public final class Blueprinter {
             // And some, on their own dice, seal their doors and send waves: a survival room.
             boolean survival = !ordered && r.role == Role.GUARD && i >= 1
                     && (level.showcase ? r.id % 3 == 1 : com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x5A7EL).chance(SURVIVAL_CHANCE));
-            Trigger.Kind kind = r.role == Role.LAIR ? Trigger.Kind.BOSS : ordered ? Trigger.Kind.ORDERED
+            Trigger.Kind kind = r.role == Role.LAIR ? Trigger.Kind.BOSS : r.role == Role.FALSE_LAIR ? Trigger.Kind.DECOY_BOSS
+                    : ordered ? Trigger.Kind.ORDERED
                     : survival ? Trigger.Kind.SURVIVAL : Trigger.Kind.ENCOUNTER;
             int f = floorAt(plan, i, r.centerX(), r.centerZ());
             bp.addTrigger(new Trigger(kind, r.centerX(), f + 1, r.centerZ(), i,
@@ -845,8 +847,9 @@ public final class Blueprinter {
             return;
         }
         com.sablednah.crawlspace.plan.Dice d = com.sablednah.crawlspace.plan.Dice.of(plan.seed(), 0xF0B1L);
-        int on = level.showcase ? 1 : d.chance(FORBIDDEN_CHANCE) ? 1 + d.nextInt(plan.levels().size() - 1) : -1;
-        if (i != on) {
+        // A showcase has one on the first level from the second down where one fits.
+        int on = level.showcase ? i : d.chance(FORBIDDEN_CHANCE) ? 1 + d.nextInt(plan.levels().size() - 1) : -1;
+        if (i != on || i < 1 || bp.triggers().stream().anyMatch(t -> t.kind() == Trigger.Kind.FORBIDDEN)) {
             return;
         }
         for (Room r : level.rooms) {
@@ -868,9 +871,11 @@ public final class Blueprinter {
                     continue;
                 }
                 int f = floorAt(plan, i, x, z);
+                // A clear five by five: the tomb and its skulls take the middle three, and the ring round them is
+                // the way past, so it can never cut a room in two (a narrow arm of a cross-shaped room did).
                 boolean clear = true;
-                for (int dx = -1; dx <= 1 && clear; dx++) {
-                    for (int dz = -1; dz <= 1 && clear; dz++) {
+                for (int dx = -2; dx <= 2 && clear; dx++) {
+                    for (int dz = -2; dz <= 2 && clear; dz++) {
                         int c = bp.get(x + dx, f, z + dz);
                         clear = level.cell(x + dx, z + dz) == Cell.FLOOR && floorAt(plan, i, x + dx, z + dz) == f
                                 && (c == 0 || Blueprint.part(c) == Part.AIR) && bp.triggerAt(x + dx, f, z + dz) == null;
@@ -896,7 +901,7 @@ public final class Blueprinter {
             case SHRINE -> Part.PREVIEW_SHRINE;
             case PUZZLE -> Part.PREVIEW_PUZZLE;
             case GUARD -> Part.PREVIEW_GUARD;
-            case LAIR -> Part.PREVIEW_LAIR;
+            case LAIR, FALSE_LAIR -> Part.PREVIEW_LAIR; // a pretender's lintel looks the same: that is the point
             default -> null;
         };
     }
@@ -1105,7 +1110,7 @@ public final class Blueprinter {
         LevelPlan level = plan.levels().get(i);
         for (Room r : level.rooms) {
             boolean worth = switch (r.role) {
-                case LAIR, TREASURE, KEY, SHRINE -> true;
+                case LAIR, FALSE_LAIR, TREASURE, KEY, SHRINE -> true;
                 default -> false;
             };
             if (!worth || !level.showcase && !dice.chance(WINDOW_CHANCE)) {
@@ -1543,6 +1548,40 @@ public final class Blueprinter {
             }
         }
         walkIn.remove(4); // the centre is never walked into
+        // Most puzzle rooms are on the way to somewhere, so the maze must be passable by its pads. Doors into cells
+        // are: the cycle visits every cell. Doors onto the free floor round the grid are only if that floor is one
+        // piece, reached by the entry pad and the centre's way out. A teleport maze that cut off the rooms beyond
+        // it is what the reachability test found (seed 15) before this.
+        java.util.Set<Long> free = new java.util.HashSet<>();
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                boolean inGrid = x >= x0 && x <= x0 + 10 && z >= z0 && z <= z0 + 10;
+                if (floor.test(x, z) && !inGrid && !walls.contains(key(x, z))) {
+                    free.add(key(x, z));
+                }
+            }
+        }
+        if (!free.isEmpty()) {
+            java.util.Set<Long> reached = new java.util.HashSet<>();
+            java.util.ArrayDeque<Long> todo = new java.util.ArrayDeque<>();
+            long first = free.iterator().next();
+            reached.add(first);
+            todo.add(first);
+            while (!todo.isEmpty()) {
+                long c = todo.poll();
+                int cx = (int) (c >> 32);
+                int cz = (int) c;
+                for (int[] d : DIRS4) {
+                    long n = key(cx + d[0], cz + d[1]);
+                    if (free.contains(n) && reached.add(n)) {
+                        todo.add(n);
+                    }
+                }
+            }
+            if (reached.size() != free.size()) {
+                return false;
+            }
+        }
         int h = clearHeight(level, r.centerX(), r.centerZ());
         // Entry: a free floor cell just outside the ring, if the room has room for one.
         int[] entry = null;
@@ -1559,8 +1598,8 @@ public final class Blueprinter {
                 }
             }
         }
-        if (entry == null && walkIn.isEmpty()) {
-            return false; // nowhere to get in
+        if (entry == null && walkIn.isEmpty() || margin && entry == null) {
+            return false; // nowhere to get in, or a door onto free floor with no pad from it
         }
         // Clear the grid, then build the walls.
         for (int x = x0 - 1; x <= x0 + 11; x++) {

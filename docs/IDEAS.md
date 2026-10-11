@@ -32,6 +32,7 @@ what the rig showed):
 - survival rooms;
 - the prisoner;
 - the thing you should not touch;
+- false lairs;
 - portcullis and key, and the portcullis trap;
 - one-way valves;
 - windows;
@@ -54,7 +55,6 @@ what the rig showed):
 - the other puzzles in section 3 (token quota, liars' chests, riddles,
   item frames, vanishing bridge, Sokoban, water and beam boards);
 - the objective rooms' jobs (2b);
-- the false lair;
 - seals for the deepest door;
 - restocking and heroic re-entry;
 - cycle types on the planner.

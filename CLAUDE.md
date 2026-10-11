@@ -755,6 +755,43 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## False lairs (Tomb of Horrors; Sable, 2026-10-12)
+
+`LevelPlanner`: a lair above the bottom becomes a pretender's at
+`FALSE_LAIR_CHANCE` (0.35; a showcase always has one on level 3, where its
+lair is forced). The loop's lair room is re-roled `Role.FALSE_LAIR`, and a new
+`Role.LAIR` room hangs off it by a `LinkKind.SECRET` link.
+- **The decoy** is dressed, lit, sized and windowed as a lair. It has a lair's
+  lintel too (that is the point), and a certain encounter of
+  `Trigger.Kind.DECOY_BOSS`.
+- **The pretender:** `Bestiary.wake` makes it the level's boss, same name and
+  bar, then `Decoys.pretend` takes 60% off its max health.
+- **When it falls:** "That was too easy... It was only a pretender.
+  Something far worse growls behind these walls." A roar and smoke come from
+  the real lair's spot, so the player knows to look, and roughly where.
+- **Finding the wall:** LegendQuest's WIS check on secret doors finds the
+  seam; without it, `play.hints` dust shows it.
+- The real lair is an ordinary `BOSS` lair, so sleeping guardians and
+  prisoners apply to it, not the decoy.
+- The rumour book knows: "The lair on level N is not what it seems."
+- **Tested:**
+  - `falseLairsHideTheRealOne`: 32 over 40 dungeons. Each has a secret link
+    to a real lair, a pretender, and a real boss, and none is on the bottom
+    level.
+  - On the rig (showcase, level 3): the pretender Gnawing Mite had 28 health
+    and the real one, asleep behind the wall until approached, 70.
+
+**What it shook loose: teleport mazes cut off rooms beyond them.** The new
+layouts put a teleport maze in a through-room (seed 15). Its sealed cells
+walled off everything past it, which the reachability test caught. Most
+puzzle rooms are through-rooms (69 of 70 sampled had two or more doors), so
+a maze must be passable by its pads:
+- The free floor round the grid must be one connected piece, with an entry
+  pad whenever a door opens onto it.
+- The test's `walk` follows pads as edges.
+- The tomb now also needs a clear 5x5 (a walkway round it), and a showcase
+  places it on the first level from 2 where one fits.
+
 ## The thing you should not touch (Death Frost Doom, 2026-10-11)
 
 `Blueprinter.forbidden`: half of dungeons (`Dice(seed, 0xF0B1)`) put one on a
