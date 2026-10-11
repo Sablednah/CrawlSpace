@@ -30,6 +30,8 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         ALTAR,
         /** A false lair's pretender: a look-alike of the level's boss, much weaker, and a growl from the real one when it falls. */
         DECOY_BOSS,
+        /** A gelatinous cube's beat: the targets are its corridor's centre line, {x, y, z} a cell, end to end. */
+        CUBE,
         /** A guard room whose doors seal as it wakes: hold out against waves until they open (Hades). */
         SURVIVAL,
         /** The thing you should not touch: break its seal, and the level's cleared rooms fill again. */

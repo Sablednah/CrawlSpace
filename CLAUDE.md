@@ -755,6 +755,39 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## The gelatinous cube (Sable's D&D night, 2026-10-12)
+
+`Blueprinter.cube`: from level 2, 40% of levels (`Dice(seed, level,
+0xC0BE)`; the showcase's level 2) put a `Trigger.Kind.CUBE` on the longest
+3-wide corridor of at least 16 cells. Its targets are the corridor's centre
+line, `{x, f, z}` per cell.
+- **The cube** (`neoforge/Cubes`) wakes once when a survival player comes
+  within 20 of its beat. It is a size-5 slime (2.6 blocks, nearly wall to
+  wall) with no AI, health 60 + 12/level, named "Gelatinous Cube", and it
+  never splits (`MobSplitEvent` is cancelled).
+- **It glides.** Each tick it moves 0.05 blocks along the beat and back, set
+  by position and never jumping: slimes have no pathfinding, and the plan
+  already knows the corridor.
+- **The slime is invisible**: its model's solid core hid everything inside.
+  What you see is a block display of lime stained glass, scaled to the
+  slime, which the prisoners show through. The slime still takes the hits
+  and its touch still burns.
+- **What it has swallowed:** one or two of the theme's monsters (no AI, no
+  gravity, silent, unharmed while held) and item displays (bone, skull, gold,
+  a sword). All are moved with it every tick, with `teleport_duration` on the
+  displays.
+- **Engulfing:** a player inside its box gets Slowness III and "The cube
+  engulfs you! Its acid burns."
+- **Killed:** the prisoners fall out at half health with their AI back and
+  set on the nearest player. The swallowed items drop, along with a tier
+  min(5, 2 + level/2) roll. The body dissolves.
+- **After a restart** (`onJoin`) its beat is found again from the blueprint,
+  and what it held nearby is gathered back.
+- **Seen on the rig** (showcase, level 2):
+  - A 20-cell beat; it moved about 5 blocks in 4 seconds.
+  - Through the glass: a skeleton and a zombie, a skull, bones.
+  - Killed: no split, the prisoners free (no `NoAI`), 9 stacks on the floor.
+
 ## False lairs (Tomb of Horrors; Sable, 2026-10-12)
 
 `LevelPlanner`: a lair above the bottom becomes a pretender's at

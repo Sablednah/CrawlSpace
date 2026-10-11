@@ -556,6 +556,7 @@ public final class Triggers {
             SurvivalRooms.mend(level, player, here.site());
             Shrines.notice(level, player, here.site());
             Forbidden.tick(level, player, here.site());
+            Cubes.wake(level, player, here.site());
         }
         if (player.tickCount % 20 == 0) {
             final Site site = here.site();
