@@ -298,7 +298,9 @@ public final class Palettes {
             m.put("portcullis", Mix.of(Blocks.IRON_BARS, 1));
             m.put("window_bars", Mix.of(Blocks.IRON_BARS, 1));
             m.put("pedestal", Mix.of(Blocks.CHISELED_STONE_BRICKS, 1));
-            m.put("ice_tile", Mix.of(Blocks.ICE, 1));
+            // Blue ice, not plain: plain ice melts to water by any torch or lantern, and a board with a
+            // hole in it cannot be finished (Sable, 2026-10-11). Blue and packed ice never melt.
+            m.put("ice_tile", Mix.of(Blocks.BLUE_ICE, 1));
             m.put("portcullis_sill", m.get("floor_inlay"));
             DEFAULT_SKINS.put(theme, m);
         }

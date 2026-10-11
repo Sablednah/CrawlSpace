@@ -36,7 +36,8 @@ public final class IceBoards {
     /** From Triggers' tick: a player on the ground in a dungeon, with their feet at {@code feet}. */
     static void step(ServerLevel level, ServerPlayer player, Site site, BlockPos feet) {
         BlockPos below = feet.below();
-        if (!level.getBlockState(below).is(Blocks.ICE) && !level.getBlockState(below).is(Blocks.PACKED_ICE)) {
+        net.minecraft.world.level.block.state.BlockState under = level.getBlockState(below);
+        if (!under.is(FRESH) && !under.is(Blocks.ICE) && !under.is(Blocks.PACKED_ICE)) {
             ON.remove(player.getUUID());
             return;
         }
@@ -62,10 +63,11 @@ public final class IceBoards {
                 return; // solved
             }
             Set<Long> crossed = CROSSED.computeIfAbsent(key.asLong(), k -> new HashSet<>());
+            mend(level, o, t, crossed);
             if (!crossed.add(below.asLong())) {
                 // Twice on one tile: the board cracks back.
                 for (long p : crossed) {
-                    level.setBlock(BlockPos.of(p), Blocks.ICE.defaultBlockState(), 3);
+                    level.setBlock(BlockPos.of(p), FRESH.defaultBlockState(), 3);
                 }
                 crossed.clear();
                 // The tile you stand on is where you start again: on the rig, without this, the tile a
@@ -93,6 +95,28 @@ public final class IceBoards {
                 Powers.bless(level, player, at);
             }
             return;
+        }
+    }
+
+    /** An uncrossed tile. Blue ice, which never melts; plain ice, on boards built before, is mended to it. */
+    static final net.minecraft.world.level.block.Block FRESH = Blocks.BLUE_ICE;
+
+    /**
+     * Puts back any tile that is not what it should be: melted to water,
+     * broken, or the plain ice of a board built before tiles were blue. A
+     * board with a hole in it can never be finished, and the player cannot
+     * stand on a hole to have it noticed, so every tile is checked whenever
+     * anyone steps onto the board.
+     */
+    private static void mend(ServerLevel level, BlockPos o, Trigger t, Set<Long> crossed) {
+        for (int k = 1; k < t.targets().length; k++) {
+            BlockPos p = o.offset(t.targets()[k][0], t.targets()[k][1], t.targets()[k][2]);
+            net.minecraft.world.level.block.Block want = crossed.contains(p.asLong()) ? Blocks.PACKED_ICE : FRESH;
+            net.minecraft.world.level.block.state.BlockState now = level.getBlockState(p);
+            if (now.is(FRESH) || now.is(Blocks.PACKED_ICE)) {
+                continue; // fresh or packed is the player's doing, not damage
+            }
+            level.setBlock(p, want.defaultBlockState(), 3);
         }
     }
 
