@@ -303,6 +303,9 @@ public final class Bestiary {
         if (spawned == 0) {
             return null;
         }
+        if (t.kind() == Trigger.Kind.SURVIVAL) {
+            SurvivalRooms.start(level, site, t);
+        }
         if (lair && spec.type() == EntityTypes.WARDEN) {
             // Wardens are blind and find you by sound; a pack woken by someone hunts them from the start.
             net.minecraft.world.entity.player.Player near = level.getNearestPlayer(o.getX() + t.x(), o.getY() + t.y(), o.getZ() + t.z(), 24, false);

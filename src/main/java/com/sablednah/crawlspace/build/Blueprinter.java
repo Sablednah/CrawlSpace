@@ -124,7 +124,7 @@ public final class Blueprinter {
         return 4;
     }
 
-    static int floorAt(DungeonPlan plan, int i, int x, int z) {
+    public static int floorAt(DungeonPlan plan, int i, int x, int z) {
         return floorY(plan, i) + plan.levels().get(i).height(x, z);
     }
 
@@ -359,12 +359,16 @@ public final class Blueprinter {
             int n = Math.min(spots.size(), (r.role == Role.LAIR ? 4 + i / 2 : 2 + i / 2 + dice.nextInt(3)) + (crowded ? 2 : 0));
             // Its own dice, so no other room's encounter changes: some guard rooms, from level 2, are numbered.
             boolean ordered = r.role == Role.GUARD && i >= 1
-                    && (level.showcase ? r.id % 2 == 0 : com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x0DE5L).chance(ORDERED_CHANCE))
+                    && (level.showcase ? r.id % 3 == 0 : com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x0DE5L).chance(ORDERED_CHANCE))
                     && n >= 3;
             if (ordered) {
                 n = Math.min(n, 4);
             }
-            Trigger.Kind kind = r.role == Role.LAIR ? Trigger.Kind.BOSS : ordered ? Trigger.Kind.ORDERED : Trigger.Kind.ENCOUNTER;
+            // And some, on their own dice, seal their doors and send waves: a survival room.
+            boolean survival = !ordered && r.role == Role.GUARD && i >= 1
+                    && (level.showcase ? r.id % 3 == 1 : com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x5A7EL).chance(SURVIVAL_CHANCE));
+            Trigger.Kind kind = r.role == Role.LAIR ? Trigger.Kind.BOSS : ordered ? Trigger.Kind.ORDERED
+                    : survival ? Trigger.Kind.SURVIVAL : Trigger.Kind.ENCOUNTER;
             int f = floorAt(plan, i, r.centerX(), r.centerZ());
             bp.addTrigger(new Trigger(kind, r.centerX(), f + 1, r.centerZ(), i,
                     spots.subList(0, n).toArray(new int[0][])));
@@ -957,6 +961,9 @@ public final class Blueprinter {
             }
         }
     }
+
+    /** How often a guard room from the second level down, not numbered, is a survival room. */
+    static final double SURVIVAL_CHANCE = 0.2;
 
     /** How often a guard room from the second level down wakes numbered monsters, to be killed in order. */
     static final double ORDERED_CHANCE = 0.3;
