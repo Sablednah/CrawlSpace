@@ -259,6 +259,7 @@ public final class Blueprinter {
         }
         encounters(bp, plan, i);
         ambushes(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0xA4B5L));
+        cube(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0xC0BEL));
     }
 
     /**
@@ -382,6 +383,43 @@ public final class Blueprinter {
      * Ambushes: a group waiting partway along a long corridor, likelier deeper
      * down. They stand along the corridor's middle, on clear floor.
      */
+    /** How often a level from the second down has a gelatinous cube patrolling one of its corridors. */
+    static final double CUBE_CHANCE = 0.4;
+
+    /**
+     * The gelatinous cube's beat (Sable's D&D night, 2026-10-12): the longest
+     * three-wide corridor on the level, at least sixteen cells, whose centre
+     * line it glides along and back. Its own dice; a showcase has one on
+     * level 2.
+     */
+    private static void cube(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice dice) {
+        LevelPlan level = plan.levels().get(i);
+        if (i < 1 || !(level.showcase ? i == 1 : dice.chance(CUBE_CHANCE))) {
+            return;
+        }
+        com.sablednah.crawlspace.plan.Link best = null;
+        for (com.sablednah.crawlspace.plan.Link l : level.links) {
+            if (l.path != null && l.width == 3 && l.kind != com.sablednah.crawlspace.plan.LinkKind.SECRET && l.path.length >= 16
+                    && (best == null || l.path.length > best.path.length)) {
+                best = l;
+            }
+        }
+        if (best == null) {
+            return;
+        }
+        java.util.List<int[]> beat = new java.util.ArrayList<>();
+        for (int[] c : best.path) {
+            if (level.cell(c[0], c[1]) == Cell.CORRIDOR) {
+                beat.add(new int[] {c[0], floorAt(plan, i, c[0], c[1]), c[1]});
+            }
+        }
+        if (beat.size() < 16) {
+            return;
+        }
+        int[] start = beat.get(beat.size() / 2);
+        bp.addTrigger(new Trigger(Trigger.Kind.CUBE, start[0], start[1], start[2], i, beat.toArray(new int[0][])));
+    }
+
     private static void ambushes(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice dice) {
         LevelPlan level = plan.levels().get(i);
         for (com.sablednah.crawlspace.plan.Link l : level.links) {
