@@ -755,6 +755,25 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## A task that schedules a task crashed the server (Sable, 2026-10-11)
+
+A dropped portcullis trap lifts itself two minutes later. That lift is a
+`Crumbles.later` task, and it schedules one more task per bar so they rise
+in turn. `Crumbles.tick` ran due tasks while iterating `LATER`, so adding
+to it mid-loop threw `ConcurrentModificationException` from the server
+tick and took Sable's single-player world down, exactly two minutes after
+he walked through a drop trap. The Mimic he was killing at the time was a
+coincidence.
+- **The fix:** take what is due off the list first, then run it. The
+  crumble loop, `Powers.tick` and `Bosses.tick` now iterate copies too: a
+  collapse runs its own code, and a summoning power adds monsters that are
+  tracked as they join.
+- **Reproduced before fixing** with `~/rig/crawlspace/droptest.sh x z`:
+  drop the trap, `/tick sprint 2500`. The old build went down with the same
+  trace (`Crumbles.java:90`); the fixed one stayed up and the bars rose.
+- **The rule:** nothing run from a tick loop over a shared list may be
+  trusted not to add to that list. Collect, then act.
+
 ## The showcase dungeon (Sable, 2026-10-10)
 
 `/crawlspace showcase [levels] [n]` builds a dungeon with every feature in

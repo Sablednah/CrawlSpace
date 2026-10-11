@@ -86,16 +86,22 @@ public final class Crumbles {
     }
 
     public static void tick() {
+        // Take what is due off the list before running any of it: a task may schedule another (a portcullis
+        // that drops and is due to rise; a spawner burning out), and adding to the list mid-loop threw a
+        // ConcurrentModificationException that took Sable's whole server down (2026-10-11).
+        List<Later> due = new ArrayList<>();
         for (Iterator<Later> l = LATER.iterator(); l.hasNext();) {
             Later t = l.next();
             if (t.level().getGameTime() >= t.at()) {
                 l.remove();
-                t.task().run();
+                due.add(t);
             }
         }
-        Iterator<Crumble> it = ACTIVE.iterator();
-        while (it.hasNext()) {
-            Crumble c = it.next();
+        for (Later t : due) {
+            t.task().run();
+        }
+        // A copy for the same reason: a collapse runs its own code, which may start another crumble.
+        for (Crumble c : new ArrayList<>(ACTIVE)) {
             long now = c.level.getGameTime();
             if (c.restoreAt >= 0) {
                 if (now >= c.restoreAt) {
@@ -105,7 +111,7 @@ public final class Crumbles {
                         }
                     }
                     BUSY.removeAll(c.blocks);
-                    it.remove();
+                    ACTIVE.remove(c);
                 }
                 continue;
             }
@@ -131,7 +137,7 @@ public final class Crumbles {
                     c.restoreAt = now + c.restoreAfter;
                 } else {
                     BUSY.removeAll(c.blocks);
-                    it.remove();
+                    ACTIVE.remove(c);
                 }
             }
         }
