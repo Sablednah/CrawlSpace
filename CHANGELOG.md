@@ -7,6 +7,7 @@
 - No building over a puzzle room's void.
 - **A showcase dungeon.** `/crawlspace showcase` builds one with everything in it: every theme, feeling, trap, puzzle, vault and lock, to look round without hunting.
 - **Vault cages are copper grates**, not a single iron bar through the item.
+- **The thing you should not touch.** A sealed tomb ringed with skulls, warning you off. Open it anyway: it pays at once, and the Restless Dead fill every room you cleared on that level until you leave it.
 - **Prisoners.** Some lairs keep a captive behind bars. Kill the beast, then free them: they leave you something, and tell you something true about the dungeon.
 - **More for LegendQuest's dice** (with LegendQuest 2.9.2 or newer): spot a mimic, draw a trapped chest's needle, read a trap's tell or a shrine's omen, and slip past a sentry. The API has five new optional hooks for any RPG mod.
 - **Sleeping guardians.** Some lairs above the bottom sleep, snoring. Sneak, and you can take the hoard from under their noses; stand up, strike, or creak a chest open, and the whole pack wakes.

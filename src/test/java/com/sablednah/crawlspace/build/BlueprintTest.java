@@ -531,7 +531,7 @@ class BlueprintTest {
         for (Trigger.Kind k : new Trigger.Kind[] {Trigger.Kind.DARTS, Trigger.Kind.GAS, Trigger.Kind.ALARM, Trigger.Kind.WEBS,
                 Trigger.Kind.ROCKFALL, Trigger.Kind.FROST, Trigger.Kind.FIRE, Trigger.Kind.SUMMON, Trigger.Kind.VAULT,
                 Trigger.Kind.PORTCULLIS, Trigger.Kind.ICE_BOARD, Trigger.Kind.ORDERED, Trigger.Kind.BOSS, Trigger.Kind.LEVER,
-                Trigger.Kind.TELEPORT_MAZE, Trigger.Kind.ALTAR, Trigger.Kind.SURVIVAL}) {
+                Trigger.Kind.TELEPORT_MAZE, Trigger.Kind.ALTAR, Trigger.Kind.SURVIVAL, Trigger.Kind.FORBIDDEN}) {
             assertTrue(kinds.contains(k), "the showcase has no " + k);
         }
         assertFalse(com.sablednah.crawlspace.plan.Showcase.on(12345L), "an ordinary seed is not a showcase");

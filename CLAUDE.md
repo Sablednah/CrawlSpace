@@ -755,6 +755,34 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## The thing you should not touch (Death Frost Doom, 2026-10-11)
+
+`Blueprinter.forbidden`: half of dungeons (`Dice(seed, 0xF0B1)`) put one on a
+random level from 2 down (a showcase: always, on level 2). It goes in an
+ordinary room or hall, on the clear 3x3 nearest the room's middle that is
+away from doors: `Part.FORBIDDEN` (chiseled polished blackstone) with a skull
+at each corner, and `Trigger.Kind.FORBIDDEN`.
+- **The warning:** within 6, once a session, "...Everything about it says: do
+  not touch."
+- **Using it** (`neoforge/Forbidden`) breaks the seal once (CrawlState):
+  - It pays at once: a `chests/tier(min 5, 3 + level/2)` roll.
+  - The Restless Dead rise. Every encounter room on that level already
+    cleared (fired) wakes again; its new monsters are tagged
+    `crawlspace_restless`, and 30% drop a tier-3 item.
+  - A purple "The Restless Dead" bar follows players on that level.
+  - Chat says what changed and the way out: "N rooms you cleared on this
+    level are full again. Leave the level and they lie still."
+- **Ending it:** 10 s with nobody on the level discards the restless, with
+  soul puffs. On Peaceful the seal will not break.
+- **`/crawlspace use <pos>`** sends a real `RightClickBlock` for a block
+  through `Triggers.onUse`. That tests a click's effect without aiming one,
+  which ate most of this test: arrows knocked the view round, and a
+  generated dungeon overlapping the build answered `goto` instead.
+- **Seen on the rig** (showcase, level 2):
+  - The seal broke: 2 cleared rooms refilled (8 restless) and 5 stacks
+    dropped at the tomb.
+  - Leaving the level: "the Restless Dead lie still (8 gone)".
+
 ## The prisoner (Against the Giants, Goblin Punch, 2026-10-11)
 
 `neoforge/Prisoners`. Half the lairs above the bottom keep one

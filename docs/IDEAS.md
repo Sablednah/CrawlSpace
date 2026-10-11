@@ -13,7 +13,7 @@ source and fits CrawlSpace's rules:
 Effort: **S** is a day or so, **M** several days, **L** a subsystem.
 **LQ** marks an idea that gets better with LegendQuest.
 
-## Status (2026-10-10)
+## Status (2026-10-11)
 
 **Built for 0.3.0, on all four lines** (CLAUDE.md has each one's design and
 what the rig showed):
@@ -24,7 +24,14 @@ what the rig showed):
 - take one of three (vaults);
 - rumours, as a book;
 - named shrines;
+- door previews;
+- alarm sentries;
 - champions (elites with affixes) and scaled bosses;
+- the finale's altar, with rematches;
+- sleeping guardians;
+- survival rooms;
+- the prisoner;
+- the thing you should not touch;
 - portcullis and key, and the portcullis trap;
 - one-way valves;
 - windows;
@@ -34,21 +41,23 @@ what the rig showed):
 - protection;
 - Lootr compatibility;
 - spawner burn-out;
-- the ice-fill and ordered-kills puzzles.
+- the ice-fill, ordered-kills and teleport-maze puzzles;
+- a showcase dungeon to see them all.
 
-**Partly built:**
-- A rematch or deliberate summon: `/crawlspace summon boss` exists for
-  testing, but there is no altar yet.
-- LegendQuest's WIS/DEX hooks reach CrawlSpace's Perception provider (traps,
-  secret doors), but not the newer things (tells, mimics, shrines).
+**With LegendQuest's dice:**
+- WIS notices traps and secret doors, and reads tells and shrine omens.
+- DEX disarms traps and a chest's needle, and slips sentries.
+- INT spots mimics.
+- STR catches you on a puzzle's edge.
 
 **Not built:**
-- alarm sentries;
-- the teleport maze and the other puzzles in section 3;
+- the other puzzles in section 3 (token quota, liars' chests, riddles,
+  item frames, vanishing bridge, Sokoban, water and beam boards);
 - the objective rooms' jobs (2b);
-- cycle types on the planner;
+- the false lair;
 - seals for the deepest door;
-- restocking and heroic re-entry.
+- restocking and heroic re-entry;
+- cycle types on the planner.
 
 **Benched for a future add-on (Sable, 2026-10-11):** rival factions that
 fight each other or bargain.

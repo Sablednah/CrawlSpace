@@ -200,7 +200,9 @@ public enum Part {
     /** The finale's altar, at the head of the arena's stairs: an offering wakes the boss, and calls it back. */
     BOSS_ALTAR,
     /** A teleport maze's pad, in the floor: stepping on it sends you to another cell. */
-    TP_PAD;
+    TP_PAD,
+    /** The thing you should not touch: a sealed sarcophagus, chained, ringed with skulls (Death Frost Doom). */
+    FORBIDDEN;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).
@@ -219,7 +221,7 @@ public enum Part {
                     SHELF, WALL_ACCENT, FLOOR_ACCENT, FLOOR_INLAY, PILASTER, COVE, PANEL, DADO, MOSS_FLOOR, BEAM,
                     VOID, RESTART, PATH_HIDDEN, CRUMBLE, DRIPLEAF, PIT_TILE,
                     PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER, WINDOW_BARS, PEDESTAL, ICE_TILE,
-                    PREVIEW_TREASURE, PREVIEW_SHRINE, PREVIEW_PUZZLE, PREVIEW_GUARD, PREVIEW_LAIR, BOSS_ALTAR, TP_PAD -> true;
+                    PREVIEW_TREASURE, PREVIEW_SHRINE, PREVIEW_PUZZLE, PREVIEW_GUARD, PREVIEW_LAIR, BOSS_ALTAR, TP_PAD, FORBIDDEN -> true;
             default -> false;
         };
     }
