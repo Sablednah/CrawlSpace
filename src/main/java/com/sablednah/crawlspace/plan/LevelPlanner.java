@@ -51,6 +51,9 @@ public final class LevelPlanner {
      * @param arrival where the stair from above comes down; the entry room is centred on it
      * @param bottom  the last level: its far room is the final lair, with no stair further down
      */
+    /** How often a lair above the bottom is a false one, with the real lair behind a secret wall (Tomb of Horrors). */
+    static final double FALSE_LAIR_CHANCE = 0.35;
+
     public static LevelPlan plan(long seed, int index, int[] arrival, Theme theme, boolean bottom) {
         return plan(seed, index, arrival, theme, bottom, Feeling.NONE);
     }
@@ -96,7 +99,7 @@ public final class LevelPlanner {
         List<Room> loop = new ArrayList<>();
         int exitAt = loopSize / 2 + dice.between(0, loopSize % 2);
         int lairAt = bottom ? exitAt
-                : index >= 1 && dice.chance(0.6) ? pickOther(dice, loopSize, exitAt) : -1;
+                : index >= 1 && (show && index == 2 || dice.chance(0.6)) ? pickOther(dice, loopSize, exitAt) : -1;
         for (int i = 0; i < loopSize; i++) {
             Role role = i == 0 ? Role.ENTRY
                     : i == lairAt ? Role.LAIR
@@ -160,6 +163,14 @@ public final class LevelPlanner {
                 branches.add(new Room[] {parent, child});
                 parent = child;
             }
+        }
+        // A false lair: the loop's lair is a pretender's, and the real one hangs off it behind a secret wall.
+        if (lairAt >= 0 && !bottom && (show ? index == 2 : dice.chance(FALSE_LAIR_CHANCE))) {
+            Room decoy = loop.get(lairAt);
+            decoy.role = Role.FALSE_LAIR;
+            Room real = makeRoom(level.rooms.size(), Role.LAIR, theme, dice, level);
+            level.links.add(new Link(decoy, real, LinkKind.SECRET, false));
+            branches.add(new Room[] {decoy, real});
         }
         if (lock && !keyPlaced) {
             for (Link l : level.links) {
