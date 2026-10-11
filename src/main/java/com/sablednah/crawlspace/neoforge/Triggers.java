@@ -71,6 +71,11 @@ public final class Triggers {
             Powers.bless(level, player, pos);
         }
         Sleepers.noise(level, player, pos);
+        if (!player.isSpectator() && Prisoners.useBars(level, player, pos)) {
+            e.setCanceled(true);
+            e.setCancellationResult(InteractionResult.SUCCESS);
+            return;
+        }
         if (!player.isSpectator() && !player.isCreative() && Mimics.open(level, player, site, pos)) {
             e.setCanceled(true);
             e.setCancellationResult(InteractionResult.SUCCESS);
