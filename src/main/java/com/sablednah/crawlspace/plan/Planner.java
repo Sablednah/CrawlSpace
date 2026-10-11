@@ -105,7 +105,7 @@ public final class Planner {
         List<Room> leaves = new ArrayList<>();
         for (Room r : lower.rooms) {
             if (r.role == Role.ENTRY || r.role == Role.EXIT || r.role == Role.KEY || r.role == Role.SECRET
-                    || r.role == Role.LAIR || r.role == Role.PUZZLE) {
+                    || r.role == Role.LAIR || r.role == Role.FALSE_LAIR || r.role == Role.PUZZLE) {
                 continue;
             }
             Link only = null;

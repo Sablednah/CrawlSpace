@@ -531,7 +531,7 @@ class BlueprintTest {
         for (Trigger.Kind k : new Trigger.Kind[] {Trigger.Kind.DARTS, Trigger.Kind.GAS, Trigger.Kind.ALARM, Trigger.Kind.WEBS,
                 Trigger.Kind.ROCKFALL, Trigger.Kind.FROST, Trigger.Kind.FIRE, Trigger.Kind.SUMMON, Trigger.Kind.VAULT,
                 Trigger.Kind.PORTCULLIS, Trigger.Kind.ICE_BOARD, Trigger.Kind.ORDERED, Trigger.Kind.BOSS, Trigger.Kind.LEVER,
-                Trigger.Kind.TELEPORT_MAZE, Trigger.Kind.ALTAR, Trigger.Kind.SURVIVAL, Trigger.Kind.FORBIDDEN}) {
+                Trigger.Kind.TELEPORT_MAZE, Trigger.Kind.ALTAR, Trigger.Kind.SURVIVAL, Trigger.Kind.FORBIDDEN, Trigger.Kind.DECOY_BOSS}) {
             assertTrue(kinds.contains(k), "the showcase has no " + k);
         }
         assertFalse(com.sablednah.crawlspace.plan.Showcase.on(12345L), "an ordinary seed is not a showcase");
@@ -606,6 +606,43 @@ class BlueprintTest {
         }
         System.out.println("TELEPORT mazes " + mazes);
         assertTrue(mazes > 0, "no teleport mazes");
+    }
+
+    /**
+     * False lairs: each has a pretender's boss, and a secret link to a real lair
+     * with the real boss, on a level above the bottom. And they turn up.
+     */
+    @Test
+    void falseLairsHideTheRealOne() {
+        int found = 0;
+        for (long seed = 1; seed <= 40; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 5);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            for (LevelPlan level : plan.levels()) {
+                com.sablednah.crawlspace.plan.Room decoy = level.roomWith(com.sablednah.crawlspace.plan.Role.FALSE_LAIR);
+                if (decoy == null) {
+                    continue;
+                }
+                found++;
+                assertTrue(level.index < plan.levels().size() - 1, "seed " + seed + ": a false lair on the bottom level");
+                boolean secretToLair = false;
+                for (com.sablednah.crawlspace.plan.Link l : level.links) {
+                    com.sablednah.crawlspace.plan.Room other = l.a == decoy ? l.b : l.b == decoy ? l.a : null;
+                    if (other != null && other.role == com.sablednah.crawlspace.plan.Role.LAIR
+                            && l.kind == com.sablednah.crawlspace.plan.LinkKind.SECRET) {
+                        secretToLair = true;
+                    }
+                }
+                assertTrue(secretToLair, "seed " + seed + ": a false lair with no secret way to the real one");
+                final int li = level.index;
+                assertTrue(bp.triggers().stream().anyMatch(t -> t.kind() == Trigger.Kind.DECOY_BOSS && t.level() == li),
+                        "seed " + seed + ": no pretender");
+                assertTrue(bp.triggers().stream().anyMatch(t -> t.kind() == Trigger.Kind.BOSS && t.level() == li),
+                        "seed " + seed + ": no real boss");
+            }
+        }
+        System.out.println("FALSE lairs " + found);
+        assertTrue(found > 0, "no false lairs");
     }
 
     /** A finale with an arena has its altar, on the gallery, on the bottom level, and only there. */
@@ -985,6 +1022,16 @@ class BlueprintTest {
         {
             boolean[][] seen = new boolean[LevelPlan.SIZE][LevelPlan.SIZE];
             java.util.ArrayDeque<int[]> queue = new java.util.ArrayDeque<>();
+            // A teleport maze's pads are a way across: from a pad to where it sends you.
+            java.util.Map<Long, int[]> pads = new java.util.HashMap<>();
+            for (Trigger t : bp.triggers()) {
+                if (t.kind() == Trigger.Kind.TELEPORT_MAZE && t.level() == i) {
+                    for (int k = 1; k < t.targets().length; k++) {
+                        int[] p = t.targets()[k];
+                        pads.put(((long) p[0] << 32) ^ (p[2] & 0xffffffffL), new int[] {p[3], p[5]});
+                    }
+                }
+            }
             int[] s = level.stairsUp.get(0);
             for (int dx = -2; dx <= 2; dx++) {
                 for (int dz = -2; dz <= 2; dz++) {
@@ -996,6 +1043,11 @@ class BlueprintTest {
             }
             while (!queue.isEmpty()) {
                 int[] c = queue.poll();
+                int[] to = pads.get(((long) c[0] << 32) ^ (c[1] & 0xffffffffL));
+                if (to != null && !seen[to[0] + lim][to[1] + lim]) {
+                    seen[to[0] + lim][to[1] + lim] = true;
+                    queue.add(to);
+                }
                 for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
                     int x = c[0] + d[0];
                     int z = c[1] + d[1];
