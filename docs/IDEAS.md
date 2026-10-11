@@ -43,13 +43,15 @@ what the rig showed):
   secret doors), but not the newer things (tells, mimics, shrines).
 
 **Not built:**
-- door reward previews;
 - alarm sentries;
 - the teleport maze and the other puzzles in section 3;
 - the objective rooms' jobs (2b);
 - cycle types on the planner;
 - seals for the deepest door;
-- restocking, heroic re-entry, rival factions, the prisoner.
+- restocking, heroic re-entry, the prisoner.
+
+**Benched for a future add-on (Sable, 2026-10-11):** rival factions that
+fight each other or bargain.
 
 ## 1. Cheap, high impact, built on what exists
 

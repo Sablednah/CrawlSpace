@@ -755,6 +755,36 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Door previews (Hades; Sable's pick, 2026-10-11)
+
+`Blueprinter.previews` runs after dressing. On every door into a room that
+has a sign, it turns the lintel (the wall block over the opening: f+2 over a
+door, f+3 over an arch) into that room's sign:
+
+| Room | Lintel |
+|---|---|
+| treasure | gilded blackstone |
+| shrine | amethyst |
+| puzzle | chiseled bookshelf |
+| guard | iron block |
+| lair | polished blackstone, with a wither skull on its corridor face |
+
+- Every door, no dice: a sign that is only sometimes there is one nobody
+  learns.
+- Never over a secret door, which it would give away.
+- **Sable picked a lit candle for shrines.** A candle needs something to stand
+  on and a lintel has no ledge, so it is amethyst.
+- **The trap found on the way:** the dresser frames most doorways with
+  `PILASTER`s, so a check for plain `WALL` found only puzzle rooms (which are
+  not dressed). The lintel may be wall, pilaster, accent, panel or dado.
+- **Tested:** `doorsPreviewTheirRooms` counts every kind over 30 dungeons
+  and checks none is over a secret door.
+- **Seen on the rig:** a lair door with the skull over it, and a guard
+  room's iron lintel.
+- `goto <n> preview` and `goto <n> lairdoor` stand two from one.
+- The new parts are shell, so protection holds them. Unprotected, an iron
+  lintel is nine ingots, which is the owner's choice.
+
 ## Ice tiles are blue ice, and a board mends itself (Sable, 2026-10-11)
 
 Tiles were plain ice, which melts to water when a block light of 12 or more

@@ -536,6 +536,41 @@ class BlueprintTest {
         assertFalse(com.sablednah.crawlspace.plan.Showcase.on(12345L), "an ordinary seed is not a showcase");
     }
 
+    /**
+     * Door previews: every kind turns up, each sits in the wall over a doorway
+     * of a room of its kind, and none gives a secret door away.
+     */
+    @Test
+    void doorsPreviewTheirRooms() {
+        java.util.Map<Part, Integer> seen = new java.util.EnumMap<>(Part.class);
+        for (long seed = 1; seed <= 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 4);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            for (LevelPlan level : plan.levels()) {
+                for (com.sablednah.crawlspace.plan.Link l : level.links) {
+                    for (int side = 0; side < 2; side++) {
+                        int[] door = side == 0 ? l.doorA : l.doorB;
+                        if (door == null) {
+                            continue;
+                        }
+                        for (int dy = 1; dy <= 4; dy++) {
+                            int y = Blueprinter.floorAt(plan, level.index, door[0], door[1]) + dy;
+                            int code = bp.get(door[0], y, door[1]);
+                            if (code != 0 && Blueprint.part(code).name().startsWith("PREVIEW_") && Blueprint.part(code) != Part.PREVIEW_SKULL) {
+                                assertTrue(l.kind != com.sablednah.crawlspace.plan.LinkKind.SECRET, "seed " + seed + ": a secret door previewed");
+                                seen.merge(Blueprint.part(code), 1, Integer::sum);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        System.out.println("PREVIEWS " + seen);
+        for (Part p : new Part[] {Part.PREVIEW_TREASURE, Part.PREVIEW_SHRINE, Part.PREVIEW_PUZZLE, Part.PREVIEW_GUARD, Part.PREVIEW_LAIR}) {
+            assertTrue(seen.getOrDefault(p, 0) > 0, "no " + p);
+        }
+    }
+
     /** Most traps have a tell, and every kind that has one shows it somewhere in 40 dungeons. */
     @Test
     void trapsHaveTells() {
