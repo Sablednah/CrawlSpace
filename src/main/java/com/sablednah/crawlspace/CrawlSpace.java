@@ -52,6 +52,7 @@ public final class CrawlSpace {
             com.sablednah.crawlspace.neoforge.SurvivalRooms.tick(e.getServer().overworld().getGameTime());
             com.sablednah.crawlspace.neoforge.Sleepers.tick(e.getServer().overworld().getGameTime());
             com.sablednah.crawlspace.neoforge.Forbidden.tick(e.getServer().overworld().getGameTime());
+            com.sablednah.crawlspace.neoforge.Cubes.tick(e.getServer().overworld().getGameTime());
         });
         NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e) -> {
             com.sablednah.crawlspace.neoforge.Crumbles.clear();
@@ -68,6 +69,7 @@ public final class CrawlSpace {
             com.sablednah.crawlspace.neoforge.SurvivalRooms.clear();
             com.sablednah.crawlspace.neoforge.Sleepers.clear();
             com.sablednah.crawlspace.neoforge.Forbidden.clear();
+            com.sablednah.crawlspace.neoforge.Cubes.clear();
         });
         NeoForge.EVENT_BUS.addListener(Bosses::onJoin);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onJoin);
@@ -82,6 +84,9 @@ public final class CrawlSpace {
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Sleepers::onJoin);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Prisoners::onInteract);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Prisoners::onHurt);
+        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Cubes::onHurt);
+        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Cubes::onSplit);
+        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Cubes::onJoin);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onTarget);
         NeoForge.EVENT_BUS.addListener(Triggers::onUse);
         NeoForge.EVENT_BUS.addListener(Triggers::onBreak);
