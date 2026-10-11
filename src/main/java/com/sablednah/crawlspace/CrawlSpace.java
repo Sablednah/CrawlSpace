@@ -61,6 +61,7 @@ public final class CrawlSpace {
             com.sablednah.crawlspace.neoforge.Powers.clear();
             com.sablednah.crawlspace.neoforge.Sentries.clear();
             com.sablednah.crawlspace.neoforge.Altars.clear();
+            com.sablednah.crawlspace.neoforge.TeleportMazes.clear();
         });
         NeoForge.EVENT_BUS.addListener(Bosses::onJoin);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onJoin);

@@ -22,7 +22,7 @@ final class Tour {
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
             "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle",
-            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena", "vault", "altar", "rumours", "tell", "ice", "numbered", "preview", "lairdoor", "bossaltar");
+            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena", "vault", "altar", "rumours", "tell", "ice", "numbered", "preview", "lairdoor", "bossaltar", "teleport");
 
     private Tour() {
     }
@@ -45,6 +45,7 @@ final class Tour {
             case "oneway", "onewaydoor" -> com.sablednah.crawlspace.build.Trigger.Kind.ONEWAY;
             case "vault" -> com.sablednah.crawlspace.build.Trigger.Kind.VAULT;
             case "ice" -> com.sablednah.crawlspace.build.Trigger.Kind.ICE_BOARD;
+            case "teleport" -> com.sablednah.crawlspace.build.Trigger.Kind.TELEPORT_MAZE;
             case "numbered" -> com.sablednah.crawlspace.build.Trigger.Kind.ORDERED;
             default -> throw new IllegalArgumentException(what);
         };
@@ -76,6 +77,11 @@ final class Tour {
                     }
                 }
                 continue;
+            }
+            if (what.equalsIgnoreCase("teleport")) {
+                // On the entry pad's far side if there is one (the last pad row before the centre's), else a walk-in cell.
+                int[] exit = t.targets()[t.targets().length - 1];
+                return new double[] {exit[3] + 0.5, exit[5] + 0.5, yaw(t.x() - exit[3], t.z() - exit[5])};
             }
             if (what.equalsIgnoreCase("ice")) {
                 // Where the hoard appears, just past the board, facing its middle.
