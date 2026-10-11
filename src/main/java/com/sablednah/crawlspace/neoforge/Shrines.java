@@ -108,6 +108,64 @@ public final class Shrines {
         return true;
     }
 
+    /** Per player: shrines and tells they have been asked about this session. */
+    private static final java.util.Map<java.util.UUID, java.util.Set<Long>> ASKED = new java.util.HashMap<>();
+
+    private static final String[] OMENS = {
+            "It would show you every monster near you, even through walls.",
+            "It would close your wounds.",
+            "It would quicken your feet and hands.",
+            "It would set a ward on you.",
+            "It would bring you luck.",
+            "It is cursed. Leave it be."};
+
+    /**
+     * From Triggers' tick, with a perception registered (LegendQuest's WIS): a
+     * shrine's omen read as you come within five of its altar, and a trap's
+     * tell as you come within four. Once each, per player, per session.
+     */
+    static void notice(ServerLevel level, ServerPlayer player, Site site) {
+        var perception = com.sablednah.crawlspace.api.CrawlSpaceApi.perception().orElse(null);
+        if (perception == null) {
+            return;
+        }
+        BlockPos o = site.origin();
+        BlockPos feet = player.blockPosition();
+        java.util.Set<Long> asked = ASKED.computeIfAbsent(player.getUUID(), k -> new java.util.HashSet<>());
+        com.sablednah.crawlspace.build.Blueprint bp = site.built().blueprint();
+        for (int dx = -5; dx <= 5; dx++) {
+            for (int dz = -5; dz <= 5; dz++) {
+                for (int dy = -2; dy <= 1; dy++) {
+                    BlockPos p = feet.offset(dx, dy, dz);
+                    int code = bp.get(p.getX() - o.getX(), p.getY() - o.getY(), p.getZ() - o.getZ());
+                    if (code == 0) {
+                        continue;
+                    }
+                    com.sablednah.crawlspace.build.Part part = com.sablednah.crawlspace.build.Blueprint.part(code);
+                    int li = com.sablednah.crawlspace.build.Blueprint.level(code);
+                    if (part == com.sablednah.crawlspace.build.Part.ALTAR && asked.add(p.asLong())) {
+                        com.sablednah.crawlspace.plan.LevelPlan lp = site.built().plan().levels().get(li);
+                        Room r = lp.room(lp.region(p.getX() - o.getX(), p.getZ() - o.getZ()));
+                        if (r != null && r.role == Role.SHRINE && perception.readsOmen(player, li)) {
+                            Kind k = kindOf(site, li, r);
+                            Triggers.tell(player, "An omen: this is " + (k == Kind.CURSED ? "a cursed shrine" : "the " + k.name) + ". "
+                                    + OMENS[k.ordinal()]);
+                        }
+                    } else if (part.name().startsWith("TELL_") && Math.abs(dx) <= 4 && Math.abs(dz) <= 4 && asked.add(p.asLong())
+                            && perception.readsTell(player, li)) {
+                        Triggers.tell(player, switch (part) {
+                            case TELL_PEBBLE -> "Pebbles, fresh from the ceiling: a rockfall trap close by.";
+                            case TELL_FROST -> "Frost on warm stone: a frost trap close by.";
+                            case TELL_SCORCH -> "A scorch mark: a fire trap close by.";
+                            case TELL_SCULK -> "Sculk, creeping where nothing lives: something is summoned here.";
+                            default -> "Everything near here is dead: a gas trap close by.";
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     private static Kind kindOf(Site site, int li, Room r) {
         if (com.sablednah.crawlspace.plan.Showcase.on(site.seed())) {
             return Kind.values()[(li + r.id) % Kind.values().length];
@@ -128,6 +186,7 @@ public final class Shrines {
     }
 
     public static void clear() {
+        ASKED.clear();
         USED.clear();
     }
 }

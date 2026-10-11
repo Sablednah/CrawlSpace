@@ -755,6 +755,28 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Five more perception hooks (2026-10-11)
+
+`api/Perception` gained five default methods in 0.3.0. Each answers no, so
+play without an RPG mod is unchanged, and an older provider keeps working:
+- `spotsMimic`: asked the first time a player opens a mimic. On a pass, "Teeth
+  line the lid...", the chest stays shut, and a second opening bites (their
+  choice). `Mimics.WARNED` remembers who was asked.
+- `disarmsChest`: asked as a trapped chest opens. On a pass the needle is
+  drawn and the trap never springs (it is used up).
+- `readsTell`: within 4 of a flat tell (`TELL_*`). Skulls and webs are left
+  out: they are dressing too, and a reading over every skull would lie.
+- `readsOmen`: within 5 of a shrine's altar. On a pass the player is told
+  which shrine it is and what it does, or that it is cursed.
+- `evades`: the first time a sentry would see a player. On a pass, "The
+  sentry's eyes pass over you", and that sentry never sees them.
+
+`Shrines.notice` asks the tell and omen hooks once per player per thing per
+session, from Triggers' once-a-second tick, and only when a provider is
+registered. LegendQuest answers them with its own d20 checks; its
+`CrawlSpaceSupport` overrides none of them with `@Override`, so it still
+compiles against an older CrawlSpace.
+
 ## Sleeping guardians (Mowzie's Frostmaw, 2026-10-11)
 
 `neoforge/Sleepers`. A lair above the bottom level (the bottom has its altar)
