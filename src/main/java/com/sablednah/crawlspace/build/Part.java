@@ -196,7 +196,9 @@ public enum Part {
     PREVIEW_GUARD,
     PREVIEW_LAIR,
     /** The lair's skull, on the lintel's corridor face. Facing is away from the wall. */
-    PREVIEW_SKULL;
+    PREVIEW_SKULL,
+    /** The finale's altar, at the head of the arena's stairs: an offering wakes the boss, and calls it back. */
+    BOSS_ALTAR;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).
@@ -215,7 +217,7 @@ public enum Part {
                     SHELF, WALL_ACCENT, FLOOR_ACCENT, FLOOR_INLAY, PILASTER, COVE, PANEL, DADO, MOSS_FLOOR, BEAM,
                     VOID, RESTART, PATH_HIDDEN, CRUMBLE, DRIPLEAF, PIT_TILE,
                     PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER, WINDOW_BARS, PEDESTAL, ICE_TILE,
-                    PREVIEW_TREASURE, PREVIEW_SHRINE, PREVIEW_PUZZLE, PREVIEW_GUARD, PREVIEW_LAIR -> true;
+                    PREVIEW_TREASURE, PREVIEW_SHRINE, PREVIEW_PUZZLE, PREVIEW_GUARD, PREVIEW_LAIR, BOSS_ALTAR -> true;
             default -> false;
         };
     }

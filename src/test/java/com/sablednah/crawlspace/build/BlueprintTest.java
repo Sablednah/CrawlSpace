@@ -536,6 +536,31 @@ class BlueprintTest {
         assertFalse(com.sablednah.crawlspace.plan.Showcase.on(12345L), "an ordinary seed is not a showcase");
     }
 
+    /** A finale with an arena has its altar, on the gallery, on the bottom level, and only there. */
+    @Test
+    void finalesHaveAnAltar() {
+        int arenas = 0;
+        int altars = 0;
+        for (long seed = 1; seed <= 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 4);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            boolean arena = false;
+            for (Trigger t : bp.triggers()) {
+                arena |= t.kind() == Trigger.Kind.TREASURE && t.level() == 3 && t.y() < Blueprinter.floorAt(plan, 3, t.x(), t.z()) - 1;
+                if (t.kind() == Trigger.Kind.ALTAR) {
+                    assertEquals(3, t.level(), "seed " + seed + ": an altar off the bottom level");
+                    assertEquals(Part.BOSS_ALTAR, Blueprint.part(bp.get(t.x(), t.y(), t.z())), "seed " + seed + ": no altar block");
+                    altars++;
+                }
+            }
+            if (arena) {
+                arenas++;
+            }
+        }
+        System.out.println("ALTARS " + altars + " in " + arenas + " arenas");
+        assertTrue(altars > 0 && altars <= arenas, altars + " altars for " + arenas + " arenas");
+    }
+
     /**
      * Door previews: every kind turns up, each sits in the wall over a doorway
      * of a room of its kind, and none gives a secret door away.

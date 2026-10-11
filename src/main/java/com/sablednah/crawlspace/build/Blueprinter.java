@@ -757,7 +757,38 @@ public final class Blueprinter {
         int hz = (int) far;
         bp.set(hx, bottom + 1, hz, Part.HOARD_CHEST, facingOf(Integer.signum(r.centerX() - hx), Integer.signum(r.centerZ() - hz)), i);
         bp.addTrigger(new Trigger(Trigger.Kind.TREASURE, hx, bottom + 1, hz, i, new int[0][]));
+        altar(bp, level, i, r, arena, chosen, f);
         hang(bp, plan, i, r.centerX(), r.centerZ());
+    }
+
+    /**
+     * The finale's altar (Sable's pick, 2026-10-11): on the gallery beside the
+     * head of a flight down into the pit, facing it. The boss sleeps until an
+     * offering here wakes it, so nobody blunders into the last fight, and once
+     * beaten it can be called back, stronger.
+     */
+    private static void altar(Blueprint bp, LevelPlan level, int i, Room r, java.util.Set<Long> arena,
+            java.util.List<int[]> flights, int f) {
+        for (int[] run : flights) {
+            int gx = run[0] - run[2];
+            int gz = run[1] - run[3];
+            for (int[] d : new int[][] {{run[3], run[2]}, {-run[3], -run[2]}}) {
+                int ax = gx + d[0];
+                int az = gz + d[1];
+                if (!r.contains(ax, az) || arena.contains(key(ax, az)) || level.cell(ax, az) != Cell.FLOOR) {
+                    continue;
+                }
+                int here = bp.get(ax, f, az);
+                int above = bp.get(ax, f + 1, az);
+                if ((here != 0 && Blueprint.part(here) != Part.AIR) || (above != 0 && Blueprint.part(above) != Part.AIR)
+                        || bp.triggerAt(ax, f, az) != null) {
+                    continue;
+                }
+                bp.set(ax, f, az, Part.BOSS_ALTAR, facingOf(run[2], run[3]), i);
+                bp.addTrigger(new Trigger(Trigger.Kind.ALTAR, ax, f, az, i, new int[0][]));
+                return;
+            }
+        }
     }
 
     /**
