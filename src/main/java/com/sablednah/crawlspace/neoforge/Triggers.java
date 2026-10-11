@@ -81,6 +81,11 @@ public final class Triggers {
             e.setCancellationResult(InteractionResult.SUCCESS);
             return;
         }
+        if (!player.isSpectator() && Forbidden.use(level, player, site, pos)) {
+            e.setCanceled(true);
+            e.setCancellationResult(InteractionResult.SUCCESS);
+            return;
+        }
         if (!player.isSpectator() && Altars.use(level, player, site, pos)) {
             e.setCanceled(true);
             e.setCancellationResult(InteractionResult.SUCCESS);
@@ -550,6 +555,7 @@ public final class Triggers {
             Altars.tick(level, player, here.site());
             SurvivalRooms.mend(level, player, here.site());
             Shrines.notice(level, player, here.site());
+            Forbidden.tick(level, player, here.site());
         }
         if (player.tickCount % 20 == 0) {
             final Site site = here.site();
