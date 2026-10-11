@@ -777,6 +777,18 @@ arena has no altar and its boss wakes as before.
   roll where it fell. The count is `CrawlState` markers at
   altar + (500 + n), so it survives a restart.
 - `goto <n> bossaltar` stands two from it.
+- **Two traps found on the rig:**
+  - Scaling the *base* health took a 124-health boss to only 134, because
+    most of a boss's health is a modifier on top of the base. Recalls now
+    add `ADD_MULTIPLIED_TOTAL` modifiers.
+  - A boss dying on the pit floor is below `Arrivals.levelAt`'s band, so
+    `died` found no level and dropped nothing. It finds the altar by
+    distance instead.
+- **Seen on the rig** (showcase, the Bone Warden):
+  - It slept until offered. A click without gold did nothing; one with gold
+    took an ingot and woke it at 124 health.
+  - Recalled II, then III after a restart (the count held), then IV at
+    310 health, which dropped 10 stacks as it fell.
 - **Tested:** `finalesHaveAnAltar` gives 20 altars in 20 arenas over 30
   dungeons, all on the bottom level.
 - **Commit history:** sentries (88a9c8c) swept up half of this by accident: a

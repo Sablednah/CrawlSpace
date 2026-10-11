@@ -162,10 +162,15 @@ public final class Altars {
         return true;
     }
 
-    /** A recalled boss: stronger by half its health and a quarter its bite each time, and named for it. */
+    /**
+     * A recalled boss: stronger by half its health and a quarter its bite each
+     * time, and named for it. A multiplier on the total, not the base: most of a
+     * boss's health is a modifier on top of its base, and scaling the base took
+     * a 124-health boss to only 134 on the rig.
+     */
     private static void recall(Mob mob, int n) {
-        scale(mob.getAttribute(Attributes.MAX_HEALTH), 1 + 0.5 * n);
-        scale(mob.getAttribute(Attributes.ATTACK_DAMAGE), 1 + 0.25 * n);
+        scale(mob.getAttribute(Attributes.MAX_HEALTH), "recalled_health", 0.5 * n);
+        scale(mob.getAttribute(Attributes.ATTACK_DAMAGE), "recalled_damage", 0.25 * n);
         mob.setHealth(mob.getMaxHealth());
         Component was = mob.getCustomName() != null ? mob.getCustomName() : mob.getName();
         mob.setCustomName(Component.literal(was.getString() + ", Recalled " + Powers.roman(n + 1)).withStyle(ChatFormatting.DARK_RED));
@@ -173,9 +178,11 @@ public final class Altars {
         Bosses.rename(mob);
     }
 
-    private static void scale(AttributeInstance a, double by) {
+    private static void scale(AttributeInstance a, String id, double by) {
         if (a != null) {
-            a.setBaseValue(a.getBaseValue() * by);
+            a.addOrReplacePermanentModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(
+                    net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, id), by,
+                    net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
         }
     }
 
@@ -185,8 +192,18 @@ public final class Altars {
             return;
         }
         Site site = Dungeons.at(level, mob.blockPosition()).orElse(null);
-        int li = site == null ? -1 : Arrivals.levelAt(site, mob.blockPosition());
-        if (li < 0 || altarOf(site, li) == null) {
+        if (site == null) {
+            return;
+        }
+        // Found by its altar, not by Arrivals.levelAt: the arena's pit is below the band that counts as the level,
+        // and a boss dying on its floor was taken for one on no level at all (the first rig run dropped nothing).
+        int li = -1;
+        for (Trigger t : site.built().blueprint().triggers()) {
+            if (t.kind() == Trigger.Kind.ALTAR && site.origin().offset(t.x(), t.y(), t.z()).closerThan(mob.blockPosition(), 48)) {
+                li = t.level();
+            }
+        }
+        if (li < 0) {
             return;
         }
         int n = 0;
