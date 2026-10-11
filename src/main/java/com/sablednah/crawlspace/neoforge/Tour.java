@@ -22,7 +22,7 @@ final class Tour {
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
             "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle",
-            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena", "vault", "altar", "rumours", "tell");
+            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena", "vault", "altar", "rumours", "tell", "ice", "numbered");
 
     private Tour() {
     }
@@ -44,6 +44,8 @@ final class Tour {
             case "winch" -> com.sablednah.crawlspace.build.Trigger.Kind.WINCH;
             case "oneway", "onewaydoor" -> com.sablednah.crawlspace.build.Trigger.Kind.ONEWAY;
             case "vault" -> com.sablednah.crawlspace.build.Trigger.Kind.VAULT;
+            case "ice" -> com.sablednah.crawlspace.build.Trigger.Kind.ICE_BOARD;
+            case "numbered" -> com.sablednah.crawlspace.build.Trigger.Kind.ORDERED;
             default -> throw new IllegalArgumentException(what);
         };
         for (com.sablednah.crawlspace.build.Trigger t : bp.triggers()) {
@@ -74,6 +76,11 @@ final class Tour {
                     }
                 }
                 continue;
+            }
+            if (what.equalsIgnoreCase("ice")) {
+                // Where the hoard appears, just past the board, facing its middle.
+                int[] r = t.targets()[0];
+                return new double[] {r[0] + 0.5, r[2] + 0.5, yaw(t.x() - r[0], t.z() - r[2])};
             }
             if (what.equalsIgnoreCase("droptrap")) {
                 // Outside the arch, two out, facing in: a walk in springs it.

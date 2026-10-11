@@ -266,7 +266,7 @@ public final class CrawlCommands {
         }
         LevelPlan level = last.plan().levels().get(index - 1);
         double[] spot = switch (what) {
-            case "lever", "trap", "pit", "decoy", "secretdoor", "locked", "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "vault" -> Tour.findTrigger(level, last.built().blueprint(), what);
+            case "lever", "trap", "pit", "decoy", "secretdoor", "locked", "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "vault", "ice", "numbered" -> Tour.findTrigger(level, last.built().blueprint(), what);
             case "window" -> Tour.findWindow(level, last.built().blueprint());
             case "arena" -> Tour.findArena(level, last.built().blueprint());
             case "altar" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.ALTAR);
