@@ -562,6 +562,7 @@ public final class Triggers {
         }
         if (!player.isCreative() && player.onGround()) {
             IceBoards.step(level, player, here.site(), feet);
+            TeleportMazes.step(level, player, here.site(), feet);
         }
         // Hints show however you move; traps want a foot on the tile.
         if (!player.onGround()) {
@@ -894,6 +895,7 @@ public final class Triggers {
         PREV.remove(e.getEntity().getUUID());
         Arrivals.forget(e.getEntity().getUUID());
         IceBoards.forget(e.getEntity().getUUID());
+        TeleportMazes.forget(e.getEntity().getUUID());
     }
 
     private static Trigger triggerAt(Site site, BlockPos pos) {

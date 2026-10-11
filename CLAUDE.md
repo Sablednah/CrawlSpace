@@ -755,6 +755,40 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Teleport mazes (Hypixel's; Sable's pick, 2026-10-11)
+
+`Blueprinter.teleportMaze`: from level 2, a puzzle room that is not ice is a
+teleport maze at `TELEPORT_CHANCE` (0.3, its own dice). A showcase takes
+turns (maze, ice, teleport), and where its turn does not fit it tries the
+other.
+- **The grid:** 11x11, split by walls into 3x3 cells, three blocks square,
+  walls to the ceiling. A ring of wall goes wherever the room has floor round
+  it; where the room is exactly 11 across, its own wall closes the grid.
+- **Pads** (crying obsidian, `Part.TP_PAD`) sit in the floor at the
+  edge-middles of each cell; you land at a cell's middle.
+  - Each outer cell has two. One goes round a shuffled cycle through all
+    eight cells, so the centre is always reachable.
+  - The other scatters you, except in one cell, where it goes to the centre.
+  - The centre holds the hoard (a puzzle hoard, so it blesses) and a pad
+    back out.
+  - An entry pad goes on free floor outside the ring if there is room; if
+    not, a door opens straight into a cell.
+- **Trigger:** `Kind.TELEPORT_MAZE` at the centre. Target 0 is the hoard;
+  each other target is a pad, `{x, y, z, toX, toY, toZ}`.
+- **Placement:** centred first, then flush with each wall. Centred, a room 13
+  across leaves a one-block margin that is all ring, so a door on that side
+  opened into a wall. Only 3 mazes turned up in 60 dungeons before the flush
+  tries, 10 after.
+- **`TeleportMazes.step`** works off the blueprint. A pad will not fire twice
+  until you step off it, nor within 10 ticks of the last.
+- **Tested:**
+  - `teleportMazesCanBeSolved`: from every cell and the entry, pads reach the
+    centre; the centre has a way out; every pad lands on clear floor.
+  - On the rig (showcase, level 3), an explorer script stepping on pads
+    reached the hoard in 6 hops, and the exit pad brought it back to where it
+    walked in.
+- `goto <n> teleport` stands where the exit pad sends you.
+
 ## The finale's altar and rematches (Sable's pick, 2026-10-11)
 
 `Blueprinter.altar` puts `Part.BOSS_ALTAR` (a lodestone) and a

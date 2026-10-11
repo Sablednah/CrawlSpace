@@ -28,6 +28,12 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         ORDERED,
         /** The finale's altar: the lair's boss sleeps until an offering here wakes it, and can be called back. */
         ALTAR,
+        /**
+         * A teleport maze (Hypixel's): the first target is the hoard; every other
+         * is a pad, as {x, y, z, toX, toY, toZ}: the pad's floor block and where it
+         * sends you.
+         */
+        TELEPORT_MAZE,
         /** Not a trigger: a plate or wire that does nothing, kept here so dressing leaves it alone. */
         DECOY,
         /**

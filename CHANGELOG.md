@@ -7,6 +7,7 @@
 - No building over a puzzle room's void.
 - **A showcase dungeon.** `/crawlspace showcase` builds one with everything in it: every theme, feeling, trap, puzzle, vault and lock, to look round without hunting.
 - **Vault cages are copper grates**, not a single iron bar through the item.
+- **Teleport mazes.** Some puzzle rooms are a 3x3 of sealed cells joined only by pads in the floor. Find the pad that reaches the centre, where the hoard is.
 - **The boss altar.** The bottom boss sleeps until you offer a gold ingot at the altar by the arena stairs. Beat it, and the altar can call it back, stronger each time ("Recalled II", "III"…), with a richer hoard.
 - **Sentries.** Some guard rooms post a Sentry with a goat horn. If it sees you, you have three seconds to kill it before it sounds the alarm and the nearest rooms come for you. Sneak to get closer.
 - **Door previews.** The block over a doorway says what's inside: gold-flecked blackstone for treasure, amethyst for a shrine, a bookshelf for a puzzle, iron for a guard room, and a wither skull over a lair.
