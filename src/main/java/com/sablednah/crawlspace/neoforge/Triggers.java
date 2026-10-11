@@ -70,6 +70,7 @@ public final class Triggers {
                 && !player.isSpectator() && inPuzzleRoom(site, pos)) {
             Powers.bless(level, player, pos);
         }
+        Sleepers.noise(level, player, pos);
         if (!player.isSpectator() && !player.isCreative() && Mimics.open(level, player, site, pos)) {
             e.setCanceled(true);
             e.setCancellationResult(InteractionResult.SUCCESS);
