@@ -530,10 +530,82 @@ class BlueprintTest {
         System.out.println("SHOWCASE triggers " + kinds);
         for (Trigger.Kind k : new Trigger.Kind[] {Trigger.Kind.DARTS, Trigger.Kind.GAS, Trigger.Kind.ALARM, Trigger.Kind.WEBS,
                 Trigger.Kind.ROCKFALL, Trigger.Kind.FROST, Trigger.Kind.FIRE, Trigger.Kind.SUMMON, Trigger.Kind.VAULT,
-                Trigger.Kind.PORTCULLIS, Trigger.Kind.ICE_BOARD, Trigger.Kind.ORDERED, Trigger.Kind.BOSS, Trigger.Kind.LEVER}) {
+                Trigger.Kind.PORTCULLIS, Trigger.Kind.ICE_BOARD, Trigger.Kind.ORDERED, Trigger.Kind.BOSS, Trigger.Kind.LEVER,
+                Trigger.Kind.TELEPORT_MAZE, Trigger.Kind.ALTAR}) {
             assertTrue(kinds.contains(k), "the showcase has no " + k);
         }
         assertFalse(com.sablednah.crawlspace.plan.Showcase.on(12345L), "an ordinary seed is not a showcase");
+    }
+
+    /**
+     * Every teleport maze can be solved: from the entry pad, or any cell a door
+     * opens into, following pads reaches the centre, and the centre's pad leads
+     * out again. Every pad sends you to clear floor. And they turn up.
+     */
+    @Test
+    void teleportMazesCanBeSolved() {
+        int mazes = 0;
+        for (long seed = 1; seed <= 60; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 5);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            for (Trigger t : bp.triggers()) {
+                if (t.kind() != Trigger.Kind.TELEPORT_MAZE) {
+                    continue;
+                }
+                mazes++;
+                java.util.Map<Long, java.util.List<long[]>> padsIn = new java.util.HashMap<>(); // cell centre -> its pads' destinations
+                java.util.Set<Long> padAt = new java.util.HashSet<>();
+                for (int k = 1; k < t.targets().length; k++) {
+                    int[] p = t.targets()[k];
+                    assertEquals(Part.TP_PAD, Blueprint.part(bp.get(p[0], p[1], p[2])), "seed " + seed + ": no pad block");
+                    int dest = bp.get(p[3], p[4], p[5]);
+                    assertTrue(dest == 0 || Blueprint.part(dest) == Part.AIR, "seed " + seed + ": a pad sends you into " + Blueprint.part(dest));
+                    padAt.add(((long) p[0] << 32) ^ (p[2] & 0xffffffffL));
+                }
+                // Which cell a pad stands in: the cell centre within one block of it.
+                java.util.Map<Long, Long> cellOf = new java.util.HashMap<>();
+                java.util.Set<Long> centres = new java.util.HashSet<>();
+                for (int k = 1; k < t.targets().length; k++) {
+                    int[] p = t.targets()[k];
+                    centres.add(((long) p[3] << 32) ^ (p[5] & 0xffffffffL));
+                }
+                centres.add(((long) t.x() << 32) ^ (t.z() & 0xffffffffL));
+                for (int k = 1; k < t.targets().length; k++) {
+                    int[] p = t.targets()[k];
+                    Long home = null;
+                    for (long c : centres) {
+                        int cx = (int) (c >> 32);
+                        int cz = (int) c;
+                        if (Math.abs(cx - p[0]) <= 1 && Math.abs(cz - p[2]) <= 1) {
+                            home = c;
+                        }
+                    }
+                    long from = home == null ? Long.MIN_VALUE + k : home; // the entry pad stands in no cell
+                    cellOf.put(((long) p[0] << 32) ^ (p[2] & 0xffffffffL), from);
+                    padsIn.computeIfAbsent(from, x -> new java.util.ArrayList<>()).add(new long[] {((long) p[3] << 32) ^ (p[5] & 0xffffffffL)});
+                }
+                long centre = ((long) t.x() << 32) ^ (t.z() & 0xffffffffL);
+                // From every place you can start (every cell but the centre, and the entry pad), the centre is reachable.
+                for (long start : padsIn.keySet()) {
+                    if (start == centre) {
+                        continue;
+                    }
+                    java.util.Set<Long> seen = new java.util.HashSet<>(java.util.List.of(start));
+                    java.util.Deque<Long> todo = new java.util.ArrayDeque<>(java.util.List.of(start));
+                    while (!todo.isEmpty()) {
+                        for (long[] d : padsIn.getOrDefault(todo.poll(), java.util.List.of())) {
+                            if (seen.add(d[0])) {
+                                todo.add(d[0]);
+                            }
+                        }
+                    }
+                    assertTrue(seen.contains(centre), "seed " + seed + ": the centre cannot be reached from a cell");
+                }
+                assertTrue(padsIn.containsKey(centre), "seed " + seed + ": no way out of the centre");
+            }
+        }
+        System.out.println("TELEPORT mazes " + mazes);
+        assertTrue(mazes > 0, "no teleport mazes");
     }
 
     /** A finale with an arena has its altar, on the gallery, on the bottom level, and only there. */
@@ -1064,8 +1136,9 @@ class BlueprintTest {
                     continue;
                 }
                 final int li = i;
-                if (bp.triggers().stream().anyMatch(t -> t.kind() == Trigger.Kind.ICE_BOARD && t.level() == li && r.contains(t.x(), t.z()))) {
-                    continue; // an ice board, not a maze: iceBoardsCanBeSolved
+                if (bp.triggers().stream().anyMatch(t -> (t.kind() == Trigger.Kind.ICE_BOARD || t.kind() == Trigger.Kind.TELEPORT_MAZE)
+                        && t.level() == li && r.contains(t.x(), t.z()))) {
+                    continue; // an ice board or a teleport maze, not a walking maze: tested on their own
                 }
                 int cx = r.centerX();
                 int cz = r.centerZ();

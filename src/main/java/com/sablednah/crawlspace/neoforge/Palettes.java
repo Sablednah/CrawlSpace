@@ -494,6 +494,7 @@ public final class Palettes {
             case CAULDRON -> Blocks.CAULDRON.defaultBlockState();
             case LECTERN -> Blocks.LECTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LecternBlock.FACING, dir);
             case BOSS_ALTAR -> Blocks.LODESTONE.defaultBlockState();
+            case TP_PAD -> Blocks.CRYING_OBSIDIAN.defaultBlockState();
             case PREVIEW_TREASURE -> Blocks.GILDED_BLACKSTONE.defaultBlockState();
             case PREVIEW_SHRINE -> Blocks.AMETHYST_BLOCK.defaultBlockState();
             case PREVIEW_PUZZLE -> Blocks.CHISELED_BOOKSHELF.defaultBlockState()

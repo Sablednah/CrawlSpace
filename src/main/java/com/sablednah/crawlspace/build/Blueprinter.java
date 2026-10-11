@@ -1392,13 +1392,199 @@ public final class Blueprinter {
         return true;
     }
 
+    /** How often a puzzle room from level 2 down that is not ice is a teleport maze instead of a walking one. */
+    static final double TELEPORT_CHANCE = 0.3;
+
+    /**
+     * A teleport maze (Hypixel's Teleport Maze; Sable's pick, 2026-10-11): the
+     * room's middle 11x11 split by walls into a 3x3 of cells, three blocks
+     * square, with nothing between them but pads. Each outer cell has two pads
+     * in its floor. One of each cell's pads goes round a cycle through all
+     * eight, so the centre is always reachable; the other scatters you; and in
+     * exactly one cell it goes to the centre, where the hoard is. Fixed by the
+     * dungeon's dice, so it can be learned. An entry pad on the room's free
+     * floor goes in, and a pad in the centre comes back out. Where the room is
+     * exactly 11 across, its own wall closes the grid, and a door on that side
+     * opens straight into a cell. Returns false, leaving the room to the
+     * ordinary maze, if it does not fit or a door would open onto a wall.
+     */
+    private static boolean teleportMaze(Blueprint bp, DungeonPlan plan, int i, Room r, com.sablednah.crawlspace.plan.Dice dice) {
+        // Centred first, then flush with a wall: a room 13 across centred has a one-block margin that is all
+        // ring, so a door on that side opens into a wall; flush, the far side gets two, room for a walkway.
+        int[] xs = {r.centerX() - 5, r.minX(), r.maxX() - 10};
+        int[] zs = {r.centerZ() - 5, r.minZ(), r.maxZ() - 10};
+        for (int x0 : xs) {
+            for (int z0 : zs) {
+                if (teleportMazeAt(bp, plan, i, r, dice, x0, z0)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean teleportMazeAt(Blueprint bp, DungeonPlan plan, int i, Room r, com.sablednah.crawlspace.plan.Dice dice,
+            int x0, int z0) {
+        LevelPlan level = plan.levels().get(i);
+        int f = floorAt(plan, i, r.centerX(), r.centerZ());
+        java.util.function.BiPredicate<Integer, Integer> floor = (x, z) -> r.contains(x, z) && level.cell(x, z) == Cell.FLOOR;
+        for (int x = x0; x <= x0 + 10; x++) {
+            for (int z = z0; z <= z0 + 10; z++) {
+                if (!floor.test(x, z) || floorAt(plan, i, x, z) != f) {
+                    return false;
+                }
+            }
+        }
+        // Walls: the two lines each way inside, and a ring wherever the room has floor round the grid.
+        java.util.Set<Long> walls = new java.util.HashSet<>();
+        for (int k = -1; k <= 11; k++) {
+            for (int line : new int[] {3, 7}) {
+                if (k >= 0 && k <= 10) {
+                    walls.add(key(x0 + line, z0 + k));
+                    walls.add(key(x0 + k, z0 + line));
+                }
+            }
+            for (int[] c : new int[][] {{x0 - 1, z0 + k}, {x0 + 11, z0 + k}, {x0 + k, z0 - 1}, {x0 + k, z0 + 11}}) {
+                if (floor.test(c[0], c[1])) {
+                    walls.add(key(c[0], c[1]));
+                }
+            }
+        }
+        // No door may open onto a wall; doors that open into a cell make it one you can walk into.
+        java.util.Set<Integer> walkIn = new java.util.HashSet<>();
+        boolean margin = false;
+        for (int x = r.minX() - 1; x <= r.maxX() + 1; x++) {
+            for (int z = r.minZ() - 1; z <= r.maxZ() + 1; z++) {
+                if (!level.cell(x, z).isDoor()) {
+                    continue;
+                }
+                for (int[] d : DIRS4) {
+                    int ix = x + d[0];
+                    int iz = z + d[1];
+                    if (!r.contains(ix, iz) || !floor.test(ix, iz)) {
+                        continue;
+                    }
+                    if (walls.contains(key(ix, iz))) {
+                        return false;
+                    }
+                    if (ix >= x0 && ix <= x0 + 10 && iz >= z0 && iz <= z0 + 10) {
+                        walkIn.add((ix - x0) / 4 * 3 + (iz - z0) / 4);
+                    } else {
+                        margin = true;
+                    }
+                }
+            }
+        }
+        walkIn.remove(4); // the centre is never walked into
+        int h = clearHeight(level, r.centerX(), r.centerZ());
+        // Entry: a free floor cell just outside the ring, if the room has room for one.
+        int[] entry = null;
+        int[] entryStand = null;
+        if (margin) {
+            for (int k = 1; k <= 9 && entry == null; k++) {
+                for (int[] c : new int[][] {{x0 - 2, z0 + k, -1, 0}, {x0 + 12, z0 + k, 1, 0}, {x0 + k, z0 - 2, 0, -1}, {x0 + k, z0 + 12, 0, 1}}) {
+                    if (floor.test(c[0], c[1]) && floor.test(c[0] + c[2], c[1] + c[3]) && !walls.contains(key(c[0], c[1]))
+                            && !nearDoor(level, c[0], c[1])) {
+                        entry = new int[] {c[0], c[1]};
+                        entryStand = new int[] {c[0] + c[2], c[1] + c[3]};
+                        break;
+                    }
+                }
+            }
+        }
+        if (entry == null && walkIn.isEmpty()) {
+            return false; // nowhere to get in
+        }
+        // Clear the grid, then build the walls.
+        for (int x = x0 - 1; x <= x0 + 11; x++) {
+            for (int z = z0 - 1; z <= z0 + 11; z++) {
+                if (!floor.test(x, z)) {
+                    continue;
+                }
+                bp.set(x, f - 1, z, Part.FLOOR, 0, i);
+                bp.fill(x, z, f, f + h - 1, walls.contains(key(x, z)) ? Part.WALL : Part.AIR, i);
+            }
+        }
+        java.util.function.IntFunction<int[]> centreOf = c -> new int[] {x0 + c / 3 * 4 + 1, z0 + c % 3 * 4 + 1};
+        int[] outer = {0, 1, 2, 3, 5, 6, 7, 8};
+        // The cycle: one pad in every outer cell to the next round a shuffled loop.
+        int[] order = outer.clone();
+        for (int k = order.length - 1; k > 0; k--) {
+            int j = dice.nextInt(k + 1);
+            int t = order[k];
+            order[k] = order[j];
+            order[j] = t;
+        }
+        java.util.Map<Integer, Integer> next = new java.util.HashMap<>();
+        for (int k = 0; k < order.length; k++) {
+            next.put(order[k], order[(k + 1) % order.length]);
+        }
+        int special = outer[dice.nextInt(outer.length)];
+        java.util.List<int[]> rows = new java.util.ArrayList<>();
+        int[] centre = centreOf.apply(4);
+        int[] chest = {centre[0] + 1, centre[1] + 1};
+        rows.add(new int[] {chest[0], f, chest[1]});
+        for (int c : outer) {
+            int[] m = centreOf.apply(c);
+            java.util.List<int[]> sides = new java.util.ArrayList<>(java.util.List.of(DIRS4));
+            int[] a = sides.remove(dice.nextInt(sides.size()));
+            int[] b = sides.remove(dice.nextInt(sides.size()));
+            int[] toA = centreOf.apply(next.get(c));
+            int[] toB;
+            if (c == special) {
+                toB = centre;
+            } else {
+                int o = outer[dice.nextInt(outer.length)];
+                if (o == c) {
+                    o = next.get(o);
+                }
+                toB = centreOf.apply(o);
+            }
+            for (int[][] pad : new int[][][] {{a, toA}, {b, toB}}) {
+                int px = m[0] + pad[0][0];
+                int pz = m[1] + pad[0][1];
+                bp.set(px, f - 1, pz, Part.TP_PAD, 0, i);
+                rows.add(new int[] {px, f - 1, pz, pad[1][0], f, pad[1][1]});
+            }
+        }
+        // In from the entry, and out from the centre: to beside the entry, or to a cell a door opens into.
+        int[] out;
+        if (entry != null) {
+            bp.set(entry[0], f - 1, entry[1], Part.TP_PAD, 0, i);
+            int first = order[0];
+            int[] to = centreOf.apply(first);
+            rows.add(new int[] {entry[0], f - 1, entry[1], to[0], f, to[1]});
+            out = entryStand;
+        } else {
+            out = centreOf.apply(walkIn.iterator().next());
+        }
+        bp.set(centre[0] - 1, f - 1, centre[1], Part.TP_PAD, 0, i);
+        rows.add(new int[] {centre[0] - 1, f - 1, centre[1], out[0], f, out[1]});
+        bp.set(chest[0], f, chest[1], Part.HOARD_CHEST, facingOf(-1, 0), i);
+        bp.addTrigger(new Trigger(Trigger.Kind.TELEPORT_MAZE, centre[0], f, centre[1], i, rows.toArray(new int[0][])));
+        return true;
+    }
+
     private static void maze(Blueprint bp, DungeonPlan plan, int i, Room r, com.sablednah.crawlspace.plan.Dice dice) {
         LevelPlan level = plan.levels().get(i);
         // Its own dice, so the mazes of rooms that stay mazes are as they were.
-        boolean ice = plan.levels().get(i).showcase ? i % 2 == 1
-                : com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x1CEL).chance(ICE_CHANCE);
-        if (i >= 1 && ice && iceBoard(bp, plan, i, r)) {
-            return;
+        com.sablednah.crawlspace.plan.Dice tdice = com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x7E1FL);
+        if (plan.levels().get(i).showcase) {
+            // A showcase takes turns (maze, ice, teleport), and where its turn does not fit, tries the other.
+            if (i % 3 == 1 && (iceBoard(bp, plan, i, r) || teleportMaze(bp, plan, i, r, tdice))
+                    || i % 3 == 2 && (teleportMaze(bp, plan, i, r, tdice) || iceBoard(bp, plan, i, r))) {
+                return;
+            }
+        } else {
+            // Their own dice, so the mazes of rooms that stay mazes are as they were.
+            boolean ice = com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x1CEL).chance(ICE_CHANCE);
+            if (i >= 1 && ice && iceBoard(bp, plan, i, r)) {
+                return;
+            }
+            boolean teleport = !ice && com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x7E1EL).chance(TELEPORT_CHANCE);
+            if (i >= 1 && teleport && teleportMaze(bp, plan, i, r, tdice)) {
+                return;
+            }
         }
         int cx = r.centerX();
         int cz = r.centerZ();
