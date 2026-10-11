@@ -755,6 +755,34 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## The finale's altar and rematches (Sable's pick, 2026-10-11)
+
+`Blueprinter.altar` puts `Part.BOSS_ALTAR` (a lodestone) and a
+`Trigger.Kind.ALTAR` on the finale's gallery. It goes beside the head of a
+flight down into the pit, facing it, on clear floor. A lair too small for an
+arena has no altar and its boss wakes as before.
+- **`Altars.sleeps`** keeps the boss asleep against every other waker: walking
+  near, an alarm trap and a sentry's horn. Nothing but an offering wakes it.
+- **The hint:** within 7 blocks, once a session, it says "Offer a gold ingot
+  on it to wake the Brood Queen", or "can call ... back, stronger".
+- **Using it:**
+  - Without gold, it says what it wants.
+  - With the boss still alive, it says so.
+  - With gold, one ingot is taken (none in creative) and the boss wakes
+    through the ordinary `Bestiary.wake`.
+  - On Peaceful it says nothing answers, and keeps the gold.
+- **Rematch:** the n-th summon after the first is "<name>, Recalled
+  <roman(n+1)>". Max health ×(1 + 0.5n), attack ×(1 + 0.25n). Its bar is
+  renamed (`Bosses.rename`). Falling, it drops a `chests/tier(min 5, 3 + n)`
+  roll where it fell. The count is `CrawlState` markers at
+  altar + (500 + n), so it survives a restart.
+- `goto <n> bossaltar` stands two from it.
+- **Tested:** `finalesHaveAnAltar` gives 20 altars in 20 arenas over 30
+  dungeons, all on the bottom level.
+- **Commit history:** sentries (88a9c8c) swept up half of this by accident: a
+  background commit's `git add -A` ran while this was being written, so that
+  commit does not compile on its own. The next commit completes it.
+
 ## Alarm sentries (the Caves of Chaos; Sable's pick, 2026-10-11)
 
 `neoforge/Sentries` runs a sentry; `Bestiary.wake` posts it as the room wakes.
