@@ -30,6 +30,8 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         ALTAR,
         /** A guard room whose doors seal as it wakes: hold out against waves until they open (Hades). */
         SURVIVAL,
+        /** The thing you should not touch: break its seal, and the level's cleared rooms fill again. */
+        FORBIDDEN,
         /**
          * A teleport maze (Hypixel's): the first target is the hoard; every other
          * is a pad, as {x, y, z, toX, toY, toZ}: the pad's floor block and where it

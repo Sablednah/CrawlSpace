@@ -65,6 +65,19 @@ public final class CrawlCommands {
                                                 StringArgumentType.getString(ctx, "what"))))))
                 .then(Commands.literal("info").executes(CrawlCommands::info))
                 .then(Commands.literal("breaches").executes(CrawlCommands::breaches))
+                .then(Commands.literal("use").then(Commands.argument("pos", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
+                        .executes(ctx -> {
+                            // A right-click on that block, through the same handler a real one reaches: for testing
+                            // what a click does without aiming one from a script.
+                            ServerPlayer p = ctx.getSource().getPlayerOrException();
+                            net.minecraft.core.BlockPos at = net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(ctx, "pos");
+                            var event = new net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock(p,
+                                    net.minecraft.world.InteractionHand.MAIN_HAND, at, new net.minecraft.world.phys.BlockHitResult(
+                                            net.minecraft.world.phys.Vec3.atCenterOf(at), net.minecraft.core.Direction.UP, at, false));
+                            Triggers.onUse(event);
+                            say(ctx.getSource(), event.isCanceled() ? "Used: the dungeon took it." : "Used: nothing of the dungeon's answered.");
+                            return 1;
+                        })))
                 .then(Commands.literal("chests")
                         .then(Commands.literal("open").then(Commands.argument("pos", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
                                 .executes(ctx -> {
@@ -274,6 +287,7 @@ public final class CrawlCommands {
             case "tell" -> Tour.findPart(level, last.built().blueprint(), p -> p.name().startsWith("TELL_"));
             case "preview" -> Tour.findPart(level, last.built().blueprint(),
                     p -> p.name().startsWith("PREVIEW_") && p != com.sablednah.crawlspace.build.Part.PREVIEW_SKULL);
+            case "forbidden" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.FORBIDDEN);
             case "bossaltar" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.BOSS_ALTAR);
             case "lairdoor" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.PREVIEW_LAIR);
             default -> Tour.find(level, what, level.index * 31L + System.nanoTime() % 7);
