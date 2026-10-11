@@ -44,4 +44,53 @@ public interface Perception {
     default boolean recovers(ServerPlayer player, int depth) {
         return false;
     }
+
+    /*
+     * The five below arrived in CrawlSpace 0.3.0, all optional. With no
+     * answer, each one is a no, and play is as it is without an RPG mod.
+     */
+
+    /**
+     * Whether this player sees that a chest is a mimic before it bites, asked
+     * the first time they open one. On a pass they are warned and the chest
+     * stays shut; opening it again is their choice.
+     */
+    default boolean spotsMimic(ServerPlayer player, int depth) {
+        return false;
+    }
+
+    /**
+     * Whether this player finds and draws a trapped chest's needle as they open
+     * it. On a pass the trap never springs.
+     */
+    default boolean disarmsChest(ServerPlayer player, int depth) {
+        return false;
+    }
+
+    /**
+     * Whether this player reads a trap's tell (the scorch, the pebbles, the
+     * frost), asked once per player per tell as they come near. On a pass they
+     * are told what it warns of. Without an answer the tell is still there to
+     * be read by eye.
+     */
+    default boolean readsTell(ServerPlayer player, int depth) {
+        return false;
+    }
+
+    /**
+     * Whether this player reads a shrine's omen before using it, asked once per
+     * player per shrine as they come near. On a pass they are told which
+     * shrine it is, and whether it is cursed.
+     */
+    default boolean readsOmen(ServerPlayer player, int depth) {
+        return false;
+    }
+
+    /**
+     * Whether this player slips a sentry's eye, asked the first time a sentry
+     * would see them. On a pass that sentry does not see them again.
+     */
+    default boolean evades(ServerPlayer player, int depth) {
+        return false;
+    }
 }

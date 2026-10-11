@@ -47,6 +47,8 @@ public final class Sentries {
         final int li;
         long hornAt = -1;
         UUID target;
+        /** Players who slipped this sentry's eye, or failed to: asked once each. */
+        final java.util.Map<UUID, Boolean> asked = new HashMap<>();
 
         Watch(ServerLevel level, UUID mob, Site site, int li) {
             this.level = level;
@@ -94,7 +96,7 @@ public final class Sentries {
             }
             long now = w.level.getGameTime();
             if (w.hornAt < 0) {
-                ServerPlayer seen = spot(w.level, mob);
+                ServerPlayer seen = spot(w, mob);
                 if (seen != null) {
                     w.hornAt = now + WARNING_TICKS;
                     w.target = seen.getUUID();
@@ -113,11 +115,12 @@ public final class Sentries {
     }
 
     /** The nearest player this sentry can see, or null. Creative and spectating players are not seen. */
-    private static ServerPlayer spot(ServerLevel level, Mob mob) {
+    private static ServerPlayer spot(Watch w, Mob mob) {
+        ServerLevel level = w.level;
         ServerPlayer best = null;
         double bestD = Double.MAX_VALUE;
         for (ServerPlayer p : level.players()) {
-            if (p.isCreative() || p.isSpectator()) {
+            if (p.isCreative() || p.isSpectator() || Boolean.TRUE.equals(w.asked.get(p.getUUID()))) {
                 continue;
             }
             double range = p.isShiftKeyDown() ? SIGHT_SNEAKING : SIGHT;
@@ -125,6 +128,15 @@ public final class Sentries {
             if (d <= range * range && d < bestD && mob.hasLineOfSight(p)) {
                 best = p;
                 bestD = d;
+            }
+        }
+        if (best != null && !w.asked.containsKey(best.getUUID())) {
+            ServerPlayer p = best;
+            boolean slipped = com.sablednah.crawlspace.api.CrawlSpaceApi.perception().map(q -> q.evades(p, w.li)).orElse(false);
+            w.asked.put(p.getUUID(), slipped);
+            if (slipped) {
+                p.sendOverlayMessage(Component.literal("The sentry's eyes pass over you.").withStyle(ChatFormatting.GRAY));
+                return null;
             }
         }
         return best;
