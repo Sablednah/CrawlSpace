@@ -33,6 +33,8 @@ import net.minecraft.world.level.block.Blocks;
 public final class Mimics {
 
     static final String TAG = "crawlspace_mimic";
+    /** Player@chest: mimics a player has already been asked to spot, so a second opening is their choice. */
+    private static final java.util.Set<String> WARNED = new java.util.HashSet<>();
     static final double CHANCE = 0.1;
 
     private Mimics() {
@@ -60,12 +62,23 @@ public final class Mimics {
         if (state.hasFired(marker)) {
             return false;
         }
+        var perception = com.sablednah.crawlspace.api.CrawlSpaceApi.perception();
+        // A Lootr chest is one chest per player: a mimic would take it from every one of them.
+        boolean mimic = what == 1 && level.getBlockState(pos).is(Blocks.CHEST);
+        if (mimic && WARNED.add(player.getUUID() + "@" + pos.asLong()) && perception.map(q -> q.spotsMimic(player, li)).orElse(false)) {
+            // Seen for what it is: the chest stays shut, and opening it again is the player's choice.
+            Triggers.tell(player, "Teeth line the lid. It's a mimic! Open it again if you dare.");
+            return true;
+        }
         state.fire(marker);
         dice.chance(0.5);
-        // A Lootr chest is one chest per player: a mimic would take it from every one of them.
-        if (what == 1 && level.getBlockState(pos).is(Blocks.CHEST)) {
+        if (mimic) {
             bite(level, player, pos, li);
             return true;
+        }
+        if (what == 2 && perception.map(q -> q.disarmsChest(player, li)).orElse(false)) {
+            Triggers.tell(player, "You find a needle in the lock, and draw it. The chest is safe.");
+            return false;
         }
         Trigger.Kind[] kinds = {Trigger.Kind.WEBS, Trigger.Kind.GAS, Trigger.Kind.ALARM, Trigger.Kind.ROCKFALL};
         Trigger.Kind kind = kinds[dice.nextInt(kinds.length)];
