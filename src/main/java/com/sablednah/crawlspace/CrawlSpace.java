@@ -46,6 +46,7 @@ public final class CrawlSpace {
             com.sablednah.crawlspace.neoforge.Clock.tick(e.getServer());
             Bosses.tick(e.getServer().overworld().getGameTime());
             com.sablednah.crawlspace.neoforge.Powers.tick(e.getServer().overworld().getGameTime());
+            com.sablednah.crawlspace.neoforge.Sentries.tick(e.getServer().overworld().getGameTime());
         });
         NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e) -> {
             com.sablednah.crawlspace.neoforge.Crumbles.clear();
@@ -56,6 +57,8 @@ public final class CrawlSpace {
             Builds.clear();
             Bosses.clear();
             com.sablednah.crawlspace.neoforge.Powers.clear();
+            com.sablednah.crawlspace.neoforge.Sentries.clear();
+            com.sablednah.crawlspace.neoforge.Altars.clear();
         });
         NeoForge.EVENT_BUS.addListener(Bosses::onJoin);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onJoin);

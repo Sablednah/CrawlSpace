@@ -247,6 +247,11 @@ public final class Bestiary {
         List<BossSpec> choices = bosses.getOrDefault(theme, bosses.get("Crypt"));
         BossSpec spec = choices.get(com.sablednah.crawlspace.plan.Dice.of(site.seed(), t.level(), 0xB055L).nextInt(choices.size()));
         boolean lair = t.kind() == Trigger.Kind.BOSS;
+        // A guard room may post a sentry: the first of its monsters, which raises the alarm if it sees you.
+        com.sablednah.crawlspace.plan.LevelPlan lp = site.built().plan().levels().get(t.level());
+        com.sablednah.crawlspace.plan.Room room = lp.room(lp.region(t.x(), t.z()));
+        boolean sentry = t.kind() == Trigger.Kind.ENCOUNTER && room != null && room.role == com.sablednah.crawlspace.plan.Role.GUARD
+                && Sentries.posts(site, t);
         for (int k = 0; k < t.targets().length; k++) {
             int[] s = t.targets()[k];
             BlockPos pos = o.offset(s[0], s[1], s[2]);
@@ -283,6 +288,11 @@ public final class Bestiary {
             }
             if (t.kind() == Trigger.Kind.ORDERED && !boss && !follower) {
                 Powers.number(mob, o.offset(t.x(), t.y(), t.z()), k + 1, t.targets().length);
+            }
+            if (sentry && !mob.hasCustomName()) {
+                // The first without a name of its own (an elite has one) stands watch; one sentry a room.
+                Sentries.post(level, mob, site, t.level());
+                sentry = false;
             }
             mob.addTag(KIN);
             mob.setPersistenceRequired();
