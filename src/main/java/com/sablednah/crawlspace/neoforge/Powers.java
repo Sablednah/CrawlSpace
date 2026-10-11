@@ -202,12 +202,11 @@ public final class Powers {
         if (gameTime % 5 != 0 || TRACKED.isEmpty()) {
             return;
         }
-        Iterator<State> it = TRACKED.values().iterator();
-        while (it.hasNext()) {
-            State s = it.next();
+        // A copy: a summoning power spawns monsters that are tracked as they join, mid-loop (see Crumbles.tick).
+        for (State s : new java.util.ArrayList<>(TRACKED.values())) {
             Entity e = s.level.getEntity(s.id);
             if (!(e instanceof Mob mob) || !mob.isAlive()) {
-                it.remove();
+                TRACKED.remove(s.id);
                 continue;
             }
             long now = s.level.getGameTime();

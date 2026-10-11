@@ -64,13 +64,12 @@ public final class Bosses {
         if (gameTime % 10 != 0 || TRACKED.isEmpty()) {
             return;
         }
-        Iterator<Tracked> it = TRACKED.values().iterator();
-        while (it.hasNext()) {
-            Tracked t = it.next();
+        // A copy: a boss's followers can join mid-loop (see Crumbles.tick).
+        for (Tracked t : new java.util.ArrayList<>(TRACKED.values())) {
             Entity e = t.level().getEntity(t.mob());
             if (!(e instanceof LivingEntity boss) || !boss.isAlive()) {
                 t.bar().removeAllPlayers();
-                it.remove();
+                TRACKED.remove(t.mob());
                 continue;
             }
             t.bar().setProgress(Math.max(0f, boss.getHealth() / boss.getMaxHealth()));
