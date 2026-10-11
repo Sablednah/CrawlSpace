@@ -7,6 +7,7 @@
 - No building over a puzzle room's void.
 - **A showcase dungeon.** `/crawlspace showcase` builds one with everything in it: every theme, feeling, trap, puzzle, vault and lock, to look round without hunting.
 - **Vault cages are copper grates**, not a single iron bar through the item.
+- **Fixed: ice boards that could not be finished** because a tile melted to water by a torch or lantern. Tiles are blue ice now, and a damaged board mends itself as you step on.
 - **Fixed: a crash two minutes after a portcullis dropped behind you**, as it lifted itself.
 - **Fixed:** portcullis and window bars that did not join across a chunk line.
 - **Tells.** Most traps leave signs nearby: a skull, a dead plant, a pebble, frost, a scorch mark, sculk. Learn to read them.

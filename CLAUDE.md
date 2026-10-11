@@ -755,6 +755,26 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Ice tiles are blue ice, and a board mends itself (Sable, 2026-10-11)
+
+Tiles were plain ice, which melts to water when a block light of 12 or more
+is nearby: a torch, or the room's own lantern. A board with a hole in it can
+never be finished (Sable's screenshot: one tile gone to water, the board
+stuck).
+- **Fresh tiles are now blue ice** (`IceBoards.FRESH`). Blue ice and packed
+  ice never melt, and blue against packed reads more plainly than ice
+  against packed.
+- **`IceBoards.mend`** runs whenever anyone steps onto a board. It puts back
+  any tile that is neither fresh nor packed: packed if it was crossed,
+  fresh if not. A hole cannot be stood on to be noticed, so it is mended
+  from the tile next to it. Boards built before this change mend their plain
+  ice to blue the same way.
+- `goto <n> ice` stands you where the hoard appears, facing the board, and
+  `goto <n> numbered` finds a numbered guard room.
+- **Seen on the rig** (showcase, level 6): 20 blue tiles. One was set to
+  water; stepping onto the next packed that tile and the melted one came
+  back blue.
+
 ## A task that schedules a task crashed the server (Sable, 2026-10-11)
 
 A dropped portcullis trap lifts itself two minutes later. That lift is a
