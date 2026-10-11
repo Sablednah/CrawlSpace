@@ -542,6 +542,7 @@ public final class Triggers {
             Arrivals.tick(level, player, here.site(), feet);
             Vaults.tick(level, player, here.site());
             Altars.tick(level, player, here.site());
+            SurvivalRooms.mend(level, player, here.site());
         }
         if (player.tickCount % 20 == 0) {
             final Site site = here.site();

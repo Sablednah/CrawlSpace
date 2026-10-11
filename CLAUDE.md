@@ -755,6 +755,30 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Survival rooms (Hades, Dungeon Now Loading; Sable's pick, 2026-10-11)
+
+A guard room from level 2 that is not numbered is `Trigger.Kind.SURVIVAL` at
+`SURVIVAL_CHANCE` (0.2, its own dice). In a showcase it is every third guard
+room (numbered is `r.id % 3 == 0`, survival `== 1`). It is an encounter, so it
+wakes like one, and then `SurvivalRooms.start`:
+- **Seals the doors.** Each non-secret doorway of the room (from the plan's
+  links) gets iron bars, f to f+2, where there was air or a door. Doors come
+  down top half first with no neighbour updates, so none pops off as an
+  item. Wherever possible it says why and for how long: "The doors slam shut!
+  Hold out for a minute, and they open again."
+- **Runs a red bar,** "Hold out! N s", for 60 s. A band
+  (`Bestiary.band`, 2 + level/2) comes every 15 s at one of the room's spawn
+  spots, set on a player inside.
+- **At 60 s, always:** the bars lift and the doorways are put back. A chest
+  (tier min 5, 2 + level/2) appears at the room's middle, with a blessing.
+- **A restart mid-fight** loses the countdown. Markers at door + 600
+  (sealed) and + 601 (opened) let `SurvivalRooms.mend` open any sealed
+  doorway with no fight behind it as a player comes within 24.
+- **Seen on the rig** (showcase, level 2): 8 doorway blocks sealed, the bar
+  counting down; `/tick sprint 1300` ran 4 waves, then the bars were all
+  gone and a chest stood in the middle.
+- `goto <n> survival`.
+
 ## Teleport mazes (Hypixel's; Sable's pick, 2026-10-11)
 
 `Blueprinter.teleportMaze`: from level 2, a puzzle room that is not ice is a
