@@ -28,6 +28,8 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         ORDERED,
         /** The finale's altar: the lair's boss sleeps until an offering here wakes it, and can be called back. */
         ALTAR,
+        /** A guard room whose doors seal as it wakes: hold out against waves until they open (Hades). */
+        SURVIVAL,
         /**
          * A teleport maze (Hypixel's): the first target is the hoard; every other
          * is a pad, as {x, y, z, toX, toY, toZ}: the pad's floor block and where it
@@ -79,7 +81,7 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         }
 
         public boolean isEncounter() {
-            return this == ENCOUNTER || this == BOSS || this == ORDERED;
+            return this == ENCOUNTER || this == BOSS || this == ORDERED || this == SURVIVAL;
         }
     }
 
