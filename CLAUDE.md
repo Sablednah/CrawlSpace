@@ -755,6 +755,30 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## The prisoner (Against the Giants, Goblin Punch, 2026-10-11)
+
+`neoforge/Prisoners`. Half the lairs above the bottom keep one
+(`Dice(seed, level, 0x9815)`; all in a showcase), placed as the lair wakes.
+- **The cage:** a corner of the lair (two walls) far from the boss and away
+  from doors, with iron bars on its open sides, two high. Inside is a
+  villager named "Prisoner": no AI, invulnerable, persistent.
+- **Using the prisoner or the cage's bars** (the bars take most clicks): while
+  a boss lives within 48 they refuse, "Not while it lives!". Otherwise the
+  bars lift and they leave three items from a loot roll (tier min 5,
+  1 + level/2).
+- **The rumour:** they tell one line from `Rumours.truths`, the rumour book's
+  lines without its lies, then vanish in a puff three seconds later.
+  `Rumours.book` is split into `truths`, `writeLies` and `write`, with the
+  same output as before.
+- **Two test traps on the rig:**
+  - The test switched to Peaceful after the lair woke, which despawned the
+    boss, so the prisoner walked free "while the boss lived".
+  - The first teleport for the click put the player inside a wall.
+- **Seen on the rig** (showcase, level 3):
+  - Refused while the boss lived.
+  - Freed once it was dead, saying "On level 6 there is a vault with three
+    treasures. You may take only one." (true), and leaving three gifts.
+
 ## Five more perception hooks (2026-10-11)
 
 `api/Perception` gained five default methods in 0.3.0. Each answers no, so

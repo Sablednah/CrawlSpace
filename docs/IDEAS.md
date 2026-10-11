@@ -48,7 +48,7 @@ what the rig showed):
 - the objective rooms' jobs (2b);
 - cycle types on the planner;
 - seals for the deepest door;
-- restocking, heroic re-entry, the prisoner.
+- restocking and heroic re-entry.
 
 **Benched for a future add-on (Sable, 2026-10-11):** rival factions that
 fight each other or bargain.
