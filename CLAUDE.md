@@ -761,7 +761,8 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
 (`Dice(seed, level, 0x9815)`; all in a showcase), placed as the lair wakes.
 - **The cage:** a corner of the lair (two walls) far from the boss and away
   from doors, with iron bars on its open sides, two high. Inside is a
-  villager named "Prisoner": no AI, invulnerable, persistent.
+  villager named "Prisoner": no AI, persistent, and unharmed while caged
+  (`Prisoners.onHurt` cancels its damage; 26.3 has no `setInvulnerable`).
 - **Using the prisoner or the cage's bars** (the bars take most clicks): while
   a boss lives within 48 they refuse, "Not while it lives!". Otherwise the
   bars lift and they leave three items from a loot roll (tier min 5,
