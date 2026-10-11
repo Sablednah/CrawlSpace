@@ -252,6 +252,7 @@ public final class Blueprinter {
         }
         tells(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x7E11L));
         previews(bp, plan, i);
+        forbidden(bp, plan, i);
         lights(bp, plan, i, dark);
         if (finale != null) {
             arena(bp, plan, i, finale);
@@ -825,6 +826,65 @@ public final class Blueprinter {
                         return;
                     }
                 }
+            }
+        }
+    }
+
+    /** How often a dungeon has a thing you should not touch, on one of its levels from the second down. */
+    static final double FORBIDDEN_CHANCE = 0.5;
+
+    /**
+     * The thing you should not touch (Death Frost Doom): at most one a
+     * dungeon, from level 2 down, in the middle of an ordinary room, ringed
+     * with skulls. Which level is the dungeon's dice; a showcase puts it on
+     * level 2.
+     */
+    private static void forbidden(Blueprint bp, DungeonPlan plan, int i) {
+        LevelPlan level = plan.levels().get(i);
+        if (plan.levels().size() < 2) {
+            return;
+        }
+        com.sablednah.crawlspace.plan.Dice d = com.sablednah.crawlspace.plan.Dice.of(plan.seed(), 0xF0B1L);
+        int on = level.showcase ? 1 : d.chance(FORBIDDEN_CHANCE) ? 1 + d.nextInt(plan.levels().size() - 1) : -1;
+        if (i != on) {
+            return;
+        }
+        for (Room r : level.rooms) {
+            if (r.role != Role.ROOM && r.role != Role.HALL) {
+                continue;
+            }
+            // Nearest the middle first: any clear three by three, not only the middle, which dressing often takes.
+            java.util.List<int[]> spots = new java.util.ArrayList<>();
+            for (int sx = r.minX() + 1; sx <= r.maxX() - 1; sx++) {
+                for (int sz = r.minZ() + 1; sz <= r.maxZ() - 1; sz++) {
+                    spots.add(new int[] {sx, sz});
+                }
+            }
+            spots.sort(java.util.Comparator.comparingInt(c -> Math.abs(c[0] - r.centerX()) + Math.abs(c[1] - r.centerZ())));
+            for (int[] spot : spots) {
+                int x = spot[0];
+                int z = spot[1];
+                if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR || nearDoor(level, x, z)) {
+                    continue;
+                }
+                int f = floorAt(plan, i, x, z);
+                boolean clear = true;
+                for (int dx = -1; dx <= 1 && clear; dx++) {
+                    for (int dz = -1; dz <= 1 && clear; dz++) {
+                        int c = bp.get(x + dx, f, z + dz);
+                        clear = level.cell(x + dx, z + dz) == Cell.FLOOR && floorAt(plan, i, x + dx, z + dz) == f
+                                && (c == 0 || Blueprint.part(c) == Part.AIR) && bp.triggerAt(x + dx, f, z + dz) == null;
+                    }
+                }
+                if (!clear) {
+                    continue;
+                }
+                bp.set(x, f, z, Part.FORBIDDEN, 0, i);
+                for (int[] c : new int[][] {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}}) {
+                    bp.set(x + c[0], f, z + c[1], Part.SKULL, facingOf(-c[0], 0), i);
+                }
+                bp.addTrigger(new Trigger(Trigger.Kind.FORBIDDEN, x, f, z, i, new int[0][]));
+                return;
             }
         }
     }
