@@ -251,6 +251,7 @@ public final class Blueprinter {
             rumours(bp, plan);
         }
         tells(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x7E11L));
+        previews(bp, plan, i);
         lights(bp, plan, i, dark);
         if (finale != null) {
             arena(bp, plan, i, finale);
@@ -789,6 +790,72 @@ public final class Blueprinter {
                         return;
                     }
                 }
+            }
+        }
+    }
+
+    /** The lintel that says what a room is, or null for a room that keeps its own counsel. */
+    private static Part previewFor(Role role) {
+        return switch (role) {
+            case TREASURE -> Part.PREVIEW_TREASURE;
+            case SHRINE -> Part.PREVIEW_SHRINE;
+            case PUZZLE -> Part.PREVIEW_PUZZLE;
+            case GUARD -> Part.PREVIEW_GUARD;
+            case LAIR -> Part.PREVIEW_LAIR;
+            default -> null;
+        };
+    }
+
+    /**
+     * Door previews (Hades, Sable's pick 2026-10-11): the wall block over a
+     * room's doorway becomes that room's sign, so a player at a junction can
+     * choose a route by what lies at the end of it. Every door, no dice: a
+     * sign that is only sometimes there is a sign nobody learns. Never over a
+     * secret door, which would give it away; a lintel too low for a wall block
+     * above the opening is left alone.
+     */
+    private static void previews(Blueprint bp, DungeonPlan plan, int i) {
+        LevelPlan level = plan.levels().get(i);
+        for (com.sablednah.crawlspace.plan.Link l : level.links) {
+            if (l.kind == com.sablednah.crawlspace.plan.LinkKind.SECRET) {
+                continue;
+            }
+            preview(bp, plan, i, l.doorA, l.a);
+            preview(bp, plan, i, l.doorB, l.b);
+        }
+    }
+
+    private static void preview(Blueprint bp, DungeonPlan plan, int i, int[] door, Room room) {
+        if (door == null || room == null) {
+            return;
+        }
+        Part sign = previewFor(room.role);
+        if (sign == null) {
+            return;
+        }
+        LevelPlan level = plan.levels().get(i);
+        int x = door[0];
+        int z = door[1];
+        Cell c = level.cell(x, z);
+        if (c == Cell.DOOR_SECRET || !c.isDoor() && c != Cell.ARCH) {
+            return;
+        }
+        int f = floorAt(plan, i, x, z);
+        int y = f + (c == Cell.ARCH ? 3 : 2);
+        int here = bp.get(x, y, z);
+        // Plain wall, or wall the dresser has dressed: it frames most doorways with pilasters.
+        if (here == 0 || !java.util.EnumSet.of(Part.WALL, Part.PILASTER, Part.WALL_ACCENT, Part.PANEL, Part.DADO)
+                .contains(Blueprint.part(here))) {
+            return;
+        }
+        int facing = facingOf(door[2], door[3]);
+        bp.set(x, y, z, sign, facing, i);
+        if (sign == Part.PREVIEW_LAIR) {
+            int ox = x + door[2];
+            int oz = z + door[3];
+            int out = bp.get(ox, y, oz);
+            if (out == 0 || Blueprint.part(out) == Part.AIR) {
+                bp.set(ox, y, oz, Part.PREVIEW_SKULL, facing, i);
             }
         }
     }
