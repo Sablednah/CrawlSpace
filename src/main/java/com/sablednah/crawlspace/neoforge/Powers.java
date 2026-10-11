@@ -409,6 +409,7 @@ public final class Powers {
         Mimics.died(level, mob);
         Altars.died(level, mob);
         Forbidden.died(level, mob);
+        Decoys.died(level, mob);
         if (tags.contains(Affix.SPLITTING.tag())) {
             int n = 2 + mob.getRandom().nextInt(2);
             for (int k = 0; k < n; k++) {

@@ -28,6 +28,8 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         ORDERED,
         /** The finale's altar: the lair's boss sleeps until an offering here wakes it, and can be called back. */
         ALTAR,
+        /** A false lair's pretender: a look-alike of the level's boss, much weaker, and a growl from the real one when it falls. */
+        DECOY_BOSS,
         /** A guard room whose doors seal as it wakes: hold out against waves until they open (Hades). */
         SURVIVAL,
         /** The thing you should not touch: break its seal, and the level's cleared rooms fill again. */
@@ -83,7 +85,7 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         }
 
         public boolean isEncounter() {
-            return this == ENCOUNTER || this == BOSS || this == ORDERED || this == SURVIVAL;
+            return this == ENCOUNTER || this == BOSS || this == ORDERED || this == SURVIVAL || this == DECOY_BOSS;
         }
     }
 

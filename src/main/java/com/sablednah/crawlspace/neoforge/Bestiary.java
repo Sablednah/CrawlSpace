@@ -245,7 +245,8 @@ public final class Bestiary {
         // Which of the theme's bosses: from the dungeon's own dice, so a lair always holds the same one.
         List<BossSpec> choices = bosses.getOrDefault(theme, bosses.get("Crypt"));
         BossSpec spec = choices.get(com.sablednah.crawlspace.plan.Dice.of(site.seed(), t.level(), 0xB055L).nextInt(choices.size()));
-        boolean lair = t.kind() == Trigger.Kind.BOSS;
+        boolean decoy = t.kind() == Trigger.Kind.DECOY_BOSS;
+        boolean lair = t.kind() == Trigger.Kind.BOSS || decoy;
         boolean asleep = lair && Sleepers.sleeps(site, t);
         // A guard room may post a sentry: the first of its monsters, which raises the alarm if it sees you.
         com.sablednah.crawlspace.plan.LevelPlan lp = site.built().plan().levels().get(t.level());
@@ -279,6 +280,9 @@ public final class Bestiary {
             arm(mob, depth + (boss ? 2 : 0), random);
             if (boss) {
                 crown(mob, spec, depth);
+                if (decoy) {
+                    Decoys.pretend(mob);
+                }
                 Bosses.track(level, mob, spec.colour());
                 bossName = spec.name();
             } else if (follower) {

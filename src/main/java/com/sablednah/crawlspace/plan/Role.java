@@ -21,6 +21,8 @@ public enum Role {
     SECRET('S'),
     /** Where the level's worst lives. */
     LAIR('L'),
+    /** A pretender's lair: looks the part, its boss falls too easily, and the real one is behind a secret wall. */
+    FALSE_LAIR('F'),
     /** A quiet room: a pool, an altar. */
     SHRINE('W'),
     /** Holds the lever for the level's locked door. */
