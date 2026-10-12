@@ -253,6 +253,12 @@ class BlueprintTest {
         java.util.Set<String> aimed = new java.util.HashSet<>();
         java.util.Set<Integer> keyed = new java.util.HashSet<>();
         for (Trigger t : bp.triggers()) {
+            if (t.kind() == Trigger.Kind.TOKEN_VAULT) {
+                for (int k = 1; k < t.targets().length; k++) { // target 0 is the count; the rest, its bars
+                    int[] d = t.targets()[k];
+                    aimed.add(d[0] + "," + d[1] + "," + d[2]);
+                }
+            }
             if (t.kind() == Trigger.Kind.LEVER) {
                 for (int[] d : t.targets()) {
                     aimed.add(d[0] + "," + d[1] + "," + d[2]);
@@ -531,7 +537,7 @@ class BlueprintTest {
         for (Trigger.Kind k : new Trigger.Kind[] {Trigger.Kind.DARTS, Trigger.Kind.GAS, Trigger.Kind.ALARM, Trigger.Kind.WEBS,
                 Trigger.Kind.ROCKFALL, Trigger.Kind.FROST, Trigger.Kind.FIRE, Trigger.Kind.SUMMON, Trigger.Kind.VAULT,
                 Trigger.Kind.PORTCULLIS, Trigger.Kind.ICE_BOARD, Trigger.Kind.ORDERED, Trigger.Kind.BOSS, Trigger.Kind.LEVER,
-                Trigger.Kind.TELEPORT_MAZE, Trigger.Kind.ALTAR, Trigger.Kind.SURVIVAL, Trigger.Kind.FORBIDDEN, Trigger.Kind.DECOY_BOSS, Trigger.Kind.CUBE}) {
+                Trigger.Kind.TELEPORT_MAZE, Trigger.Kind.ALTAR, Trigger.Kind.SURVIVAL, Trigger.Kind.FORBIDDEN, Trigger.Kind.DECOY_BOSS, Trigger.Kind.CUBE, Trigger.Kind.TOKEN_VAULT, Trigger.Kind.TOKENS}) {
             assertTrue(kinds.contains(k), "the showcase has no " + k);
         }
         assertFalse(com.sablednah.crawlspace.plan.Showcase.on(12345L), "an ordinary seed is not a showcase");
@@ -643,6 +649,34 @@ class BlueprintTest {
         }
         System.out.println("FALSE lairs " + found);
         assertTrue(found > 0, "no false lairs");
+    }
+
+    /**
+     * Token vaults: each has its portcullis and cauldron, and a guard room on
+     * its level carries at least as many tokens as it needs. And they turn up.
+     */
+    @Test
+    void tokenVaultsCanBeOpened() {
+        int vaults = 0;
+        for (long seed = 1; seed <= 40; seed++) {
+            Blueprint bp = Blueprinter.blueprint(Planner.plan(seed, 5));
+            for (Trigger t : bp.triggers()) {
+                if (t.kind() != Trigger.Kind.TOKEN_VAULT) {
+                    continue;
+                }
+                vaults++;
+                assertEquals(Part.CAULDRON, Blueprint.part(bp.get(t.x(), t.y(), t.z())), "seed " + seed + ": no cauldron");
+                for (int k = 1; k < t.targets().length; k++) {
+                    int[] b = t.targets()[k];
+                    assertEquals(Part.PORTCULLIS, Blueprint.part(bp.get(b[0], b[1], b[2])), "seed " + seed + ": no bars");
+                }
+                int needed = t.targets()[0][0];
+                assertTrue(bp.triggers().stream().anyMatch(g -> g.kind() == Trigger.Kind.TOKENS && g.level() == t.level()
+                        && g.targets().length >= needed), "seed " + seed + ": not enough tokens on the level");
+            }
+        }
+        System.out.println("TOKEN vaults " + vaults);
+        assertTrue(vaults > 0, "no token vaults");
     }
 
     /** A finale with an arena has its altar, on the gallery, on the bottom level, and only there. */
