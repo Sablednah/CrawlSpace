@@ -1698,6 +1698,13 @@ Drive it over RCON:
   role, facing along or across it, which is how screenshots get aimed.
 - `/crawlspace info` also reports the level you stand on: rooms awake,
   traps sprung, and the nearest sleeping room.
+- `/crawlspace info full` lists everything on every level of the dungeon you
+  stand in (or your last build), from its plan and blueprint, so it answers
+  for a dungeon nobody has walked. Each entry runs `goto` when clicked; the
+  hover on an objective says its job.
+- Survival rooms seal on the first 10-tick check that finds a player inside
+  and none within 2.5 of a doorway, not at wake: a room wakes from the
+  corridor, and bars dropped on a player pushed them out (Sable, 2026-10-12).
 - `goto <level> <role>` now stands in a room's corner, looking across it, so
   screenshots show the room rather than a pillar.
 - `goto <level> lever|locked|trap|secretdoor` stands you two cells from a

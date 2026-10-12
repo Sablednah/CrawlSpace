@@ -28,7 +28,8 @@ import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * Survival rooms (Hades, Dungeon Now Loading; Sable's pick, 2026-10-11). As
- * the room wakes its doorways fill with iron bars, a bar counts down a minute,
+ * the room wakes and a player is in it, clear of every doorway, its doorways fill
+ * with iron bars, a bar counts down a minute,
  * and a band joins the fight every fifteen seconds. When the minute is up the
  * bars lift, always, and a chest appears with a blessing. The bars say why
  * they are there the moment they drop. A restart mid-fight loses the
@@ -48,7 +49,8 @@ public final class SurvivalRooms {
         final Site site;
         final Trigger trigger;
         final Room room;
-        final long start;
+        final List<BlockPos> doors;
+        long start = -1;
         final Map<BlockPos, BlockState> was = new HashMap<>();
         final ServerBossEvent bar = new ServerBossEvent(Component.literal("Hold out!").withStyle(ChatFormatting.RED),
                 BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.NOTCHED_6);
@@ -59,7 +61,7 @@ public final class SurvivalRooms {
             this.site = site;
             this.trigger = trigger;
             this.room = room;
-            this.start = level.getGameTime();
+            this.doors = doors(site, trigger, room);
         }
     }
 
@@ -92,15 +94,44 @@ public final class SurvivalRooms {
         return out;
     }
 
-    /** From Bestiary.wake: the first wave is in; seal the doors and start the clock. */
+    /**
+     * From Bestiary.wake: the first wave is in. The room wakes as a player comes
+     * near, often from the corridor, so the doors wait until someone is inside and
+     * nobody stands in a doorway: bars dropped on a player push them out of the
+     * fight they were meant to be shut into.
+     */
     static void start(ServerLevel level, Site site, Trigger t) {
         Room room = roomOf(site, t);
         if (room == null) {
             return;
         }
-        Fight fight = new Fight(level, site, t, room);
+        FIGHTS.add(new Fight(level, site, t, room));
+    }
+
+    /** Whether the doors can drop now: someone inside, nobody within reach of a doorway. */
+    private static boolean ready(Fight f, List<ServerPlayer> in) {
+        if (in.isEmpty()) {
+            return false;
+        }
+        for (ServerPlayer p : f.level.players()) {
+            for (BlockPos door : f.doors) {
+                if (Math.abs(p.getX() - (door.getX() + 0.5)) < 2.5 && Math.abs(p.getZ() - (door.getZ() + 0.5)) < 2.5
+                        && Math.abs(p.getY() - door.getY()) < 3) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /** Seals the doors and starts the clock. */
+    private static void seal(Fight fight) {
+        ServerLevel level = fight.level;
+        Trigger t = fight.trigger;
+        Site site = fight.site;
+        fight.start = level.getGameTime();
         CrawlState state = CrawlState.of(level);
-        for (BlockPos door : doors(site, t, room)) {
+        for (BlockPos door : fight.doors) {
             for (int dy = 0; dy < 3; dy++) {
                 BlockPos p = door.above(dy);
                 BlockState s = level.getBlockState(p);
@@ -126,7 +157,6 @@ public final class SurvivalRooms {
             fight.bar.addPlayer(p);
             Triggers.tell(p, "The doors slam shut! Hold out for a minute, and they open again.");
         }
-        FIGHTS.add(fight);
         CrawlSpace.LOGGER.info("CrawlSpace: survival room at {} sealed {} block(s)", centre, fight.was.size());
     }
 
@@ -148,6 +178,13 @@ public final class SurvivalRooms {
             return;
         }
         for (Fight f : new ArrayList<>(FIGHTS)) {
+            if (f.start < 0) {
+                List<ServerPlayer> in = inside(f);
+                if (ready(f, in)) {
+                    seal(f);
+                }
+                continue;
+            }
             long elapsed = (f.level.getGameTime() - f.start) / 20;
             List<ServerPlayer> in = inside(f);
             for (ServerPlayer p : in) {
