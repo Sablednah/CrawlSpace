@@ -759,12 +759,18 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
 
 **Objective rooms** (`Blueprinter.objective`, `neoforge/ObjectiveRooms`).
 On each level between the top and the bottom, half the time
-(`Dice(seed, level, 0x0B7E)`; a showcase always, each placed one taking the
-next type), the level's biggest plain room is cleared and rebuilt as a set
-piece.
-- **Which room:** a ROOM or HALL, rectangular, at least 11 across, flat, no
-  pool, nothing in it but encounters, decoys and traps (which go). A pit in
-  a cross-shaped room cut its arms apart, hence rectangles only.
+(`LevelPlanner.OBJECTIVE_CHANCE`; a showcase always, each placed one taking
+the next type), the planner keeps a loop slot for it: `Role.OBJECTIVE` ('O').
+- **Its room** is a rectangle, 15 to 19 across before the theme's scale and
+  never under 15 after it. It is planned as one (Sable, 2026-10-12): it used
+  to take the level's biggest plain rectangle, which only 16 dungeons in 40
+  had. A pit in a cross-shaped room cut its arms apart, hence rectangles.
+- **Clearing** still removes encounters, decoys and traps. It leaves a
+  one-way door's lever alone, with its trigger.
+- **A showcase's level 1** also plans a plain 15×15 rectangle kept open (no
+  pool or pillars, `Room.open`), and a showcase picks its roomiest puzzle
+  candidate: the objective rooms had taken every rectangle a teleport maze
+  could fit in.
 - **Clearing** goes to each cell's own ceiling. One height for the whole room
   cut through lower ceilings into the world.
 - **The five rooms and their jobs** (the easiest from the Adventure Book;
@@ -822,8 +828,12 @@ piece.
   and one bane (`crawlspace_tablet: "BOON:BANE"`) shown in its lore.
 - **Reading one** inside a dungeon (using it) stores the traits for that
   dungeon (`traits:<origin>`) and restocks it at once, even with players in
-  it, so a party can retry together. Everyone inside is told the traits. An
-  ordinary restock clears them; another tablet replaces them.
+  it, so a party can retry together. Everyone inside is told the traits.
+  **The bottom boss's death ends the run** (Sable, 2026-10-12): the boss of
+  the bottom level's lair or altar, within 48 blocks, but not a decoy. An
+  ordinary restock also clears them; another tablet replaces them.
+- **A tablet works in any dungeon**, not only the one it came from: players
+  are meant to collect and trade them for good pairings (Sable, 2026-10-12).
 - **Boons:**
   - XP: double experience (`LivingExperienceDropEvent`).
   - LOOT: refilled chests a tier up.
@@ -836,7 +846,9 @@ piece.
   - CHAMPIONS: twice the elite chance.
 - **`/crawlspace useitem`** fires the item-use event for what is in hand.
 - **Seen on the rig:** an XP:TOUGH tablet was read and spent, its room
-  refilled, and the skeletons came back at 33 health, not 22.
+  refilled, and the skeletons came back at 33 health, not 22. Later, an
+  XP:CHAMPIONS tablet from a planned pit room (seed 13), then a boss killed
+  at the bottom altar: "The heroic run is won", and the traits were cleared.
 
 ## Restocking (Sable's ruling, 2026-10-12)
 

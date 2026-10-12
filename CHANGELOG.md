@@ -9,7 +9,8 @@
 - **Vault cages are copper grates**, not a single iron bar through the item.
 - **Objective rooms.** Big set pieces with a job: the Fighting Pit, the Firechasm, the Fountain of Light, the Tomb Chamber and the Idol Chamber. Do the job for a chest and replay tablets, and the portal frame in the wall takes you straight to the surface.
 - **Two jobs for each objective room:** the Pit's waiting guardian, the Firechasm's stolen dragon's eye, the Fountain's vial of light, the Tomb that must be broken while the dead keep coming, and the Idol's summoning, which turns the shaman into a boss if you are too slow.
-- **Replay tablets.** Read one in a dungeon and it wakes again at once, harder, for everyone in it: each tablet carries one boon (more XP, richer loot, longer blessings, gold) and one bane (tougher, fiercer, more monsters, more champions).
+- **Objective rooms are planned**, not borrowed: about half of a dungeon's middle levels get one, in a room built for it.
+- **Replay tablets.** Read one in a dungeon and it wakes again at once, harder, for everyone in it: each tablet carries one boon (more XP, richer loot, longer blessings, gold) and one bane (tougher, fiercer, more monsters, more champions). The run lasts until the bottom boss falls. Tablets work in any dungeon, so they can be collected and traded.
 - **Restocking.** Every 12 hours (configurable) a dungeon fills again: its rooms wake, its traps re-arm, its chests refill. Never while someone else is inside.
 - **Seals for the deepest door.** The bottom altar wants a seal from each level above that has a lair (from its boss) or a puzzle (in its hoard). A vault token stands in for a missing one, and after half an hour on the bottom level the altar takes gold alone.
 - **Token vaults.** Some treasure rooms are barred, with a cauldron outside. The guards of that level carry vault tokens; feed the cauldron enough and the bars rise.
