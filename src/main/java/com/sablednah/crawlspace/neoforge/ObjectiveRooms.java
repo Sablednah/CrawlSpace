@@ -69,7 +69,7 @@ public final class ObjectiveRooms {
             {"Take the relic from its pedestal and throw it into the fire.",
                     "The Eye-Thief has the dragon's eye. Take it from him, and set it in the dragon's head."},
             {"Break the four corrupted stones in its rim. Each will cost you.",
-                    "Fill a vial at its basin, and carry the light to the portal frame in the wall."},
+                    "Collect a vial from the fountain, then use the portal frame in the wall while you carry it."},
             {"Lift the lid, and lay what rises to rest.",
                     "Break the tomb: twenty blows. While it stands, the dead keep coming."},
             {"Its shaman wakes! Kill the shaman.",
@@ -192,11 +192,39 @@ public final class ObjectiveRooms {
         return false;
     }
 
+    /** Whether the player carries one of our special items, anywhere in their inventory. */
+    private static boolean carries(ServerPlayer player, String key) {
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            if (flag(player.getInventory().getItem(i), key)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Takes one of our special items from anywhere in the inventory: nobody should have to hold it to hand it over. */
+    private static boolean take(ServerPlayer player, String key) {
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack s = player.getInventory().getItem(i);
+            if (flag(s, key)) {
+                s.shrink(1);
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean flag(ItemStack stack, String key) {
         CustomData data = stack.get(DataComponents.CUSTOM_DATA);
         return data != null && data.copyTag().getBooleanOr(key, false);
     }
 
+    /**
+     * One of our quest items, on an inert base: the vial was a bottle o' enchanting
+     * and the eye an eye of ender, so one threw for free XP and the other flew off
+     * after a stronghold (Sable, 2026-10-12). Dragon's breath and a heart of the sea
+     * do nothing when used.
+     */
     private static ItemStack special(net.minecraft.world.item.Item item, String name, String key) {
         ItemStack s = new ItemStack(item);
         s.set(DataComponents.CUSTOM_NAME, Component.literal(name).withStyle(st -> st.withItalic(false).withColor(ChatFormatting.GOLD)));
@@ -240,6 +268,15 @@ public final class ObjectiveRooms {
                     SINCE.put(k.asLong(), level.getGameTime());
                     Bestiary.band(level, site, t.level(), anchor.above().offset(2, 0, 0), 2, player);
                     Triggers.tell(player, "The dead answer the tomb's call!");
+                }
+            }
+            case Blueprinter.FOUNTAIN -> {
+                // Light rising off the water until someone carries a vial of it: the basin is the thing to use.
+                if (!carries(player, VIAL)) {
+                    level.sendParticles(ParticleTypes.END_ROD, anchor.getX() + 0.5, anchor.getY() + 0.9, anchor.getZ() + 0.5,
+                            4, 0.8, 0.1, 0.8, 0.03);
+                    level.sendParticles(ParticleTypes.GLOW, anchor.getX() + 0.5, anchor.getY() + 1.0, anchor.getZ() + 0.5,
+                            3, 1.0, 0.2, 1.0, 0.0);
                 }
             }
             case Blueprinter.IDOL -> {
@@ -376,10 +413,8 @@ public final class ObjectiveRooms {
             boolean done = state.hasFired(k.above(DONE));
             int type = t.targets()[0][0];
             int job = t.targets()[0][1];
-            ItemStack hand = player.getMainHandItem();
             if (part == Part.EXIT_FRAME) {
-                if (!done && type == Blueprinter.FOUNTAIN && job == 1 && flag(hand, VIAL)) {
-                    hand.shrink(1);
+                if (!done && type == Blueprinter.FOUNTAIN && job == 1 && take(player, VIAL)) {
                     complete(level, site, t, player);
                 } else if (!done) {
                     Triggers.tell(player, "The way out is closed. " + job(t));
@@ -387,15 +422,18 @@ public final class ObjectiveRooms {
                     surface(level, player, site);
                 }
             } else if ((part == Part.OBJ_RIM || part == Part.OBJ_GLOW) && type == Blueprinter.FOUNTAIN && job == 1 && !done) {
-                ItemStack vial = special(Items.EXPERIENCE_BOTTLE, "Vial of Light", VIAL);
+                if (carries(player, VIAL)) {
+                    Triggers.tell(player, "You already carry a Vial of Light. Use the portal frame in the wall.");
+                    return true;
+                }
+                ItemStack vial = special(Items.DRAGON_BREATH, "Vial of Light", VIAL);
                 if (!player.getInventory().add(vial)) {
                     level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY() + 0.5, player.getZ(), vial));
                 }
                 level.playSound(null, pos, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1f, 1f);
-                Triggers.tell(player, "You fill a vial with the fountain's light. Carry it to the portal frame in the wall.");
+                Triggers.tell(player, "You collect a Vial of Light from the fountain. Now use the portal frame in the wall.");
             } else if (part == Part.OBJ_DRAGON && type == Blueprinter.FIRECHASM && job == 1 && !done) {
-                if (flag(hand, EYE)) {
-                    hand.shrink(1);
+                if (take(player, EYE)) {
                     level.sendParticles(ParticleTypes.FLAME, pos.getX() + 0.5, pos.getY() + 0.8, pos.getZ() + 0.5, 30, 0.3, 0.3, 0.3, 0.05);
                     complete(level, site, t, player);
                 } else {
@@ -447,7 +485,7 @@ public final class ObjectiveRooms {
     /** A foe of an objective falls: its room's job is done. The Eye-Thief drops the dragon's eye instead. */
     static void died(ServerLevel level, Mob mob) {
         if (mob.entityTags().contains(THIEF)) {
-            mob.spawnAtLocation(level, special(Items.ENDER_EYE, "The Dragon's Eye", EYE));
+            mob.spawnAtLocation(level, special(Items.HEART_OF_THE_SEA, "The Dragon's Eye", EYE));
             for (ServerPlayer p : level.players()) {
                 if (p.distanceToSqr(mob) < 24 * 24) {
                     Triggers.tell(p, "The Eye-Thief drops the dragon's eye. Set it in the dragon's head.");

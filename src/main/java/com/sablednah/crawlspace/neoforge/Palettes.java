@@ -190,6 +190,19 @@ public final class Palettes {
     }
 
         /** The full block a stair is cut from, for the spiral's corner landings. */
+    /** The slab of the stair's material ({@code _stairs} becomes {@code _slab}); the stair itself if there is none. */
+    private static BlockState slabFor(BlockState stair) {
+        var id = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(stair.getBlock());
+        if (id.getPath().endsWith("_stairs")) {
+            var slab = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getOptional(
+                    id.withPath(id.getPath().replace("_stairs", "_slab")));
+            if (slab.isPresent()) {
+                return slab.get().defaultBlockState();
+            }
+        }
+        return stair;
+    }
+
     private static Block landingFor(Block stair) {
         if (stair == Blocks.MOSSY_STONE_BRICK_STAIRS) {
             return Blocks.MOSSY_STONE_BRICKS;
@@ -438,6 +451,7 @@ public final class Palettes {
             case ONEWAY_LOWER, ONEWAY_UPPER -> door(Blocks.IRON_DOOR, dir, part == Part.ONEWAY_UPPER);
             case DOOR_LOWER, DOOR_UPPER -> door(block(s, "door", hash), dir, part == Part.DOOR_UPPER);
             case STEP -> with(b.apply("step"), StairBlock.FACING, dir);
+            case STEP_SLAB -> slabFor(b.apply("step"));
             case LIGHT -> with(b.apply("light"), LanternBlock.HANGING, true);
             case LEVER -> Blocks.LEVER.defaultBlockState()
                     .setValue(net.minecraft.world.level.block.LeverBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR)
