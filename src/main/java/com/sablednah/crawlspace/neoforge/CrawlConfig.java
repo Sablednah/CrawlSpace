@@ -18,6 +18,7 @@ public final class CrawlConfig {
     private static final ModConfigSpec.EnumValue<Hints> HINTS;
     private static final ModConfigSpec.DoubleValue DISARM_CHANCE;
     private static final ModConfigSpec.IntValue SPAWNER_USES;
+    private static final ModConfigSpec.BooleanValue SPAWNERS_IGNORE_LIGHT;
     private static final ModConfigSpec.IntValue EVENT_SECONDS;
     private static final ModConfigSpec.IntValue RESTOCK_HOURS;
     private static final ModConfigSpec.BooleanValue PROTECT;
@@ -64,6 +65,10 @@ public final class CrawlConfig {
                 "How many monsters a dungeon's spawner makes before it burns out, so a dungeon is not a farm.",
                 "0: spawners never burn out.")
                 .defineInRange("spawnerUses", 24, 0, 100000);
+        SPAWNERS_IGNORE_LIGHT = b.comment(
+                "A dungeon's spawners keep spawning in light, so a torch on one does not switch it off.",
+                "Only spawners inside a dungeon; there must still be room for the monster. Off: vanilla rules.")
+                .define("spawnersIgnoreLight", true);
         EVENT_SECONDS = b.comment(
                 "The dungeon clock: every this many seconds, each level with a player on it rolls a die, and on a 1",
                 "something happens (a wandering band, a sound in the dark, the light going out, a stranger...).",
@@ -123,6 +128,10 @@ public final class CrawlConfig {
 
     public static int restockHours() {
         return get(RESTOCK_HOURS, 12);
+    }
+
+    public static boolean spawnersIgnoreLight() {
+        return get(SPAWNERS_IGNORE_LIGHT, true);
     }
 
     public static int spawnerUses() {

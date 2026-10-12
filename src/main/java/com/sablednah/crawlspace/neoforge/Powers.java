@@ -489,6 +489,32 @@ public final class Powers {
     }
 
     /**
+     * A dungeon's spawners ignore light (Sable, 2026-10-12): lighting a spawner
+     * room should not switch it off, since it burns out anyway. A spawner asks
+     * twice: the monster type's placement rule, then the monster's own spawn rule,
+     * and both refuse a monster in light. Each is answered for a spawner spawning
+     * inside a dungeon. Room to stand is still required; nothing else is changed.
+     * A position inside a dungeon is enough to know it is one of ours: the event
+     * does not say which spawner asked.
+     */
+    public static void onSpawnPlacement(net.neoforged.neoforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck e) {
+        if (e.getSpawnType() == net.minecraft.world.entity.EntitySpawnReason.SPAWNER && CrawlConfig.spawnersIgnoreLight()
+                && Dungeons.at(e.getLevel().getLevel(), e.getPos()).isPresent()) {
+            e.setResult(net.neoforged.neoforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck.Result.SUCCEED);
+        }
+    }
+
+    public static void onSpawnPosition(net.neoforged.neoforge.event.entity.living.MobSpawnEvent.PositionCheck e) {
+        if (e.getSpawnType() == net.minecraft.world.entity.EntitySpawnReason.SPAWNER && e.getSpawner() != null
+                && CrawlConfig.spawnersIgnoreLight()
+                && Dungeons.at(e.getLevel().getLevel(), e.getEntity().blockPosition()).isPresent()) {
+            e.setResult(e.getEntity().checkSpawnObstruction(e.getLevel())
+                    ? net.neoforged.neoforge.event.entity.living.MobSpawnEvent.PositionCheck.Result.SUCCEED
+                    : net.neoforged.neoforge.event.entity.living.MobSpawnEvent.PositionCheck.Result.FAIL);
+        }
+    }
+
+    /**
      * A dungeon's spawner counts what it makes, on its block entity, and burns
      * out at {@code play.spawnerUses}: a spawner left running is a farm, and a
      * farmed dungeon is abandoned (the most common complaint about Roguelike
