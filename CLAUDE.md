@@ -755,6 +755,75 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Objective rooms, quick exits, replay tablets (Sable's rulings, 2026-10-12)
+
+**Objective rooms** (`Blueprinter.objective`, `neoforge/ObjectiveRooms`).
+On each level between the top and the bottom, half the time
+(`Dice(seed, level, 0x0B7E)`; a showcase always, each placed one taking the
+next type), the level's biggest plain room is cleared and rebuilt as a set
+piece.
+- **Which room:** a ROOM or HALL, rectangular, at least 11 across, flat, no
+  pool, nothing in it but encounters, decoys and traps (which go). A pit in
+  a cross-shaped room cut its arms apart, hence rectangles only.
+- **Clearing** goes to each cell's own ceiling. One height for the whole room
+  cut through lower ceilings into the world.
+- **The five rooms and their jobs** (the easiest from the Adventure Book;
+  `Trigger.Kind.OBJECTIVE`, target 0 the type, 1 the exit frame, 2 the job's
+  anchor):
+
+| Room | Set piece | Job |
+|---|---|---|
+| Fighting Pit | a pit 2 deep, a ladder out | drop in; the Pit Champion rises; kill it |
+| Firechasm | a 2-wide lava channel, a 3-wide bridge, a dragon head on its plinth | take the relic from its pedestal; drop it in the lava |
+| Fountain of Light | a basin with a quartz rim and sea lanterns | break the 4 crying-obsidian stones; each costs 4 health |
+| Tomb Chamber | a sarcophagus with candles | use it; the Tomb Lord rises; kill it |
+| Idol Chamber | a gold idol with a piglin head | walk in; the Shaman (an evoker) and two vindicators wake; kill the Shaman |
+
+- **Foes** are elites with doubled health. If a started job's foe vanishes
+  without dying (Peaceful, lava), the job can be begun again. On the rig, a
+  Peaceful switch had left one started for good.
+- **The relic** is fire-proof (`DAMAGE_RESISTANT is_fire`). An ordinary item
+  burned up in lava within a tick, before the check saw it.
+- **Done:** a chest (tier min 5, 3 + level/2) and 1-3 replay tablets, and the
+  room's **quick exit** takes its eye. The exit is an end portal frame
+  (`Part.EXIT_FRAME`) against a wall; using it puts you on the ground just
+  north of the tower (origin, z - REACH - 3, heightmap). Before that, it says
+  what the room wants.
+- Each room tells its job as you enter. The markers are trigger + 1200
+  (started), + 1201 (done), and stone + 1202 (broken).
+- **Tested:** `objectiveRoomsAreWhole` checks types, frames and anchors;
+  every type turns up, 16 rooms over 40 dungeons.
+- **Seen on the rig:**
+
+| Room | Result |
+|---|---|
+| Pit (seed 8) | champion killed: 1 tablet, frame lit |
+| Firechasm (seed 2) | relic in the lava: 2 tablets, frame lit |
+| Tomb (seed 7) | Tomb Lord killed: 3 tablets, frame lit; the exit put me on the surface |
+| Idol (seed 24) | Shaman killed: 2 tablets, frame lit |
+| Fountain (seed 4) | stones present; breaking them by hand was not driven from a script |
+
+**Replay tablets and heroic runs** (`neoforge/Tablets`, `neoforge/Heroic`).
+- **A tablet** is a flow pottery sherd named "Replay Tablet", with one boon
+  and one bane (`crawlspace_tablet: "BOON:BANE"`) shown in its lore.
+- **Reading one** inside a dungeon (using it) stores the traits for that
+  dungeon (`traits:<origin>`) and restocks it at once, even with players in
+  it, so a party can retry together. Everyone inside is told the traits. An
+  ordinary restock clears them; another tablet replaces them.
+- **Boons:**
+  - XP: double experience (`LivingExperienceDropEvent`).
+  - LOOT: refilled chests a tier up.
+  - BLESSED: blessings last 12 minutes.
+  - GOLD: monsters drop nuggets, sometimes an ingot.
+- **Banes:**
+  - TOUGH: ×1.5 health. FIERCE: ×1.5 attack. Both applied once, as a
+    monster joins (`crawlspace_heroic` tag).
+  - HORDE: a band of half as many again per room.
+  - CHAMPIONS: twice the elite chance.
+- **`/crawlspace useitem`** fires the item-use event for what is in hand.
+- **Seen on the rig:** an XP:TOUGH tablet was read and spent, its room
+  refilled, and the skeletons came back at 33 health, not 22.
+
 ## Restocking (Sable's ruling, 2026-10-12)
 
 `neoforge/Restocks`, with `play.restockHours` (12; 0 never), in real time, so

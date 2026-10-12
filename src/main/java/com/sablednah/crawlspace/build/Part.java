@@ -202,7 +202,31 @@ public enum Part {
     /** A teleport maze's pad, in the floor: stepping on it sends you to another cell. */
     TP_PAD,
     /** The thing you should not touch: a sealed sarcophagus, chained, ringed with skulls (Death Frost Doom). */
-    FORBIDDEN;
+    FORBIDDEN,
+    /*
+     * Objective rooms (Warhammer Quest; Sable's ruling, 2026-10-12): big set pieces with a job, and a way out.
+     */
+    /** The quick exit: an end portal frame, given its eye when the room's job is done. Facing is into the room. */
+    EXIT_FRAME,
+    /** The firechasm's lava. */
+    OBJ_LAVA,
+    /** The firechasm's bridge over the lava. */
+    OBJ_BRIDGE,
+    /** The pedestal the firechasm's relic is taken from. */
+    OBJ_RELIC,
+    /** The firechasm's dragon: a head on its plinth. Facing is toward the chasm. */
+    OBJ_DRAGON,
+    /** The fountain's rim. */
+    OBJ_RIM,
+    /** The fountain's light, at the rim's corners. */
+    OBJ_GLOW,
+    /** The fountain's corrupted blocks: break all four, at a price. Not shell: they are meant to be broken. */
+    OBJ_CORRUPT,
+    /** The tomb chamber's sarcophagus. */
+    OBJ_TOMB,
+    /** The idol's body, and its head. Facing is toward the room. */
+    OBJ_IDOL,
+    OBJ_IDOL_HEAD;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).
@@ -221,7 +245,8 @@ public enum Part {
                     SHELF, WALL_ACCENT, FLOOR_ACCENT, FLOOR_INLAY, PILASTER, COVE, PANEL, DADO, MOSS_FLOOR, BEAM,
                     VOID, RESTART, PATH_HIDDEN, CRUMBLE, DRIPLEAF, PIT_TILE,
                     PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER, WINDOW_BARS, PEDESTAL, ICE_TILE,
-                    PREVIEW_TREASURE, PREVIEW_SHRINE, PREVIEW_PUZZLE, PREVIEW_GUARD, PREVIEW_LAIR, BOSS_ALTAR, TP_PAD, FORBIDDEN -> true;
+                    PREVIEW_TREASURE, PREVIEW_SHRINE, PREVIEW_PUZZLE, PREVIEW_GUARD, PREVIEW_LAIR, BOSS_ALTAR, TP_PAD, FORBIDDEN,
+                    EXIT_FRAME, OBJ_BRIDGE, OBJ_RELIC, OBJ_DRAGON, OBJ_RIM, OBJ_GLOW, OBJ_TOMB, OBJ_IDOL, OBJ_IDOL_HEAD -> true;
             default -> false;
         };
     }

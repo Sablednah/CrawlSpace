@@ -36,6 +36,7 @@ what the rig showed):
 - token vaults;
 - seals for the deepest door, with fallbacks;
 - restocking every 12 hours;
+- objective rooms (the easiest job of each), quick exits, replay tablets with boons and banes;
 - the gelatinous cube;
 - portcullis and key, and the portcullis trap;
 - one-way valves;
@@ -58,8 +59,7 @@ what the rig showed):
 **Not built:**
 - the other puzzles in section 3 (liars' chests, riddles,
   item frames, vanishing bridge, Sokoban, water and beam boards);
-- the objective rooms' jobs (2b);
-- restocking and heroic re-entry;
+- the objective rooms' harder jobs (2b): only the easiest of each is built;
 - cycle types on the planner.
 
 **Benched for a future add-on (Sable, 2026-10-11):** rival factions that

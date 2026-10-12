@@ -496,6 +496,20 @@ public final class Palettes {
             case BOSS_ALTAR -> Blocks.LODESTONE.defaultBlockState();
             case TP_PAD -> Blocks.CRYING_OBSIDIAN.defaultBlockState();
             case FORBIDDEN -> Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState();
+            case EXIT_FRAME -> Blocks.END_PORTAL_FRAME.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.EndPortalFrameBlock.FACING, dir.getOpposite());
+            case OBJ_LAVA -> Blocks.LAVA.defaultBlockState();
+            case OBJ_BRIDGE -> Blocks.DARK_OAK_PLANKS.defaultBlockState();
+            case OBJ_RELIC -> Blocks.CHISELED_STONE_BRICKS.defaultBlockState();
+            case OBJ_DRAGON -> Blocks.DRAGON_HEAD.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.SkullBlock.ROTATION, facing * 4);
+            case OBJ_RIM -> Blocks.SMOOTH_QUARTZ.defaultBlockState();
+            case OBJ_GLOW -> Blocks.SEA_LANTERN.defaultBlockState();
+            case OBJ_CORRUPT -> Blocks.CRYING_OBSIDIAN.defaultBlockState();
+            case OBJ_TOMB -> Blocks.POLISHED_DEEPSLATE.defaultBlockState();
+            case OBJ_IDOL -> Blocks.GOLD_BLOCK.defaultBlockState();
+            case OBJ_IDOL_HEAD -> Blocks.PIGLIN_HEAD.defaultBlockState()
+                    .setValue(net.minecraft.world.level.block.SkullBlock.ROTATION, facing * 4);
             case PREVIEW_TREASURE -> Blocks.GILDED_BLACKSTONE.defaultBlockState();
             case PREVIEW_SHRINE -> Blocks.AMETHYST_BLOCK.defaultBlockState();
             case PREVIEW_PUZZLE -> Blocks.CHISELED_BOOKSHELF.defaultBlockState()
