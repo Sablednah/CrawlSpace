@@ -62,6 +62,11 @@ public final class ObjectiveRooms {
     /** Fountain stones broken: at stone.above(BROKEN). */
     private static final int BROKEN = 1202;
     private static final String[] NAMES = {"the Fighting Pit", "the Firechasm", "the Fountain of Light", "the Tomb Chamber", "the Idol Chamber"};
+    /** Where each room's way out is: part of its set piece, and named so nobody hunts for it. */
+    private static final String[] WAY_OUT = {"under the gong on the pit's far rim", "in the dragon's plinth", "in the fountain's rim",
+            "at the head of the tomb's plinth", "in the idol's dais"};
+    /** Marker: the room's guards, from the level below, have come. */
+    private static final int GUARDED = 1203;
     /** Each room's jobs, by type then job: the easiest first. */
     private static final String[][] JOBS = {
             {"Drop into the pit, and its champion rises to meet you.",
@@ -137,13 +142,28 @@ public final class ObjectiveRooms {
             boolean done = state.hasFired(k.above(DONE));
             if (TOLD.computeIfAbsent(player.getUUID(), x -> new HashSet<>()).add(k.asLong())) {
                 player.sendSystemMessage(Component.literal(capital(NAMES[type]) + ". " + (done
-                        ? "Its work is done. The glowing portal frame by the wall takes you to the surface."
-                        : job(t) + " When it is done, a way out opens by the wall.")).withStyle(ChatFormatting.GOLD));
+                        ? "Its work is done. The glowing portal frame " + WAY_OUT[type] + " takes you to the surface."
+                        : job(t) + " When it is done, a way out opens " + WAY_OUT[type] + ".")).withStyle(ChatFormatting.GOLD));
+            }
+            if (type == Blueprinter.FOUNTAIN) {
+                spray(level, k);
             }
             if (done || player.isCreative() || level.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL) {
                 continue;
             }
             BlockPos anchor = at(site, t.targets()[2]);
+            if (!state.hasFired(k.above(GUARDED))) {
+                // Its guards come from the level below, as in Warhammer Quest: an objective room is a level harder.
+                state.fire(k.above(GUARDED));
+                int below = Math.min(t.level() + 1, site.built().plan().levels().size() - 1);
+                BlockPos frame = at(site, t.targets()[1]);
+                BlockPos from = type == Blueprinter.FIRECHASM ? anchor
+                        : new BlockPos((frame.getX() + k.getX()) / 2, k.getY() - 1, (frame.getZ() + k.getZ()) / 2);
+                int made = Bestiary.band(level, site, below, standAt(level, from), 2 + t.level() / 2, player);
+                if (made > 0) {
+                    Triggers.tell(player, "Its guardians come for you, from deeper down!");
+                }
+            }
             boolean started = state.hasFired(k.above(STARTED));
             // A foe that vanished without dying (Peaceful, lava, a despawn) would leave the job started for ever:
             // with nothing of it left in the room, the job can be begun again.
@@ -294,7 +314,7 @@ public final class ObjectiveRooms {
             case Blueprinter.IDOL -> {
                 if (!started) {
                     state.fire(k.above(STARTED));
-                    Mob shaman = foe(level, site, t, EntityType.EVOKER, "The Shaman", anchor.above(), player, 1);
+                    Mob shaman = foe(level, site, t, EntityType.EVOKER, "The Shaman", anchor, player, 1);
                     if (shaman != null) {
                         shaman.setNoAi(true);
                     }
@@ -471,11 +491,11 @@ public final class ObjectiveRooms {
                 level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, level.getBlockState(pos)),
                         pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, 12, 0.3, 0.2, 0.3, 0.1);
                 if (blows >= TOMB_BLOWS) {
-                    for (int dx = -1; dx <= 2; dx++) {
-                        BlockPos b = pos.offset(dx, 0, 0);
-                        if (level.getBlockState(b).is(Blocks.POLISHED_DEEPSLATE)) {
-                            level.setBlock(b, Blocks.AIR.defaultBlockState(), 3);
-                        }
+                    // The sarcophagus and what lies on it.
+                    for (int n = 3; n < t.targets().length; n++) {
+                        BlockPos b = at(site, t.targets()[n]);
+                        level.setBlock(b.above(), Blocks.AIR.defaultBlockState(), 3);
+                        level.setBlock(b, Blocks.AIR.defaultBlockState(), 3);
                     }
                     complete(level, site, t, player);
                 } else {
@@ -498,7 +518,7 @@ public final class ObjectiveRooms {
             } else if (part == Part.OBJ_TOMB && job == 0 && !done && !state.hasFired(k.above(STARTED))) {
                 state.fire(k.above(STARTED));
                 level.playSound(null, pos, SoundEvents.STONE_BREAK, SoundSource.BLOCKS, 1.5f, 0.5f);
-                foe(level, site, t, EntityType.WITHER_SKELETON, "The Tomb Lord", pos.above(), player, 2);
+                foe(level, site, t, EntityType.WITHER_SKELETON, "The Tomb Lord", pos.above(2), player, 2);
             }
             return true;
         }
@@ -586,10 +606,7 @@ public final class ObjectiveRooms {
         level.setBlock(frame, Blocks.END_PORTAL_FRAME.defaultBlockState()
                 .setValue(EndPortalFrameBlock.FACING, in.getOpposite()).setValue(EndPortalFrameBlock.HAS_EYE, true), 3);
         OPENED.put(k.asLong(), level.getGameTime());
-        BlockPos chest = anchor.above();
-        for (int d = 1; d <= 3 && !level.getBlockState(chest).isAir(); d++) {
-            chest = anchor.offset(d, 1, 0);
-        }
+        BlockPos chest = standAt(level, anchor.above());
         if (level.getBlockState(chest).isAir()) {
             level.setBlock(chest, Blocks.CHEST.defaultBlockState(), 3);
             net.minecraft.world.RandomizableContainer.setBlockEntityLootTable(level, level.getRandom(), chest,
@@ -607,11 +624,100 @@ public final class ObjectiveRooms {
         for (ServerPlayer p : level.players()) {
             if (inRoom(site, t, p.blockPosition())) {
                 p.sendSystemMessage(Component.literal("Objective complete! A chest appears, with " + tablets + " replay tablet"
-                        + (tablets == 1 ? "" : "s") + ", and a way out opens by the wall: use the glowing portal frame to return to the surface.")
+                        + (tablets == 1 ? "" : "s") + ", and a way out opens " + WAY_OUT[t.targets()[0][0]]
+                        + ": use the glowing portal frame to return to the surface.")
                         .withStyle(ChatFormatting.GOLD));
             }
         }
         CrawlSpace.LOGGER.info("CrawlSpace: objective ({}) at {} done; {} tablet(s)", NAMES[t.targets()[0][0]], k, tablets);
+    }
+
+    /**
+     * The nearest place to {@code near} where something can stand: air with air
+     * above and something solid below, within three blocks. A chest or a band of
+     * guards set where the anchor is (a pedestal, a tomb) would be inside it.
+     */
+    private static BlockPos standAt(ServerLevel level, BlockPos near) {
+        BlockPos best = near;
+        double bestD = Double.MAX_VALUE;
+        for (BlockPos p : BlockPos.betweenClosed(near.offset(-3, -2, -3), near.offset(3, 2, 3))) {
+            if (level.getBlockState(p).isAir() && level.getBlockState(p.above()).isAir()
+                    && level.getBlockState(p.below()).isFaceSturdy(level, p.below(), net.minecraft.core.Direction.UP)) {
+                double d = p.distSqr(near);
+                if (d < bestD) {
+                    bestD = d;
+                    best = p.immutable();
+                }
+            }
+        }
+        return best;
+    }
+
+    /** The fountain's raised bowl, spilling light and water. */
+    private static void spray(ServerLevel level, BlockPos k) {
+        // The trigger sits a block above the room's floor at its middle: the bowl is a block above that.
+        double x = k.getX() + 0.5;
+        double y = k.getY() + 2.0;
+        double z = k.getZ() + 0.5;
+        level.sendParticles(ParticleTypes.FALLING_WATER, x, y, z, 12, 1.0, 0.1, 1.0, 0);
+        level.sendParticles(ParticleTypes.SPLASH, x, k.getY() - 0.1, z, 10, 1.6, 0, 1.6, 0);
+        level.sendParticles(ParticleTypes.END_ROD, x, y + 0.6, z, 2, 0.3, 0.3, 0.3, 0.02);
+    }
+
+    /**
+     * Stepping on the firechasm's bridge: a plank gives way a moment later, and
+     * comes back after ten seconds. A rotten one gives way at once, unless a
+     * perception mod lets the player get across it first (LegendQuest: DEX).
+     */
+    static void plank(ServerLevel level, ServerPlayer player, BlockPos pos, boolean rotten) {
+        if (Crumbles.busy(pos)) {
+            return;
+        }
+        if (rotten) {
+            boolean quick = com.sablednah.crawlspace.api.CrawlSpaceApi.perception().map(p -> p.recovers(player, 1)).orElse(false);
+            if (!quick) {
+                Crumbles.start(level, java.util.List.of(pos), 1, 200, null, Crumbles.PLANKS);
+                Triggers.tell(player, "The plank is rotten! It snaps under you.");
+                return;
+            }
+            Triggers.tell(player, "The plank is rotten, but you are across it before it snaps.");
+        }
+        Crumbles.start(level, java.util.List.of(pos), 6, 200, null, Crumbles.PLANKS);
+    }
+
+    /**
+     * Fallen into the firechasm: caught at the edge (a perception mod's DEX), or
+     * into the fire and out again, burning, at the near foot of the bridge. Not
+     * a death: the chasm is a barrier, and the fire is its price.
+     */
+    static boolean chasm(ServerLevel level, ServerPlayer player, Site site, BlockPos feet) {
+        BlockPos o = site.origin();
+        int code = site.built().blueprint().get(feet.getX() - o.getX(), feet.getY() - o.getY(), feet.getZ() - o.getZ());
+        if (code == 0 || Blueprint.part(code) != Part.OBJ_CHASM && Blueprint.part(code) != Part.OBJ_LAVA) {
+            return false;
+        }
+        for (Trigger t : site.built().blueprint().triggers()) {
+            if (t.kind() != Trigger.Kind.OBJECTIVE || t.targets()[0][0] != Blueprinter.FIRECHASM || t.targets().length < 4
+                    || !roomOf(site, t).contains(feet.getX() - o.getX(), feet.getZ() - o.getZ())) {
+                continue;
+            }
+            BlockPos foot = at(site, t.targets()[3]);
+            boolean caught = Blueprint.part(code) == Part.OBJ_CHASM
+                    && com.sablednah.crawlspace.api.CrawlSpaceApi.perception().map(p -> p.recovers(player, t.level())).orElse(false);
+            player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+            player.resetFallDistance();
+            player.teleportTo(level, foot.getX() + 0.5, foot.getY(), foot.getZ() + 0.5, java.util.Set.of(), player.getYRot(), player.getXRot(), false);
+            if (caught) {
+                Triggers.tell(player, "You catch the edge as you fall, and haul yourself back up.");
+            } else {
+                player.hurtServer(level, level.damageSources().lava(), 6f);
+                player.setRemainingFireTicks(80);
+                level.playSound(null, foot, SoundEvents.LAVA_EXTINGUISH, SoundSource.PLAYERS, 1f, 0.8f);
+                Triggers.tell(player, "You plunge into the fire, and drag yourself out burning. The bridge will mend in a moment.");
+            }
+            return true;
+        }
+        return false;
     }
 
     /** The quick exit: to the ground by the entrance, north of the tower. */

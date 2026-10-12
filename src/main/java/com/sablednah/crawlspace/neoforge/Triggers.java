@@ -591,6 +591,9 @@ public final class Triggers {
         if (!player.isCreative() && puzzle(level, player, here.site(), feet)) {
             return;
         }
+        if (!player.isCreative() && !player.isSpectator() && ObjectiveRooms.chasm(level, player, here.site(), feet)) {
+            return;
+        }
         if (!player.isCreative() && player.onGround()) {
             IceBoards.step(level, player, here.site(), feet);
             TeleportMazes.step(level, player, here.site(), feet);
@@ -827,6 +830,10 @@ public final class Triggers {
         if (player.onGround() && under != null) {
             if (under == com.sablednah.crawlspace.build.Part.CRUMBLE && !level.getBlockState(feet.below()).isAir()) {
                 Crumbles.start(level, java.util.List.of(feet.below()), 5, 100, null);
+            }
+            if ((under == com.sablednah.crawlspace.build.Part.OBJ_PLANK || under == com.sablednah.crawlspace.build.Part.OBJ_ROTTEN)
+                    && !level.getBlockState(feet.below()).isAir()) {
+                ObjectiveRooms.plank(level, player, feet.below(), under == com.sablednah.crawlspace.build.Part.OBJ_ROTTEN);
             }
             if (!unsafe(under)) {
                 LAST_SAFE.put(player.getUUID(), feet);

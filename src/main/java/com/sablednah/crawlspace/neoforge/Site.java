@@ -32,7 +32,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public record Site(long seed, int levels, int top, String style, BlockPos origin, int planner) {
 
     /** Bump whenever a planner or blueprint change would alter an existing seed's dungeon. */
-    public static final int PLANNER_VERSION = 24; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
+    public static final int PLANNER_VERSION = 25; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
                                                  // 6: portcullises and the layout push; 7: feelings;
                                                  // 8: more kinds of trap; 9: vaults; 10: ice boards;
                                                  // 11: ordered kills; 12: shrine altars, the rumour lectern;
@@ -41,6 +41,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
                                                  // 17: the thing you should not touch; 18: false lairs;
                                                  // 19: the gelatinous cube; 20: token vaults;
                                                  // 21: objective rooms; 22: their second jobs; 23: a planned room for them; 24: slab steps, a shallower fountain, a hidden way out, a basin
+                                                 // 25: objective set pieces (statues, the firechasm bridge), taller objective rooms
 
     /**
      * A plan and its blueprint, built once and shared by every chunk that asks.
@@ -127,6 +128,12 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
     /** The block a blueprint code stands for at a world position. */
     public BlockState state(Built built, int code, BlockPos pos) {
         Part part = Blueprint.part(code);
+        if (part == Part.OBJ_STATUE || part == Part.EXIT_FRAME) {
+            String s = built.blueprint().statueAt(pos.getX() - origin.getX(), pos.getY() - origin.getY(), pos.getZ() - origin.getZ());
+            if (s != null) {
+                return StatueBlocks.state(s, part == Part.OBJ_STATUE ? Blueprint.facing(code) : 0);
+            }
+        }
         int li = Math.max(0, Blueprint.level(code));
         String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();
         return Palettes.state(theme, style, part, Blueprint.facing(code), pos.getX(), pos.getY(), pos.getZ());
