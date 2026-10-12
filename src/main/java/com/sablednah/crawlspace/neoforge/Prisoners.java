@@ -23,6 +23,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 
 /**
@@ -84,9 +85,21 @@ public final class Prisoners {
         if (best == null) {
             return;
         }
-        // Bars on the open sides, two high, where there is air.
-        List<BlockPos> bars = new ArrayList<>();
+        // Bars on the open sides, two high, where there is air. Two open sides at right angles
+        // meet only diagonally, and bars join only straight across, so the corner between them
+        // is barred too: without it the two sides stand as separate stubs.
+        List<int[]> open = new ArrayList<>();
         for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+            if (level.getBlockState(best.offset(d[0], 0, d[1])).isAir()) {
+                open.add(d);
+            }
+        }
+        List<int[]> spots = new ArrayList<>(open);
+        if (open.size() == 2 && open.get(0)[0] * open.get(1)[0] + open.get(0)[1] * open.get(1)[1] == 0) {
+            spots.add(new int[] {open.get(0)[0] + open.get(1)[0], open.get(0)[1] + open.get(1)[1]});
+        }
+        List<BlockPos> bars = new ArrayList<>();
+        for (int[] d : spots) {
             for (int dy = 0; dy <= 1; dy++) {
                 BlockPos b = best.offset(d[0], dy, d[1]);
                 if (level.getBlockState(b).isAir()) {
@@ -99,6 +112,11 @@ public final class Prisoners {
         }
         for (BlockPos b : bars) {
             level.setBlock(b, Blocks.IRON_BARS.defaultBlockState(), 3);
+        }
+        // A placed block keeps the shape it was given; only its neighbours are told. Each bar
+        // works out its own joins once they are all in.
+        for (BlockPos b : bars) {
+            level.setBlock(b, Block.updateFromNeighbourShapes(level.getBlockState(b), level, b), 3);
         }
         Mob prisoner = EntityTypes.VILLAGER.create(level, EntitySpawnReason.EVENT);
         if (prisoner == null) {
