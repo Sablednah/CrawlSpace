@@ -123,8 +123,40 @@ public final class Heroic {
         }
     }
 
-    /** With the gold boon, a dungeon monster carries some. */
+    /**
+     * The bottom boss falls: a heroic run is over (Sable, 2026-10-12). Found by
+     * the bottom level's lair or altar near where it died (the arena's pit is
+     * below the lair), so a mid-level boss does not end it.
+     */
+    private static void finale(ServerLevel level, Mob mob) {
+        if (!mob.entityTags().contains(Bosses.TAG) || mob.entityTags().contains(Decoys.TAG)) {
+            return;
+        }
+        Site site = Dungeons.at(level, mob.blockPosition()).orElse(null);
+        if (site == null || traits(level, site) == null) {
+            return;
+        }
+        int bottom = site.built().plan().levels().size() - 1;
+        for (com.sablednah.crawlspace.build.Trigger t : site.built().blueprint().triggers()) {
+            if ((t.kind() == com.sablednah.crawlspace.build.Trigger.Kind.BOSS || t.kind() == com.sablednah.crawlspace.build.Trigger.Kind.ALTAR)
+                    && t.level() == bottom
+                    && site.origin().offset(t.x(), t.y(), t.z()).closerThan(mob.blockPosition(), 48)) {
+                clear(level, site);
+                for (ServerPlayer p : level.players()) {
+                    if (site.contains(p.blockPosition())) {
+                        p.sendSystemMessage(Component.literal("The heroic run is won: the dungeon's boon and bane fade with its master.")
+                                .withStyle(ChatFormatting.AQUA));
+                    }
+                }
+                CrawlSpace.LOGGER.info("CrawlSpace: the heroic run at {} ended with its bottom boss", site.origin());
+                return;
+            }
+        }
+    }
+
+    /** With the gold boon, a dungeon monster carries some. The bottom boss ends a heroic run. */
     static void died(ServerLevel level, Mob mob) {
+        finale(level, mob);
         if (mob.entityTags().contains(Bestiary.KIN) && has(level, mob.blockPosition(), Tablets.Boon.GOLD)) {
             mob.spawnAtLocation(level, new ItemStack(Items.GOLD_NUGGET, 2 + level.getRandom().nextInt(5)));
             if (level.getRandom().nextFloat() < 0.2f) {
