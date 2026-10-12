@@ -226,7 +226,13 @@ public enum Part {
     OBJ_TOMB,
     /** The idol's body, and its head. Facing is toward the room. */
     OBJ_IDOL,
-    OBJ_IDOL_HEAD;
+    OBJ_IDOL_HEAD,
+    /**
+     * A corridor's step up where nothing is free in front of a stair's low side:
+     * the theme's slab, which can be climbed from any side. A stair there met a
+     * player coming up a one-wide corridor with its tall flank (Sable, 2026-10-12).
+     */
+    STEP_SLAB;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).
@@ -239,7 +245,7 @@ public enum Part {
      */
     public boolean shell() {
         return switch (this) {
-            case FLOOR, CORRIDOR_FLOOR, WALL, CEILING, PILLAR, SECRET_WALL, STEP, NEWEL, LANDING,
+            case FLOOR, CORRIDOR_FLOOR, WALL, CEILING, PILLAR, SECRET_WALL, STEP, STEP_SLAB, NEWEL, LANDING,
                     LOCKED_LOWER, LOCKED_UPPER, LEVER,
                     TOWER, TOWER_FLOOR, TOWER_TOP, TOWER_TRIM, TOWER_STAIR, TOWER_CORBEL, TOWER_WINDOW, TOWER_PILLAR, TOWER_ROOF,
                     SHELF, WALL_ACCENT, FLOOR_ACCENT, FLOOR_INLAY, PILASTER, COVE, PANEL, DADO, MOSS_FLOOR, BEAM,
