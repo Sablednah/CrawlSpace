@@ -261,6 +261,7 @@ public final class Blueprinter {
         ambushes(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0xA4B5L));
         cube(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0xC0BEL));
         tokenVault(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x70CE7L));
+        objective(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x0B7EL));
     }
 
     /**
@@ -384,6 +385,242 @@ public final class Blueprinter {
      * Ambushes: a group waiting partway along a long corridor, likelier deeper
      * down. They stand along the corridor's middle, on clear floor.
      */
+    /** How often a level between the top and the bottom has an objective room. */
+    static final double OBJECTIVE_CHANCE = 0.5;
+    /** The objective rooms, by type: the first target's first number. */
+    public static final int PIT = 0, FIRECHASM = 1, FOUNTAIN = 2, TOMB = 3, IDOL = 4;
+
+    /**
+     * An objective room (Warhammer Quest; Sable's ruling, 2026-10-12): the
+     * level's biggest plain room, cleared and rebuilt as a set piece with a job,
+     * and a quick exit (an end portal frame) that takes you to the surface once
+     * the job is done. Levels between the top and the bottom, half of them (all
+     * of them in a showcase, the five types in turn).
+     */
+    private static void objective(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice dice) {
+        LevelPlan level = plan.levels().get(i);
+        if (i < 1 || i >= plan.levels().size() - 1 || !(level.showcase || dice.chance(OBJECTIVE_CHANCE))) {
+            return;
+        }
+        // A showcase gives each objective it manages to place the next type, so the few that fit show the range.
+        int type = level.showcase ? (int) (bp.triggers().stream().filter(t -> t.kind() == Trigger.Kind.OBJECTIVE).count() % 5) : dice.nextInt(5);
+        Room best = null;
+        int bestF = 0;
+        for (Room r : level.rooms) {
+            // Rectangles only: a pit in the crossing of a cross-shaped room cut its arms apart (seed 16).
+            if (r.role != Role.ROOM && r.role != Role.HALL || Math.min(r.w, r.h) < 11 || r.pool
+                    || r.shape != com.sablednah.crawlspace.plan.Shape.RECT && r.shape != com.sablednah.crawlspace.plan.Shape.HALL) {
+                continue;
+            }
+            int f = floorAt(plan, i, r.centerX(), r.centerZ());
+            boolean ok = true;
+            for (int x = r.minX(); x <= r.maxX() && ok; x++) {
+                for (int z = r.minZ(); z <= r.maxZ() && ok; z++) {
+                    if (!r.contains(x, z)) {
+                        continue;
+                    }
+                    Cell c = level.cell(x, z);
+                    ok = c == Cell.FLOOR && floorAt(plan, i, x, z) == f || c == Cell.WALL;
+                    for (int dy = -3; dy <= 3 && ok; dy++) {
+                        Trigger t = bp.triggerAt(x, f + dy, z);
+                        ok = t == null || t.kind() == Trigger.Kind.ENCOUNTER || t.kind() == Trigger.Kind.DECOY || t.kind().isTrap()
+                                && t.kind() != Trigger.Kind.PIT && t.kind() != Trigger.Kind.PORTCULLIS_TRAP;
+                    }
+                }
+            }
+            if (ok && (best == null || r.w * r.h > best.w * best.h)) {
+                best = r;
+                bestF = f;
+            }
+        }
+        if (best == null) {
+            return;
+        }
+        Room r = best;
+        int f = bestF;
+        int h = clearHeight(level, r.centerX(), r.centerZ());
+        // Clear it: its dressing, traps and encounter go; its walls and doors stay.
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (r.contains(x, z) && level.cell(x, z) == Cell.FLOOR) {
+                    // Each cell to its own ceiling: one height for the room cut through lower ceilings at its edges.
+                    bp.set(x, f - 1, z, Part.FLOOR, 0, i);
+                    bp.fill(x, z, f, f + clearHeight(level, x, z) - 1, Part.AIR, i);
+                    for (int dy = -3; dy <= 3; dy++) {
+                        bp.removeTrigger(x, f + dy, z);
+                    }
+                }
+            }
+        }
+        int cx = r.centerX();
+        int cz = r.centerZ();
+        java.util.List<int[]> rows = new java.util.ArrayList<>();
+        rows.add(new int[] {type, 0, 0});
+        rows.add(null); // the exit's frame, below
+        rows.add(null); // the job's anchor
+        switch (type) {
+            case PIT -> {
+                // A pit two deep in the middle, a ladder out on its north face; its champion rises from the floor.
+                int s = Math.max(5, Math.min(9, Math.min(r.w, r.h) - 6));
+                int x0 = cx - s / 2;
+                int z0 = cz - s / 2;
+                for (int x = x0 - 1; x <= x0 + s; x++) {
+                    for (int z = z0 - 1; z <= z0 + s; z++) {
+                        boolean in = x >= x0 && x < x0 + s && z >= z0 && z < z0 + s;
+                        if (in) {
+                            bp.set(x, f - 3, z, Part.FLOOR, 0, i);
+                            bp.fill(x, z, f - 2, f - 1, Part.AIR, i);
+                        } else {
+                            bp.fill(x, z, f - 3, f - 2, Part.WALL, i);
+                        }
+                    }
+                }
+                bp.set(cx, f - 2, z0, Part.LADDER, facingOf(0, 1), i);
+                bp.set(cx, f - 1, z0, Part.LADDER, facingOf(0, 1), i);
+                rows.set(2, new int[] {cx, f - 2, cz});
+            }
+            case FIRECHASM -> {
+                // A lava channel two wide across the room, a bridge three wide over it, the relic's pedestal on the
+                // near side of the room's middle and the dragon facing it from the far wall.
+                boolean alongX = r.w >= r.h;
+                for (int x = r.minX(); x <= r.maxX(); x++) {
+                    for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                        int across = alongX ? x - cx : z - cz;
+                        int along = alongX ? z - cz : x - cx;
+                        if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR || (across != 0 && across != 1)) {
+                            continue;
+                        }
+                        bp.set(x, f - 2, z, Part.WALL, 0, i);
+                        bp.set(x, f - 1, z, Math.abs(along) <= 1 ? Part.OBJ_BRIDGE : Part.OBJ_LAVA, 0, i);
+                        if (Math.abs(along) > 1) {
+                            rows.add(new int[] {x, f - 1, z});
+                        }
+                    }
+                }
+                int[] relic = alongX ? new int[] {cx - 3, cz + 3} : new int[] {cx + 3, cz - 3};
+                bp.set(relic[0], f, relic[1], Part.OBJ_RELIC, 0, i);
+                rows.set(2, new int[] {relic[0], f, relic[1]});
+                int[] dragon = alongX ? new int[] {cx + 4, cz} : new int[] {cx, cz + 4};
+                bp.set(dragon[0], f, dragon[1], Part.PEDESTAL, 0, i);
+                bp.set(dragon[0], f + 1, dragon[1], Part.OBJ_DRAGON, alongX ? facingOf(-1, 0) : facingOf(0, -1), i);
+            }
+            case FOUNTAIN -> {
+                // A basin five across: a quartz rim, sea lanterns at its corners, water in its sunken middle,
+                // and four corrupted blocks in the rim's sides, to be broken.
+                for (int x = cx - 2; x <= cx + 2; x++) {
+                    for (int z = cz - 2; z <= cz + 2; z++) {
+                        boolean rim = Math.max(Math.abs(x - cx), Math.abs(z - cz)) == 2;
+                        if (rim) {
+                            boolean corner = Math.abs(x - cx) == 2 && Math.abs(z - cz) == 2;
+                            boolean side = (x == cx || z == cz);
+                            bp.set(x, f, z, corner ? Part.OBJ_GLOW : side ? Part.OBJ_CORRUPT : Part.OBJ_RIM, 0, i);
+                            if (side && !corner) {
+                                rows.add(new int[] {x, f, z});
+                            }
+                        } else {
+                            bp.set(x, f - 2, z, Part.FLOOR, 0, i);
+                            bp.set(x, f - 1, z, Part.WATER, 0, i);
+                        }
+                    }
+                }
+                rows.set(2, new int[] {cx, f - 1, cz});
+            }
+            case TOMB -> {
+                // The sarcophagus, two long, candles at its corners.
+                bp.set(cx, f, cz, Part.OBJ_TOMB, 0, i);
+                bp.set(cx + 1, f, cz, Part.OBJ_TOMB, 0, i);
+                for (int[] c : new int[][] {{-1, -1}, {-1, 1}, {2, -1}, {2, 1}}) {
+                    bp.set(cx + c[0], f, cz + c[1], Part.CANDLES, 3, i);
+                }
+                rows.set(2, new int[] {cx, f, cz});
+            }
+            default -> {
+                // The idol against the wall farthest from the room's first door, facing into the room.
+                int[] wall = farWallSpot(level, r, f, bp);
+                if (wall == null) {
+                    wall = new int[] {cx, cz, 0, 1};
+                }
+                bp.set(wall[0], f, wall[1], Part.OBJ_IDOL, 0, i);
+                bp.set(wall[0], f + 1, wall[1], Part.OBJ_IDOL_HEAD, facingOf(wall[2], wall[3]), i);
+                for (int[] c : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    int x = wall[0] + c[0];
+                    int z = wall[1] + c[1];
+                    if (level.cell(x, z) == Cell.FLOOR && (c[0] != wall[2] || c[1] != wall[3])) {
+                        bp.set(x, f, z, Part.CANDLES, 2, i);
+                    }
+                }
+                rows.set(2, new int[] {wall[0], f, wall[1]});
+            }
+        }
+        // The quick exit: against a wall, away from doors and the job, facing into the room.
+        int[] exit = null;
+        for (int x = r.minX(); x <= r.maxX() && exit == null; x++) {
+            for (int z = r.minZ(); z <= r.maxZ() && exit == null; z++) {
+                if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR || nearDoor(level, x, z)) {
+                    continue;
+                }
+                int here = bp.get(x, f, z);
+                if (here != 0 && Blueprint.part(here) != Part.AIR || Math.abs(x - cx) + Math.abs(z - cz) < 5) {
+                    continue;
+                }
+                for (int[] d : DIRS4) {
+                    if (level.cell(x + d[0], z + d[1]) == Cell.WALL) {
+                        exit = new int[] {x, z, -d[0], -d[1]};
+                        break;
+                    }
+                }
+            }
+        }
+        if (exit == null) {
+            return;
+        }
+        bp.set(exit[0], f, exit[1], Part.EXIT_FRAME, facingOf(exit[2], exit[3]), i);
+        rows.set(1, new int[] {exit[0], f, exit[1]});
+        // A few lanterns on the floor by the walls: its own lights went with the dressing.
+        int lit = 0;
+        for (int x = r.minX(); x <= r.maxX() && lit < 4; x += Math.max(1, r.w / 3)) {
+            for (int z : new int[] {r.minZ(), r.maxZ()}) {
+                int here = bp.get(x, f, z);
+                if (r.contains(x, z) && level.cell(x, z) == Cell.FLOOR && !nearDoor(level, x, z) && (here == 0 || Blueprint.part(here) == Part.AIR)) {
+                    bp.set(x, f, z, Part.FLOOR_LANTERN, 0, i);
+                    lit++;
+                }
+            }
+        }
+        bp.addTrigger(new Trigger(Trigger.Kind.OBJECTIVE, cx, f + 1, cz, i, rows.toArray(new int[0][])));
+    }
+
+    /** A floor cell against the room's wall, as far as can be from its doors: {x, z, facingX, facingZ}. */
+    private static int[] farWallSpot(LevelPlan level, Room r, int f, Blueprint bp) {
+        int[] best = null;
+        int bestD = -1;
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR || nearDoor(level, x, z)) {
+                    continue;
+                }
+                for (int[] d : DIRS4) {
+                    if (level.cell(x + d[0], z + d[1]) != Cell.WALL) {
+                        continue;
+                    }
+                    int near = Integer.MAX_VALUE;
+                    for (int dx = -12; dx <= 12; dx++) {
+                        for (int dz = -12; dz <= 12; dz++) {
+                            if (level.cell(x + dx, z + dz).isDoor()) {
+                                near = Math.min(near, Math.abs(dx) + Math.abs(dz));
+                            }
+                        }
+                    }
+                    if (near > bestD) {
+                        bestD = near;
+                        best = new int[] {x, z, -d[0], -d[1]};
+                    }
+                }
+            }
+        }
+        return best;
+    }
+
     /** How often a level from the second down has a token vault. */
     static final double TOKEN_VAULT_CHANCE = 0.35;
 
