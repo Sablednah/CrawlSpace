@@ -30,6 +30,10 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         ALTAR,
         /** A false lair's pretender: a look-alike of the level's boss, much weaker, and a growl from the real one when it falls. */
         DECOY_BOSS,
+        /** A guard room whose monsters carry vault tokens for this level's token vault. */
+        TOKENS,
+        /** A token vault's cauldron: target 0 is {tokens needed, 0, 0}; the rest are its portcullis bars. */
+        TOKEN_VAULT,
         /** A gelatinous cube's beat: the targets are its corridor's centre line, {x, y, z} a cell, end to end. */
         CUBE,
         /** A guard room whose doors seal as it wakes: hold out against waves until they open (Hades). */
@@ -87,7 +91,7 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         }
 
         public boolean isEncounter() {
-            return this == ENCOUNTER || this == BOSS || this == ORDERED || this == SURVIVAL || this == DECOY_BOSS;
+            return this == ENCOUNTER || this == BOSS || this == ORDERED || this == SURVIVAL || this == DECOY_BOSS || this == TOKENS;
         }
     }
 

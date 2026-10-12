@@ -412,6 +412,7 @@ public final class Powers {
         Forbidden.died(level, mob);
         Decoys.died(level, mob);
         Cubes.died(level, mob);
+        Tokens.died(level, mob);
         if (tags.contains(Affix.SPLITTING.tag())) {
             int n = 2 + mob.getRandom().nextInt(2);
             for (int k = 0; k < n; k++) {

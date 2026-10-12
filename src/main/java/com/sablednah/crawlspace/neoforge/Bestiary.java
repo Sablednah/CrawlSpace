@@ -306,6 +306,9 @@ public final class Bestiary {
             if (asleep) {
                 Sleepers.lull(level, mob);
             }
+            if (t.kind() == Trigger.Kind.TOKENS) {
+                mob.addTag(Tokens.CARRIER);
+            }
             spawned++;
         }
         if (spawned == 0) {
@@ -326,6 +329,9 @@ public final class Bestiary {
                     w.increaseAngerAt(near, 80, false);
                 }
             }
+        }
+        if (t.kind() == Trigger.Kind.TOKENS) {
+            return "These guards carry vault tokens. A sealed vault on this level wants them.";
         }
         if (t.kind() == Trigger.Kind.ORDERED) {
             return "Numerals burn on their brows. Kill them in order: I to " + Powers.roman(t.targets().length) + ".";
