@@ -83,7 +83,12 @@ public final class Planner {
             }
         }
         if (!candidates.isEmpty()) {
-            candidates.get(dice.nextInt(candidates.size())).role = Role.PUZZLE;
+            Room pick = candidates.get(dice.nextInt(candidates.size()));
+            // A showcase exists to show every puzzle, so it takes the roomiest: a teleport maze needs 11 by 11 and a walkway.
+            if (level.showcase) {
+                pick = candidates.stream().max(java.util.Comparator.comparingInt(r -> Math.min(r.w, r.h))).orElse(pick);
+            }
+            pick.role = Role.PUZZLE;
         }
     }
 
@@ -105,7 +110,7 @@ public final class Planner {
         List<Room> leaves = new ArrayList<>();
         for (Room r : lower.rooms) {
             if (r.role == Role.ENTRY || r.role == Role.EXIT || r.role == Role.KEY || r.role == Role.SECRET
-                    || r.role == Role.LAIR || r.role == Role.FALSE_LAIR || r.role == Role.PUZZLE) {
+                    || r.role == Role.LAIR || r.role == Role.FALSE_LAIR || r.role == Role.PUZZLE || r.role == Role.OBJECTIVE) {
                 continue;
             }
             Link only = null;

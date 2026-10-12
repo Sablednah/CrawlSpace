@@ -27,6 +27,8 @@ public final class Room {
     /** Floor height relative to the level's floor, in blocks. */
     public int floor;
     public boolean pool;
+    /** Kept open: no pool or pillars (a showcase's room for its teleport maze). */
+    public boolean open;
 
     public Room(int id, Role role, Shape shape, int w, int h, boolean[][] mask) {
         this.id = id;
