@@ -34,6 +34,7 @@ what the rig showed):
 - the thing you should not touch;
 - false lairs;
 - token vaults;
+- seals for the deepest door, with fallbacks;
 - the gelatinous cube;
 - portcullis and key, and the portcullis trap;
 - one-way valves;
@@ -57,7 +58,6 @@ what the rig showed):
 - the other puzzles in section 3 (liars' chests, riddles,
   item frames, vanishing bridge, Sokoban, water and beam boards);
 - the objective rooms' jobs (2b);
-- seals for the deepest door;
 - restocking and heroic re-entry;
 - cycle types on the planner.
 

@@ -755,6 +755,33 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Seals gate the finale's altar (Sable's ruling, 2026-10-12)
+
+`neoforge/Seals`. Each level above the bottom that has a true lair gives a
+seal when its boss falls; one with no lair but a puzzle gives a seal from the
+puzzle's hoard, once; a level with neither owes nothing (`Seals.sources`).
+- **A seal** is an echo shard named "Seal of the <theme> (level N)", glinting,
+  epic, tagged `Keys.id(site, level)`.
+- **The altar** takes no offering until every owed seal is set on it.
+  Using it with a seal in hand sets that one: a marker at altar + 900 + level,
+  and an item display hangs over the altar. With nothing in hand it says how
+  many are set and which levels still owe one. The near-altar hint says how
+  many it wants.
+- **It can never lock anyone out:**
+  - A vault token from this dungeon stands in for a seal (marker at
+    altar + 940 + k).
+  - After 30 minutes with someone on the bottom level, it takes gold alone,
+    and says so. That is six patience markers (altar + 980 + k), one per five
+    minutes counted in memory, so a restart loses at most one step.
+- Rematches do not need the seals again.
+- **Seen on the rig** (showcase): gold on the sealed altar was refused and
+  kept. Level 3's boss dropped its seal. The altar took levels 1, 3 and 5,
+  refused 2 and 4 (they owe none), hung three seals, and then woke its boss
+  on gold. The token stand-in and the patience timer were not exercised on
+  the rig.
+- **Rig gotcha:** a player standing on a dying boss picks up its drop at
+  once, so check the inventory, not the floor.
+
 ## Token vaults (Wynncraft; Sable's pick, 2026-10-12)
 
 `Blueprinter.tokenVault`: from level 2, 35% of levels (`Dice(seed, level,
