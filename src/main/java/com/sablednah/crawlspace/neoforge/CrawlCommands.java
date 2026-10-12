@@ -65,6 +65,15 @@ public final class CrawlCommands {
                                                 StringArgumentType.getString(ctx, "what"))))))
                 .then(Commands.literal("info").executes(CrawlCommands::info))
                 .then(Commands.literal("breaches").executes(CrawlCommands::breaches))
+                .then(Commands.literal("useitem").executes(ctx -> {
+                    // Using what is in your hand, through the same handler a real use reaches (a replay tablet).
+                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                    var event = new net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickItem(p,
+                            net.minecraft.world.InteractionHand.MAIN_HAND);
+                    Heroic.onUseItem(event);
+                    say(ctx.getSource(), event.isCanceled() ? "Used: the dungeon took it." : "Used: nothing of the dungeon's answered.");
+                    return 1;
+                }))
                 .then(Commands.literal("restock").executes(ctx -> {
                     // Fills the dungeon you stand in again now, as if its hours had passed.
                     ServerPlayer p = ctx.getSource().getPlayerOrException();
@@ -291,7 +300,7 @@ public final class CrawlCommands {
         }
         LevelPlan level = last.plan().levels().get(index - 1);
         double[] spot = switch (what) {
-            case "lever", "trap", "pit", "decoy", "secretdoor", "locked", "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "vault", "ice", "numbered", "teleport", "survival", "cube", "tokenvault", "tokens" -> Tour.findTrigger(level, last.built().blueprint(), what);
+            case "lever", "trap", "pit", "decoy", "secretdoor", "locked", "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "vault", "ice", "numbered", "teleport", "survival", "cube", "tokenvault", "tokens", "objective" -> Tour.findTrigger(level, last.built().blueprint(), what);
             case "window" -> Tour.findWindow(level, last.built().blueprint());
             case "arena" -> Tour.findArena(level, last.built().blueprint());
             case "altar" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.ALTAR);
@@ -300,6 +309,11 @@ public final class CrawlCommands {
             case "preview" -> Tour.findPart(level, last.built().blueprint(),
                     p -> p.name().startsWith("PREVIEW_") && p != com.sablednah.crawlspace.build.Part.PREVIEW_SKULL);
             case "forbidden" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.FORBIDDEN);
+            case "tomb" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.OBJ_TOMB);
+            case "relic" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.OBJ_RELIC);
+            case "corrupt" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.OBJ_CORRUPT);
+            case "idol" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.OBJ_IDOL);
+            case "exitframe" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.EXIT_FRAME);
             case "bossaltar" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.BOSS_ALTAR);
             case "lairdoor" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.PREVIEW_LAIR);
             default -> Tour.find(level, what, level.index * 31L + System.nanoTime() % 7);

@@ -246,6 +246,10 @@ public final class Bestiary {
         List<BossSpec> choices = bosses.getOrDefault(theme, bosses.get("Crypt"));
         BossSpec spec = choices.get(com.sablednah.crawlspace.plan.Dice.of(site.seed(), t.level(), 0xB055L).nextInt(choices.size()));
         boolean decoy = t.kind() == Trigger.Kind.DECOY_BOSS;
+        // A replay tablet's banes: champions twice as common; half again as many monsters.
+        BlockPos here = site.origin().offset(t.x(), t.y(), t.z());
+        boolean champions = Heroic.has(level, here, Tablets.Bane.CHAMPIONS);
+        boolean horde = Heroic.has(level, here, Tablets.Bane.HORDE);
         boolean lair = t.kind() == Trigger.Kind.BOSS || decoy;
         boolean asleep = lair && Sleepers.sleeps(site, t);
         // A guard room may post a sentry: the first of its monsters, which raises the alarm if it sees you.
@@ -287,7 +291,7 @@ public final class Bestiary {
                 bossName = spec.name();
             } else if (follower) {
                 follow(mob, spec);
-            } else if (elites < 2 && random.nextDouble() < Powers.eliteChance(depth) && Powers.elite(mob, depth, random)) {
+            } else if (elites < 2 && random.nextDouble() < Powers.eliteChance(depth) * (champions ? 2 : 1) && Powers.elite(mob, depth, random)) {
                 elites++;
             }
             if (t.kind() == Trigger.Kind.ORDERED && !boss && !follower) {
@@ -309,6 +313,11 @@ public final class Bestiary {
                 mob.addTag(Tokens.CARRIER);
             }
             spawned++;
+        }
+        if (horde && !lair && spawned > 0) {
+            int[] s0 = t.targets()[0];
+            net.minecraft.world.entity.player.Player near = level.getNearestPlayer(here.getX(), here.getY(), here.getZ(), 32, false);
+            band(level, site, t.level(), o.offset(s0[0], s0[1], s0[2]), (spawned + 1) / 2, near instanceof net.minecraft.server.level.ServerPlayer sp ? sp : null);
         }
         if (spawned == 0) {
             return null;

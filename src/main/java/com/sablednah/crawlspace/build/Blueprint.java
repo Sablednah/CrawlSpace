@@ -128,6 +128,11 @@ public final class Blueprint {
         triggers.put(Trigger.key(t.x(), t.y(), t.z()), t);
     }
 
+    /** Removes the trigger at a blueprint position, if any: a room rebuilt as something else loses its old ones. */
+    public void removeTrigger(int x, int y, int z) {
+        triggers.remove(Trigger.key(x, y, z));
+    }
+
     /** The trigger at a blueprint position, or null. */
     public Trigger triggerAt(int x, int y, int z) {
         return triggers.get(Trigger.key(x, y, z));

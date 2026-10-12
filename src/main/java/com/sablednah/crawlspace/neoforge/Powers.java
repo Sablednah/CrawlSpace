@@ -192,6 +192,7 @@ public final class Powers {
     public static void onJoin(EntityJoinLevelEvent e) {
         if (e.getLevel() instanceof ServerLevel level && e.getEntity() instanceof Mob mob && mob.entityTags().contains(Bestiary.KIN)) {
             track(level, mob);
+            Heroic.strengthen(level, mob);
         }
     }
 
@@ -413,6 +414,8 @@ public final class Powers {
         Cubes.died(level, mob);
         Tokens.died(level, mob);
         Seals.died(level, mob);
+        ObjectiveRooms.died(level, mob);
+        Heroic.died(level, mob);
         if (tags.contains(Affix.SPLITTING.tag())) {
             int n = 2 + mob.getRandom().nextInt(2);
             for (int k = 0; k < n; k++) {
@@ -637,11 +640,13 @@ public final class Powers {
             return;
         }
         net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> effect = BLESSINGS.get(level.getRandom().nextInt(BLESSINGS.size()));
-        player.addEffect(new MobEffectInstance(effect, 6 * 60 * 20, 0));
+        // A replay tablet's blessing boon doubles it.
+        boolean twice = Heroic.has(level, player.blockPosition(), Tablets.Boon.BLESSED);
+        player.addEffect(new MobEffectInstance(effect, (twice ? 12 : 6) * 60 * 20, 0));
         level.sendParticles(ParticleTypes.HAPPY_VILLAGER, player.getX(), player.getY() + 1, player.getZ(), 16, 0.5, 0.6, 0.5, 0);
         level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.8f, 1.2f);
         player.sendOverlayMessage(Component.literal("The maze rewards you: ")
-                .append(Component.translatable(effect.value().getDescriptionId())).append(Component.literal(" for six minutes."))
+                .append(Component.translatable(effect.value().getDescriptionId())).append(Component.literal(twice ? " for twelve minutes." : " for six minutes."))
                 .withStyle(ChatFormatting.AQUA));
     }
 

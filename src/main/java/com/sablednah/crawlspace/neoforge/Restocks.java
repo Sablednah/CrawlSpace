@@ -65,6 +65,7 @@ public final class Restocks {
                 return; // occupied: not under someone's feet
             }
         }
+        Heroic.clear(level, site); // an ordinary restock ends a heroic run
         restock(level, site);
         player.sendSystemMessage(Component.literal("The dungeon has stirred since anyone was last here: its rooms are full again, and its chests too.")
                 .withStyle(ChatFormatting.GOLD));
@@ -107,6 +108,9 @@ public final class Restocks {
             return;
         }
         String table = Site.tableFor(site.built(), code);
+        if (table != null && table.startsWith("chests/tier") && Heroic.has(level, pos, Tablets.Boon.LOOT)) {
+            table = "chests/tier" + Math.min(5, Integer.parseInt(table.substring("chests/tier".length())) + 1);
+        }
         if (table == null || !(level.getBlockState(pos).getBlock() instanceof ChestBlock || level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.BARREL))
                 || !(level.getBlockEntity(pos) instanceof RandomizableContainerBlockEntity chest)) {
             return; // not ours to refill: a Lootr chest, or a chest someone put there
