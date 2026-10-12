@@ -455,7 +455,10 @@ public final class Blueprinter {
         int cx = r.centerX();
         int cz = r.centerZ();
         java.util.List<int[]> rows = new java.util.ArrayList<>();
-        rows.add(new int[] {type, 0, 0});
+        // Which of the room's jobs: two each so far, the easiest and the next. A showcase alternates them.
+        long placed = bp.triggers().stream().filter(t -> t.kind() == Trigger.Kind.OBJECTIVE).count();
+        int job = level.showcase ? (int) (placed / 5 + i) % 2 : dice.nextInt(2);
+        rows.add(new int[] {type, job, 0});
         rows.add(null); // the exit's frame, below
         rows.add(null); // the job's anchor
         switch (type) {
@@ -513,8 +516,9 @@ public final class Blueprinter {
                         if (rim) {
                             boolean corner = Math.abs(x - cx) == 2 && Math.abs(z - cz) == 2;
                             boolean side = (x == cx || z == cz);
-                            bp.set(x, f, z, corner ? Part.OBJ_GLOW : side ? Part.OBJ_CORRUPT : Part.OBJ_RIM, 0, i);
-                            if (side && !corner) {
+                            // The first job breaks corrupted stones; the second fills a vial, and its rim is whole.
+                            bp.set(x, f, z, corner ? Part.OBJ_GLOW : side && job == 0 ? Part.OBJ_CORRUPT : Part.OBJ_RIM, 0, i);
+                            if (side && !corner && job == 0) {
                                 rows.add(new int[] {x, f, z});
                             }
                         } else {
