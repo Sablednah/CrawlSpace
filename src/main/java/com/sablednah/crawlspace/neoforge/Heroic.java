@@ -117,6 +117,10 @@ public final class Heroic {
 
     /** Twice the experience from a dungeon monster, with the XP boon. */
     public static void onExperience(net.neoforged.neoforge.event.entity.living.LivingExperienceDropEvent e) {
+        if (e.getEntity().entityTags().contains(Powers.NOXP)) {
+            e.setDroppedExperience(0); // a numbered monster killed out of order
+            return;
+        }
         if (e.getEntity() instanceof Mob mob && mob.entityTags().contains(Bestiary.KIN) && mob.level() instanceof ServerLevel level
                 && has(level, mob.blockPosition(), Tablets.Boon.XP)) {
             e.setDroppedExperience(e.getDroppedExperience() * 2);

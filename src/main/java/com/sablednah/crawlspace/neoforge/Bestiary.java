@@ -296,7 +296,7 @@ public final class Bestiary {
                 elites++;
             }
             if (t.kind() == Trigger.Kind.ORDERED && !boss && !follower) {
-                Powers.number(mob, o.offset(t.x(), t.y(), t.z()), k + 1, t.targets().length);
+                Powers.number(mob, o.offset(t.x(), t.y(), t.z()), k + 1, t.targets().length, t.level() >= STRICT_FROM);
             }
             if (sentry && !mob.hasCustomName()) {
                 // The first without a name of its own (an elite has one) stands watch; one sentry a room.
@@ -343,7 +343,8 @@ public final class Bestiary {
             return "These guards carry vault tokens. A sealed vault on this level wants them.";
         }
         if (t.kind() == Trigger.Kind.ORDERED) {
-            return "Numerals burn on their brows. Kill them in order: I to " + Powers.roman(t.targets().length) + ".";
+            return "Numerals burn on their brows. Kill them in order: I to " + Powers.roman(t.targets().length) + "."
+                    + (t.level() >= STRICT_FROM ? " One wrong kill, and every one you have killed rises again." : "");
         }
         if (asleep && bossName != null) {
             return capitalise(bossName) + " sleeps in its lair. Go quietly: sneak, and it may not wake.";
@@ -517,6 +518,9 @@ public final class Bestiary {
     }
 
     /** A wandering band for the dungeon clock: the level's monsters at {@code at}, set on {@code target}. */
+    /** From this level index down (the third level), a numbered group is strict: one wrong kill raises them all. */
+    static final int STRICT_FROM = 2;
+
     static int band(ServerLevel level, Site site, int li, BlockPos at, int count, net.minecraft.server.level.ServerPlayer target) {
         String theme = site.built().plan().levels().get(li).theme.name();
         RandomSource random = level.getRandom();
