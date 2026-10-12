@@ -791,8 +791,8 @@ the next type), the planner keeps a loop slot for it: `Role.OBJECTIVE` ('O').
 | Room | Second job |
 |---|---|
 | Fighting Pit | The Pit Guardian waits in the pit, no AI, until a player drops in or strikes it. |
-| Firechasm | The Eye-Thief (a pillager) carries "The Dragon's Eye"; use the dragon's head with it. If he dies and the eye is lost, he comes again. |
-| Fountain of Light | Use its rim for a "Vial of Light", then use the exit frame with it. The rim is whole, with no corrupted stones. |
+| Firechasm | The Eye-Thief (a pillager) carries "The Dragon's Eye" (a heart of the sea: an eye of ender flew off after strongholds); use the dragon's head with it. If he dies and the eye is lost, he comes again. |
+| Fountain of Light | Use its rim for a "Vial of Light" (dragon's breath: inert, one at a time), then use the exit frame while carrying it. The rim is whole, with no corrupted stones. The water is level with the floor, one block below the rim: sunk a block deeper, nobody got out without a block. |
 | Tomb Chamber | 20 blows (uses). While it stands, a band of the dead comes every 20 s; the last blow breaks it. |
 | Idol Chamber | The Shaman channels, no AI, under a 45 s purple bar. Kill him in time, or he becomes "The Ascended Shaman": a boss bar and three times the health. |
 

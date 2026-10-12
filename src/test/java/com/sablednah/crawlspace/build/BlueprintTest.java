@@ -459,7 +459,7 @@ class BlueprintTest {
                                 continue;
                             }
                             int under = bp.get(x, y - 1, z);
-                            if (dy == 1 && (under == 0 || Blueprint.part(under) != Part.STEP)) {
+                            if (dy == 1 && (under == 0 || Blueprint.part(under) != Part.STEP && Blueprint.part(under) != Part.STEP_SLAB)) {
                                 seen.remove(x + "," + y + "," + z);
                                 continue; // a block up with no stair: nobody climbs that
                             }
@@ -1033,7 +1033,7 @@ class BlueprintTest {
             return true;
         }
         return switch (Blueprint.part(code)) {
-            case AIR, CARPET, MOSS, RAIL, WATER, DOOR_LOWER, LOCKED_LOWER, SECRET_WALL, LIGHT, BANNER, WALL_TORCH, CHAIN, STEP, LANDING,
+            case AIR, CARPET, MOSS, RAIL, WATER, DOOR_LOWER, LOCKED_LOWER, SECRET_WALL, LIGHT, BANNER, WALL_TORCH, CHAIN, STEP, STEP_SLAB, LANDING,
                     RUG, PLANT, MUSHROOM, VINE, ROOTS, TABLE_TOP, TRAP_PLATE, TRAP_WIRE, DECOY_PLATE, DECOY_WIRE,
                     PORTCULLIS, PORTCULLIS_GAP, ONEWAY_LOWER, LEVER, WINCH,
                     TELL_PEBBLE, TELL_FROST, TELL_SCORCH, TELL_SCULK, TELL_DEAD -> true; // a lever has no collision
@@ -1137,6 +1137,50 @@ class BlueprintTest {
             }
             return seen;
         }
+    }
+
+    /**
+     * A corridor's stair is climbed from in front of its low side, so that cell
+     * must be floor at the stair's own height; anywhere else the step is a slab.
+     * A stair met from its flank in a one-wide corridor could not be climbed
+     * (Sable's screenshot, 2026-10-12).
+     */
+    @Test
+    void corridorStairsCanBeClimbed() {
+        int stairs = 0;
+        int slabs = 0;
+        int[][] dirs = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+        for (long seed = 0; seed < 30; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 5);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            for (int i = 0; i < plan.levels().size(); i++) {
+                LevelPlan level = plan.levels().get(i);
+                int lim = LevelPlan.RADIUS - 1;
+                for (int x = -lim; x <= lim; x++) {
+                    for (int z = -lim; z <= lim; z++) {
+                        if (level.cell(x, z) != com.sablednah.crawlspace.plan.Cell.CORRIDOR) {
+                            continue;
+                        }
+                        int code = bp.get(x, Blueprinter.floorAt(plan, i, x, z), z);
+                        if (code == 0) {
+                            continue;
+                        }
+                        if (Blueprint.part(code) == Part.STEP_SLAB) {
+                            slabs++;
+                        } else if (Blueprint.part(code) == Part.STEP) {
+                            stairs++;
+                            int[] d = dirs[Blueprint.facing(code)];
+                            int bx = x - d[0];
+                            int bz = z - d[1];
+                            assertTrue(level.cell(bx, bz).isWalkable() && level.height(bx, bz) == level.height(x, z),
+                                    "seed " + seed + " level " + i + ": the stair at " + x + "," + z + " has nothing to climb it from");
+                        }
+                    }
+                }
+            }
+        }
+        System.out.println("CORRIDOR STEPS stairs " + stairs + ", slabs " + slabs);
+        assertTrue(stairs > 0 && slabs > 0);
     }
 
     @Test
