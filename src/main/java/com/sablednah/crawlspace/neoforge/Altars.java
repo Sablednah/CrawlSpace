@@ -103,6 +103,11 @@ public final class Altars {
             return;
         }
         int n = summons(CrawlState.of(level), at);
+        if (n == 0 && !Seals.open(level, site, at)) {
+            Triggers.tell(player, "An altar stands at the head of the stairs, sealed. It wants " + Seals.sources(site).size()
+                    + " seals from the levels above before it will take an offering.");
+            return;
+        }
         Triggers.tell(player, n == 0
                 ? "An altar stands at the head of the stairs. Offer a gold ingot on it to wake " + Bestiary.bossName(site, li) + "."
                 : "The altar can call " + Bestiary.bossName(site, li) + " back, stronger. Offer a gold ingot.");
@@ -124,6 +129,10 @@ public final class Altars {
         String name = name(site, li);
         if (awake(level, bossAt) != null) {
             Triggers.tell(player, name + " is already awake.");
+            return true;
+        }
+        // Sealed until every seal is set (or it has waited long enough): a seal or token in hand goes on first.
+        if (Seals.use(level, player, site, pos)) {
             return true;
         }
         InteractionHand hand = player.getMainHandItem().is(Items.GOLD_INGOT) ? InteractionHand.MAIN_HAND
