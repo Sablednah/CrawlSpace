@@ -868,7 +868,7 @@ final class Dresser {
      * pilasters every few blocks (timber posts in the mines), and ceiling
      * beams across bigger crypt and mine rooms.
      */
-    private static void finish(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i, String theme, boolean[][] reserved) {
+    static void finish(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i, String theme, boolean[][] reserved) {
         boolean mines = theme.equals("Old Mines");
         int f = Blueprinter.floorAt(plan, i, r.centerX(), r.centerZ());
         int h = Blueprinter.clearHeight(level, r.centerX(), r.centerZ());
@@ -969,7 +969,7 @@ final class Dresser {
      * way round the room. The palette sets it again once its neighbours are in,
      * so the stairs turn the corners.
      */
-    private static void cove(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i) {
+    static void cove(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i) {
         for (int x = r.minX(); x <= r.maxX(); x++) {
             for (int z = r.minZ(); z <= r.maxZ(); z++) {
                 if (!r.contains(x, z) || !level.cell(x, z).isOpen()) {
@@ -1000,7 +1000,7 @@ final class Dresser {
     }
 
     /** Panelling up the lower two blocks of a room's walls with a dado rail above, round the pilasters. */
-    private static void panel(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i) {
+    static void panel(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i) {
         for (int x = r.minX() - 1; x <= r.maxX() + 1; x++) {
             for (int z = r.minZ() - 1; z <= r.maxZ() + 1; z++) {
                 if (level.cell(x, z) != Cell.WALL) {
