@@ -40,7 +40,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
                                                  // 15: teleport mazes; 16: survival rooms;
                                                  // 17: the thing you should not touch; 18: false lairs;
                                                  // 19: the gelatinous cube; 20: token vaults;
-                                                 // 21: objective rooms; 22: their second jobs; 23: a planned room for them; 24: slab steps, a shallower fountain
+                                                 // 21: objective rooms; 22: their second jobs; 23: a planned room for them; 24: slab steps, a shallower fountain, a hidden way out, a basin
 
     /**
      * A plan and its blueprint, built once and shared by every chunk that asks.
