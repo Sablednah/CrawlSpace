@@ -522,6 +522,12 @@ public final class Bestiary {
     static final int STRICT_FROM = 2;
 
     static int band(ServerLevel level, Site site, int li, BlockPos at, int count, net.minecraft.server.level.ServerPlayer target) {
+        return band(level, site, li, at, count, target, m -> { });
+    }
+
+    /** As above, with something done to each before it joins the world (a tomb's dead get knockback). */
+    static int band(ServerLevel level, Site site, int li, BlockPos at, int count, net.minecraft.server.level.ServerPlayer target,
+            java.util.function.Consumer<Mob> each) {
         String theme = site.built().plan().levels().get(li).theme.name();
         RandomSource random = level.getRandom();
         int made = 0;
@@ -545,6 +551,7 @@ public final class Bestiary {
             if (range != null && range.getBaseValue() < 48) {
                 range.setBaseValue(48);
             }
+            each.accept(mob);
             level.addFreshEntityWithPassengers(mob);
             mob.setTarget(target);
             made++;

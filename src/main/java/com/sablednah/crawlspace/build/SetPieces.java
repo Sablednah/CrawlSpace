@@ -512,4 +512,109 @@ final class SetPieces {
         b.anchor = new int[] {cx, f, cz};
         return b;
     }
+
+    private static boolean air(Blueprint bp, int x, int y, int z) {
+        int code = bp.get(x, y, z);
+        return code == 0 || Blueprint.part(code) == Part.AIR;
+    }
+
+    /**
+     * The room round the set piece (Sable, 2026-10-12: "the room itself is
+     * plain"). Clearing it for the set piece took the dressing with it, so it is
+     * dressed again, grander than an ordinary room: the theme's floor border,
+     * medallion and pilasters, coving all round, panelling with a dado rail, a
+     * colonnade two in from the walls, lamps hanging on chains and banners
+     * between the pilasters. Nothing goes where the set piece stands, in front
+     * of a doorway, or by the way out.
+     */
+    static void dress(Blueprint bp, com.sablednah.crawlspace.plan.DungeonPlan plan, LevelPlan level, Room r, int f, int i, int[] exit, Dice dice) {
+        String theme = level.theme.name();
+        int h = Blueprinter.clearHeight(level, r.centerX(), r.centerZ());
+        Dresser.finish(bp, level, r, plan, i, theme, null);
+        Dresser.cove(bp, level, r, plan, i);
+        Dresser.panel(bp, level, r, plan, i);
+        // The colonnade: a column every four cells round a ring two in from the walls.
+        for (int x = r.minX() + 2; x <= r.maxX() - 2; x++) {
+            for (int z = r.minZ() + 2; z <= r.maxZ() - 2; z++) {
+                boolean ring = x == r.minX() + 2 || x == r.maxX() - 2 || z == r.minZ() + 2 || z == r.maxZ() - 2;
+                if (!ring || Math.floorMod(x + z, 4) != 0 || !standClear(bp, level, r, f, h, x, z, exit, 1)) {
+                    continue;
+                }
+                for (int y = f; y < f + h; y++) {
+                    bp.set(x, y, z, y == f || y == f + h - 1 ? Part.DADO : Part.PILLAR, 0, i);
+                }
+            }
+        }
+        // Lamps on chains, one over each quarter of the room; on a dark level, the chains hang empty.
+        boolean dark = level.feeling == com.sablednah.crawlspace.plan.Feeling.DARK;
+        for (int[] q : new int[][] {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}}) {
+            int x = r.centerX() + q[0] * Math.max(3, r.w / 4);
+            int z = r.centerZ() + q[1] * Math.max(3, r.h / 4);
+            if (r.contains(x, z) && air(bp, x, f + h - 1, z) && air(bp, x, f + h - 2, z) && air(bp, x, f + h - 3, z)) {
+                bp.set(x, f + h - 1, z, Part.CHAIN, 0, i);
+                bp.set(x, f + h - 2, z, Part.CHAIN, 0, i);
+                if (!dark) {
+                    bp.set(x, f + h - 3, z, Part.LIGHT, 0, i);
+                }
+            }
+        }
+        // Banners on the walls, two up, between the pilasters.
+        int[][] dirs = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+        for (int x = r.minX(); x <= r.maxX(); x++) {
+            for (int z = r.minZ(); z <= r.maxZ(); z++) {
+                if (!floor(level, r, x, z) || Math.floorMod(x + z, 4) != 2 || nearDoorway(level, x, z) || !air(bp, x, f + 2, z)
+                        || exit != null && Math.abs(x - exit[0]) + Math.abs(z - exit[2]) < 3) {
+                    continue;
+                }
+                for (int[] d : dirs) {
+                    if (level.cell(x + d[0], z + d[1]) == Cell.WALL) {
+                        bp.set(x, f + 2, z, Part.BANNER, Blueprinter.facingOf(-d[0], -d[1]), i);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    /** Whether a column fits at (x, z): floor under it, air all the way up, clear of the set piece, doors and the way out. */
+    private static boolean standClear(Blueprint bp, LevelPlan level, Room r, int f, int h, int x, int z, int[] exit, int margin) {
+        if (!floor(level, r, x, z) || nearDoorway(level, x, z)) {
+            return false;
+        }
+        int under = bp.get(x, f - 1, z);
+        if (under == 0 || Blueprint.part(under) != Part.FLOOR && Blueprint.part(under) != Part.FLOOR_ACCENT) {
+            return false;
+        }
+        if (exit != null && Math.abs(x - exit[0]) + Math.abs(z - exit[2]) < 3) {
+            return false;
+        }
+        for (int dx = -margin; dx <= margin; dx++) {
+            for (int dz = -margin; dz <= margin; dz++) {
+                for (int y = f - 1; y < f + h; y++) {
+                    int code = bp.get(x + dx, y, z + dz);
+                    if (code == 0) {
+                        continue;
+                    }
+                    Part p = Blueprint.part(code);
+                    boolean open = p == Part.AIR || p == Part.FLOOR || p == Part.FLOOR_ACCENT || p == Part.FLOOR_INLAY
+                            || p == Part.WALL || p == Part.PILASTER || p == Part.PANEL || p == Part.DADO || p == Part.COVE || p == Part.CEILING;
+                    if (!open) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private static boolean nearDoorway(LevelPlan level, int x, int z) {
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                if (level.cell(x + dx, z + dz).isDoor()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }

@@ -485,6 +485,7 @@ public final class Blueprinter {
         rows.add(built.exit);
         rows.add(built.anchor);
         rows.addAll(built.places);
+        SetPieces.dress(bp, plan, level, r, f, i, built.exit, dice);
         // A few lanterns on the floor by the walls: its own lights went with the dressing.
         int lit = 0;
         for (int x = r.minX(); x <= r.maxX() && lit < 4; x += Math.max(1, r.w / 3)) {
