@@ -115,6 +115,9 @@ public final class Blueprinter {
             return 4;
         }
         Room r = level.room(reg);
+        if (r.role == Role.OBJECTIVE) {
+            return 7; // room for a statue
+        }
         if (r.shape == Shape.HALL || r.role == Role.LAIR || r.role == Role.FALSE_LAIR) {
             return 6;
         }
@@ -468,148 +471,28 @@ public final class Blueprinter {
         long placed = bp.triggers().stream().filter(t -> t.kind() == Trigger.Kind.OBJECTIVE).count();
         int job = level.showcase ? (int) (placed / 5 + i) % 2 : dice.nextInt(2);
         rows.add(new int[] {type, job, 0});
-        rows.add(null); // the exit's frame, below
-        rows.add(null); // the job's anchor
-        switch (type) {
-            case PIT -> {
-                // A pit two deep in the middle, a ladder out on its north face; its champion rises from the floor.
-                int s = Math.max(5, Math.min(9, Math.min(r.w, r.h) - 6));
-                int x0 = cx - s / 2;
-                int z0 = cz - s / 2;
-                for (int x = x0 - 1; x <= x0 + s; x++) {
-                    for (int z = z0 - 1; z <= z0 + s; z++) {
-                        boolean in = x >= x0 && x < x0 + s && z >= z0 && z < z0 + s;
-                        if (in) {
-                            bp.set(x, f - 3, z, Part.FLOOR, 0, i);
-                            bp.fill(x, z, f - 2, f - 1, Part.AIR, i);
-                        } else {
-                            bp.fill(x, z, f - 3, f - 2, Part.WALL, i);
-                        }
-                    }
-                }
-                bp.set(cx, f - 2, z0, Part.LADDER, facingOf(0, 1), i);
-                bp.set(cx, f - 1, z0, Part.LADDER, facingOf(0, 1), i);
-                rows.set(2, new int[] {cx, f - 2, cz});
-            }
-            case FIRECHASM -> {
-                // A lava channel two wide across the room, a bridge three wide over it, the relic's pedestal on the
-                // near side of the room's middle and the dragon facing it from the far wall.
-                boolean alongX = r.w >= r.h;
-                for (int x = r.minX(); x <= r.maxX(); x++) {
-                    for (int z = r.minZ(); z <= r.maxZ(); z++) {
-                        int across = alongX ? x - cx : z - cz;
-                        int along = alongX ? z - cz : x - cx;
-                        if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR || (across != 0 && across != 1)) {
-                            continue;
-                        }
-                        bp.set(x, f - 2, z, Part.WALL, 0, i);
-                        bp.set(x, f - 1, z, Math.abs(along) <= 1 ? Part.OBJ_BRIDGE : Part.OBJ_LAVA, 0, i);
-                        if (Math.abs(along) > 1) {
-                            rows.add(new int[] {x, f - 1, z});
-                        }
-                    }
-                }
-                int[] relic = alongX ? new int[] {cx - 3, cz + 3} : new int[] {cx + 3, cz - 3};
-                bp.set(relic[0], f, relic[1], Part.OBJ_RELIC, 0, i);
-                rows.set(2, new int[] {relic[0], f, relic[1]});
-                int[] dragon = alongX ? new int[] {cx + 4, cz} : new int[] {cx, cz + 4};
-                bp.set(dragon[0], f, dragon[1], Part.PEDESTAL, 0, i);
-                bp.set(dragon[0], f + 1, dragon[1], Part.OBJ_DRAGON, alongX ? facingOf(-1, 0) : facingOf(0, -1), i);
-            }
-            case FOUNTAIN -> {
-                // A basin five across: a quartz rim, sea lanterns at its corners, water in its sunken middle,
-                // and four corrupted blocks in the rim's sides, to be broken.
-                for (int x = cx - 2; x <= cx + 2; x++) {
-                    for (int z = cz - 2; z <= cz + 2; z++) {
-                        boolean rim = Math.max(Math.abs(x - cx), Math.abs(z - cz)) == 2;
-                        if (rim) {
-                            boolean corner = Math.abs(x - cx) == 2 && Math.abs(z - cz) == 2;
-                            boolean side = (x == cx || z == cz);
-                            // The first job breaks corrupted stones; the second fills a vial, and its rim is whole.
-                            bp.set(x, f, z, corner ? Part.OBJ_GLOW : side && job == 0 ? Part.OBJ_CORRUPT : Part.OBJ_RIM, 0, i);
-                            if (side && !corner && job == 0) {
-                                rows.add(new int[] {x, f, z});
-                            }
-                        } else {
-                            // Water level with the room's floor, so the rim is one block above anyone in it: sunk a
-                            // block lower, the rim was two above their feet and nobody without a block got out.
-                            bp.set(x, f - 1, z, Part.FLOOR, 0, i);
-                            bp.set(x, f, z, Part.WATER, 0, i);
-                        }
-                    }
-                }
-                rows.set(2, new int[] {cx, f, cz});
-            }
-            case TOMB -> {
-                // The sarcophagus, two long, candles at its corners.
-                bp.set(cx, f, cz, Part.OBJ_TOMB, 0, i);
-                bp.set(cx + 1, f, cz, Part.OBJ_TOMB, 0, i);
-                for (int[] c : new int[][] {{-1, -1}, {-1, 1}, {2, -1}, {2, 1}}) {
-                    bp.set(cx + c[0], f, cz + c[1], Part.CANDLES, 3, i);
-                }
-                rows.set(2, new int[] {cx, f, cz});
-            }
-            default -> {
-                // The idol against the wall farthest from the room's first door, facing into the room.
-                int[] wall = farWallSpot(level, r, f, bp);
-                if (wall == null) {
-                    wall = new int[] {cx, cz, 0, 1};
-                }
-                bp.set(wall[0], f, wall[1], Part.OBJ_IDOL, 0, i);
-                bp.set(wall[0], f + 1, wall[1], Part.OBJ_IDOL_HEAD, facingOf(wall[2], wall[3]), i);
-                for (int[] c : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
-                    int x = wall[0] + c[0];
-                    int z = wall[1] + c[1];
-                    if (level.cell(x, z) == Cell.FLOOR && (c[0] != wall[2] || c[1] != wall[3])) {
-                        bp.set(x, f, z, Part.CANDLES, 2, i);
-                    }
-                }
-                rows.set(2, new int[] {wall[0], f, wall[1]});
-            }
-        }
-        // The quick exit: against a wall, away from doors and the job, facing into the room.
-        int[] exit = null;
-        for (int x = r.minX(); x <= r.maxX() && exit == null; x++) {
-            for (int z = r.minZ(); z <= r.maxZ() && exit == null; z++) {
-                if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR || nearDoor(level, x, z)) {
-                    continue;
-                }
-                int here = bp.get(x, f, z);
-                if (here != 0 && Blueprint.part(here) != Part.AIR || Math.abs(x - cx) + Math.abs(z - cz) < 5) {
-                    continue;
-                }
-                for (int[] d : DIRS4) {
-                    if (level.cell(x + d[0], z + d[1]) == Cell.WALL) {
-                        exit = new int[] {x, z, -d[0], -d[1]};
-                        break;
-                    }
-                }
-            }
-        }
-        if (exit == null) {
+        // The set piece, after the card; the way out is part of it (Sable, 2026-10-12).
+        SetPieces.Built built = switch (type) {
+            case PIT -> SetPieces.pit(bp, level, r, f, i, dice);
+            case FIRECHASM -> SetPieces.firechasm(bp, level, r, f, i, job, dice);
+            case FOUNTAIN -> SetPieces.fountain(bp, level, r, f, i, job, dice);
+            case TOMB -> SetPieces.tomb(bp, level, r, f, i);
+            default -> SetPieces.idol(bp, level, r, f, i);
+        };
+        if (built == null || built.exit == null || built.anchor == null) {
             return;
         }
-        bp.set(exit[0], f, exit[1], Part.EXIT_FRAME, facingOf(exit[2], exit[3]), i);
-        rows.set(1, new int[] {exit[0], f, exit[1]});
-        if (type == FOUNTAIN && job == 1) {
-            // The dry basin beside the way out, along the wall; in front of it if neither side is free.
-            int[][] spots = {{exit[0] + exit[3], exit[1] + exit[2]}, {exit[0] - exit[3], exit[1] - exit[2]},
-                    {exit[0] + exit[2], exit[1] + exit[3]}};
-            for (int[] s : spots) {
-                int here = bp.get(s[0], f, s[1]);
-                if (r.contains(s[0], s[1]) && level.cell(s[0], s[1]) == Cell.FLOOR && !nearDoor(level, s[0], s[1])
-                        && (here == 0 || Blueprint.part(here) == Part.AIR)) {
-                    bp.set(s[0], f, s[1], Part.OBJ_BASIN, 0, i);
-                    break;
-                }
-            }
-        }
+        rows.add(built.exit);
+        rows.add(built.anchor);
+        rows.addAll(built.places);
         // A few lanterns on the floor by the walls: its own lights went with the dressing.
         int lit = 0;
         for (int x = r.minX(); x <= r.maxX() && lit < 4; x += Math.max(1, r.w / 3)) {
             for (int z : new int[] {r.minZ(), r.maxZ()}) {
                 int here = bp.get(x, f, z);
-                if (r.contains(x, z) && level.cell(x, z) == Cell.FLOOR && !nearDoor(level, x, z) && (here == 0 || Blueprint.part(here) == Part.AIR)) {
+                int under = bp.get(x, f - 1, z);
+                if (r.contains(x, z) && level.cell(x, z) == Cell.FLOOR && !nearDoor(level, x, z) && (here == 0 || Blueprint.part(here) == Part.AIR)
+                        && under != 0 && Blueprint.part(under) == Part.FLOOR) {
                     bp.set(x, f, z, Part.FLOOR_LANTERN, 0, i);
                     lit++;
                 }
@@ -2507,7 +2390,7 @@ public final class Blueprinter {
         }
     }
 
-    private static int facingOf(int nx, int nz) {
+    static int facingOf(int nx, int nz) {
         if (nz < 0) {
             return 0;
         }

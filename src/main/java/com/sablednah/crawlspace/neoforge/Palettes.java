@@ -514,6 +514,10 @@ public final class Palettes {
             // while handing the job in (Sable, 2026-10-12).
             case EXIT_FRAME -> Blocks.AIR.defaultBlockState();
             case OBJ_BASIN -> Blocks.CAULDRON.defaultBlockState();
+            // Statues come from the blueprint's own table (Site.state); this is only for one missing from it.
+            case OBJ_STATUE -> Blocks.STONE_BRICKS.defaultBlockState();
+            case OBJ_CHASM -> Blocks.AIR.defaultBlockState();
+            case OBJ_PLANK, OBJ_ROTTEN -> Blocks.DARK_OAK_PLANKS.defaultBlockState();
             case OBJ_LAVA -> Blocks.LAVA.defaultBlockState();
             case OBJ_BRIDGE -> Blocks.DARK_OAK_PLANKS.defaultBlockState();
             case OBJ_RELIC -> Blocks.CHISELED_STONE_BRICKS.defaultBlockState();

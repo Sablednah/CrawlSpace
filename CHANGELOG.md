@@ -10,6 +10,14 @@
 - **Objective rooms.** Big set pieces with a job: the Fighting Pit, the Firechasm, the Fountain of Light, the Tomb Chamber and the Idol Chamber. Do the job for a chest and replay tablets, and the portal frame in the wall takes you straight to the surface.
 - **Two jobs for each objective room:** the Pit's waiting guardian, the Firechasm's stolen dragon's eye, the Fountain's vial of light, the Tomb that must be broken while the dead keep coming, and the Idol's summoning, which turns the shaman into a boss if you are too slow.
 - **An objective room's way out appears only when its job is done**, beside the reward chest's moment, and ignores clicks for two seconds, so nobody is thrown out before seeing their reward. The Fountain's vial is poured into a dry basin by the wall instead of the frame.
+- **Objective rooms are set pieces now**, after Warhammer Quest's room cards, in rooms a storey taller:
+  - **The Firechasm:** a chasm four or five wide with lava three blocks down, crossed by a plank bridge that gives way behind you and mends after ten seconds. Some planks are rotten and snap at once, unless you are quick enough (LegendQuest: a DEX check). Fall in and you are burned and put back at the near end, not killed. A blackstone dragon sits on the far side, wings spread up the wall.
+  - **The Fountain of Light:** a round basin with glowstone under the water and a raised bowl on a pillar in the middle, spilling light. Cracked floor, jars about, a corner gone green.
+  - **The Idol Chamber:** a gold idol enthroned on a sandstone dais, red-eyed and horned, a burning orb before it and a carved square in the floor.
+  - **The Tomb Chamber:** the sarcophagus on a raised plinth, a skull at its head, soul lanterns on four posts and cobwebs in the corners.
+  - **The Fighting Pit:** three deep, with a barred cage in its far wall, bones, blood and spikes on its floor, one lamp hanging over it, and a gong on the far rim.
+- **The way out is part of the set piece:** set in the dragon's plinth, the fountain's rim, the idol's dais, the head of the tomb's plinth, or under the pit's gong. It looks like the stone around it until the job is done, and the room's first message says where it is.
+- **Objective rooms are guarded from the level below.** The first time you go in, a band from the next level down comes for you.
 - **Survival rooms wait for you to be inside.** The bars drop once someone is in the room and nobody stands in a doorway, so they no longer push you out into the corridor, and the countdown shows to everyone inside.
 - **`/crawlspace info full`** (ops): everything on every level of the dungeon you are in: objective room and job, bosses, altars, prisoners, puzzles, vaults, survival rooms, cubes, levers, secret doors and traps. Click an entry to go there.
 - **Corridor steps you can always climb.** Where nothing is free in front of a stair, the step is a slab instead, so a one-wide corridor never meets a stair's tall side.

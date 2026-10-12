@@ -1698,6 +1698,21 @@ Drive it over RCON:
   role, facing along or across it, which is how screenshots get aimed.
 - `/crawlspace info` also reports the level you stand on: rooms awake,
   traps sprung, and the nearest sleeping room.
+- **Objective set pieces (planner 25) are templates in `build/SetPieces`**:
+  layers bottom up, rows from the back wall to the front, written facing
+  south and turned to face the room. Letters are block states as /setblock
+  takes them, stored per position in the blueprint's statue table
+  (`Blueprint.statue`, part `OBJ_STATUE`) and parsed once each by
+  `StatueBlocks`; a string that does not parse logs and stands as stone
+  bricks. `Part.STATUE` is the Dresser's older statue and is not this. The
+  exit frame wears a disguise from the same table until its job is done.
+  **Block ids in those strings are not checked by the compiler**: `chain`
+  became `iron_chain` in 1.21.9, and a rename like that shows only as stone
+  bricks in game.
+- The firechasm bridge is `OBJ_PLANK`/`OBJ_ROTTEN`, crumbled through
+  `Crumbles.PLANKS` from Triggers' per-tick step check; a fall is caught in
+  `ObjectiveRooms.chasm` (perception `recovers`, LQ's DEX) or burns and puts
+  the player at the near foot (the trigger's target 3).
 - `/crawlspace info full` lists everything on every level of the dungeon you
   stand in (or your last build), from its plan and blueprint, so it answers
   for a dungeon nobody has walked. Each entry runs `goto` when clicked; the
