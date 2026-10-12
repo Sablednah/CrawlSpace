@@ -792,13 +792,14 @@ the next type), the planner keeps a loop slot for it: `Role.OBJECTIVE` ('O').
 |---|---|
 | Fighting Pit | The Pit Guardian waits in the pit, no AI, until a player drops in or strikes it. |
 | Firechasm | The Eye-Thief (a pillager) carries "The Dragon's Eye" (a heart of the sea: an eye of ender flew off after strongholds); use the dragon's head with it. If he dies and the eye is lost, he comes again. |
-| Fountain of Light | Use its rim for a "Vial of Light" (dragon's breath: inert, one at a time), then use the exit frame while carrying it. The rim is whole, with no corrupted stones. The water is level with the floor, one block below the rim: sunk a block deeper, nobody got out without a block. |
+| Fountain of Light | Use its rim for a "Vial of Light" (dragon's breath: inert, one at a time), then pour it into the dry basin (`OBJ_BASIN`, a cauldron beside the exit's spot). The rim is whole, with no corrupted stones. The water is level with the floor, one block below the rim: sunk a block deeper, nobody got out without a block. |
 | Tomb Chamber | 20 blows (uses). While it stands, a band of the dead comes every 20 s; the last blow breaks it. |
 | Idol Chamber | The Shaman channels, no AI, under a 45 s purple bar. Kill him in time, or he becomes "The Ascended Shaman": a boss bar and three times the health. |
 
   Seen on the rig: all five done. The Ascended Shaman rose at 50 s, and 4 of
   the dead arrived during the blows. The guardian's wait is unproven: the
   test's `goto` dropped the player straight into the pit.
+- **The way out (`EXIT_FRAME`) is air until the job is done** (Sable, 2026-10-12). `complete` builds it lit, and clicks on it in the next two seconds are ignored. It used to stand there from the start and double as the Fountain's hand-in, so a second click carried a player straight to the surface before they saw the chest. It is `mayBeMissing`, so protection never builds it early.
 - **Foes** are elites with doubled health. If a started job's foe vanishes
   without dying (Peaceful, lava), the job can be begun again. On the rig, a
   Peaceful switch had left one started for good.

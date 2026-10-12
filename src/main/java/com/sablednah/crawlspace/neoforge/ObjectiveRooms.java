@@ -69,7 +69,7 @@ public final class ObjectiveRooms {
             {"Take the relic from its pedestal and throw it into the fire.",
                     "The Eye-Thief has the dragon's eye. Take it from him, and set it in the dragon's head."},
             {"Break the four corrupted stones in its rim. Each will cost you.",
-                    "Collect a vial from the fountain, then use the portal frame in the wall while you carry it."},
+                    "Collect a vial from the fountain, and pour it into the dry basin by the wall."},
             {"Lift the lid, and lay what rises to rest.",
                     "Break the tomb: twenty blows. While it stands, the dead keep coming."},
             {"Its shaman wakes! Kill the shaman.",
@@ -82,6 +82,8 @@ public final class ObjectiveRooms {
     /** Per objective (its trigger's key): when a summoning began, and its bar; when the tomb last sent its dead. */
     private static final Map<Long, Long> SINCE = new HashMap<>();
     private static final Map<Long, net.minecraft.server.level.ServerBossEvent> BARS = new HashMap<>();
+    /** When each objective's way out appeared: a click within two seconds of it is not taken as leaving. */
+    private static final Map<Long, Long> OPENED = new HashMap<>();
 
     private static String job(Trigger t) {
         return JOBS[t.targets()[0][0]][t.targets()[0][1]];
@@ -125,8 +127,8 @@ public final class ObjectiveRooms {
             boolean done = state.hasFired(k.above(DONE));
             if (TOLD.computeIfAbsent(player.getUUID(), x -> new HashSet<>()).add(k.asLong())) {
                 player.sendSystemMessage(Component.literal(capital(NAMES[type]) + ". " + (done
-                        ? "Its work is done. The portal frame in the wall takes you to the surface."
-                        : job(t) + " When it is done, the portal frame in the wall is a way out.")).withStyle(ChatFormatting.GOLD));
+                        ? "Its work is done. The glowing portal frame by the wall takes you to the surface."
+                        : job(t) + " When it is done, a way out opens by the wall.")).withStyle(ChatFormatting.GOLD));
             }
             if (done || player.isCreative() || level.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL) {
                 continue;
@@ -400,7 +402,7 @@ public final class ObjectiveRooms {
             return false;
         }
         Part part = Blueprint.part(code);
-        if (part != Part.OBJ_RELIC && part != Part.OBJ_TOMB && part != Part.EXIT_FRAME && part != Part.OBJ_DRAGON
+        if (part != Part.OBJ_RELIC && part != Part.OBJ_TOMB && part != Part.EXIT_FRAME && part != Part.OBJ_DRAGON && part != Part.OBJ_BASIN
                 && part != Part.OBJ_RIM && part != Part.OBJ_GLOW) {
             return false;
         }
@@ -414,16 +416,27 @@ public final class ObjectiveRooms {
             int type = t.targets()[0][0];
             int job = t.targets()[0][1];
             if (part == Part.EXIT_FRAME) {
-                if (!done && type == Blueprinter.FOUNTAIN && job == 1 && take(player, VIAL)) {
-                    complete(level, site, t, player);
-                } else if (!done) {
-                    Triggers.tell(player, "The way out is closed. " + job(t));
+                // Only there once the job is done; a click carried over from handing it in is not a request to leave.
+                Long opened = OPENED.get(k.asLong());
+                if (!done) {
+                    return false;
+                } else if (opened != null && level.getGameTime() - opened < 40) {
+                    return true;
                 } else {
                     surface(level, player, site);
                 }
+            } else if (part == Part.OBJ_BASIN && !done) {
+                if (take(player, VIAL)) {
+                    level.setBlock(pos, Blocks.WATER_CAULDRON.defaultBlockState()
+                            .setValue(net.minecraft.world.level.block.LayeredCauldronBlock.LEVEL, 3), 3);
+                    level.playSound(null, pos, SoundEvents.BOTTLE_EMPTY, SoundSource.BLOCKS, 1f, 1f);
+                    complete(level, site, t, player);
+                } else {
+                    Triggers.tell(player, "The basin is dry. Collect a vial from the fountain.");
+                }
             } else if ((part == Part.OBJ_RIM || part == Part.OBJ_GLOW) && type == Blueprinter.FOUNTAIN && job == 1 && !done) {
                 if (carries(player, VIAL)) {
-                    Triggers.tell(player, "You already carry a Vial of Light. Use the portal frame in the wall.");
+                    Triggers.tell(player, "You already carry a Vial of Light. Pour it into the dry basin by the wall.");
                     return true;
                 }
                 ItemStack vial = special(Items.DRAGON_BREATH, "Vial of Light", VIAL);
@@ -431,7 +444,7 @@ public final class ObjectiveRooms {
                     level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY() + 0.5, player.getZ(), vial));
                 }
                 level.playSound(null, pos, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1f, 1f);
-                Triggers.tell(player, "You collect a Vial of Light from the fountain. Now use the portal frame in the wall.");
+                Triggers.tell(player, "You collect a Vial of Light from the fountain. Now pour it into the dry basin by the wall.");
             } else if (part == Part.OBJ_DRAGON && type == Blueprinter.FIRECHASM && job == 1 && !done) {
                 if (take(player, EYE)) {
                     level.sendParticles(ParticleTypes.FLAME, pos.getX() + 0.5, pos.getY() + 0.8, pos.getZ() + 0.5, 30, 0.3, 0.3, 0.3, 0.05);
@@ -554,10 +567,16 @@ public final class ObjectiveRooms {
         }
         state.fire(k.above(DONE));
         BlockPos frame = at(site, t.targets()[1]);
-        if (level.getBlockState(frame).is(Blocks.END_PORTAL_FRAME)) {
-            level.setBlock(frame, level.getBlockState(frame).setValue(EndPortalFrameBlock.HAS_EYE, true), 3);
-        }
         BlockPos anchor = at(site, t.targets()[2]);
+        // The way out appears now, lit, facing away from the room as a placed frame would.
+        int dx = anchor.getX() - frame.getX();
+        int dz = anchor.getZ() - frame.getZ();
+        net.minecraft.core.Direction in = Math.abs(dx) > Math.abs(dz)
+                ? (dx > 0 ? net.minecraft.core.Direction.EAST : net.minecraft.core.Direction.WEST)
+                : (dz > 0 ? net.minecraft.core.Direction.SOUTH : net.minecraft.core.Direction.NORTH);
+        level.setBlock(frame, Blocks.END_PORTAL_FRAME.defaultBlockState()
+                .setValue(EndPortalFrameBlock.FACING, in.getOpposite()).setValue(EndPortalFrameBlock.HAS_EYE, true), 3);
+        OPENED.put(k.asLong(), level.getGameTime());
         BlockPos chest = anchor.above();
         for (int d = 1; d <= 3 && !level.getBlockState(chest).isAir(); d++) {
             chest = anchor.offset(d, 1, 0);
@@ -579,7 +598,7 @@ public final class ObjectiveRooms {
         for (ServerPlayer p : level.players()) {
             if (inRoom(site, t, p.blockPosition())) {
                 p.sendSystemMessage(Component.literal("Objective complete! A chest appears, with " + tablets + " replay tablet"
-                        + (tablets == 1 ? "" : "s") + ", and the portal frame in the wall takes its eye: it will take you to the surface.")
+                        + (tablets == 1 ? "" : "s") + ", and a way out opens by the wall: use the glowing portal frame to return to the surface.")
                         .withStyle(ChatFormatting.GOLD));
             }
         }
@@ -607,5 +626,6 @@ public final class ObjectiveRooms {
         BARS.values().forEach(net.minecraft.server.level.ServerBossEvent::removeAllPlayers);
         BARS.clear();
         SINCE.clear();
+        OPENED.clear();
     }
 }

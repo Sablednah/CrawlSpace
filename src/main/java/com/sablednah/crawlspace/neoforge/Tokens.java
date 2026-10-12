@@ -100,7 +100,7 @@ public final class Tokens {
         String id = Keys.id(site, t.level());
         if (!id.equals(idOf(hand))) {
             Triggers.tell(player, idOf(hand) != null ? "That token is for another vault."
-                    : "The cauldron wants vault tokens: " + (needed - have) + " more. The guards of this level carry them.");
+                    : "The cauldron wants vault tokens: " + (needed - have) + " more. One guard room on this level carries them: each of its monsters drops one.");
             return true;
         }
         int put = Math.min(hand.getCount(), needed - have);
