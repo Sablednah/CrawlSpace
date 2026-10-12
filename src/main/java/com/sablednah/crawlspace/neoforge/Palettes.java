@@ -510,8 +510,10 @@ public final class Palettes {
             case BOSS_ALTAR -> Blocks.LODESTONE.defaultBlockState();
             case TP_PAD -> Blocks.CRYING_OBSIDIAN.defaultBlockState();
             case FORBIDDEN -> Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState();
-            case EXIT_FRAME -> Blocks.END_PORTAL_FRAME.defaultBlockState()
-                    .setValue(net.minecraft.world.level.block.EndPortalFrameBlock.FACING, dir.getOpposite());
+            // Nothing until the job is done: ObjectiveRooms.complete builds it, lit, so it can never be clicked by mistake
+            // while handing the job in (Sable, 2026-10-12).
+            case EXIT_FRAME -> Blocks.AIR.defaultBlockState();
+            case OBJ_BASIN -> Blocks.CAULDRON.defaultBlockState();
             case OBJ_LAVA -> Blocks.LAVA.defaultBlockState();
             case OBJ_BRIDGE -> Blocks.DARK_OAK_PLANKS.defaultBlockState();
             case OBJ_RELIC -> Blocks.CHISELED_STONE_BRICKS.defaultBlockState();
