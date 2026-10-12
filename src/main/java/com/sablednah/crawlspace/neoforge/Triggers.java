@@ -567,6 +567,7 @@ public final class Triggers {
             Altars.tick(level, player, here.site());
             SurvivalRooms.mend(level, player, here.site());
             Shrines.notice(level, player, here.site());
+            Shrines.shimmer(level, player, here.site());
             Forbidden.tick(level, player, here.site());
             Cubes.wake(level, player, here.site());
             Seals.wait(level, player, here.site());

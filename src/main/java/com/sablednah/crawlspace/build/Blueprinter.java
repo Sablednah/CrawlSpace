@@ -266,7 +266,11 @@ public final class Blueprinter {
 
     /**
      * A stair block wherever a corridor floor steps up one block, facing up
-     * the step, so nobody has to jump anywhere in a dungeon.
+     * the step, so nobody has to jump anywhere in a dungeon. Only where the cell
+     * in front of its low side is floor at the same height: anywhere else (a
+     * one-wide corridor turning onto the step) a stair is climbed into from its
+     * flank, whose tall half blocks the way, so it is a slab, climbable from
+     * any side.
      */
     private static void steps(Blueprint bp, DungeonPlan plan, int i) {
         LevelPlan level = plan.levels().get(i);
@@ -284,7 +288,10 @@ public final class Blueprinter {
                         int f = floorAt(plan, i, x, z);
                         int code = bp.get(x, f, z);
                         if (code != 0 && Blueprint.part(code) == Part.AIR) {
-                            bp.set(x, f, z, Part.STEP, d, i);
+                            int bx = x - dirs[d][0];
+                            int bz = z - dirs[d][1];
+                            boolean front = level.cell(bx, bz).isWalkable() && level.height(bx, bz) == h;
+                            bp.set(x, f, z, front ? Part.STEP : Part.STEP_SLAB, d, i);
                         }
                         break;
                     }
@@ -524,12 +531,14 @@ public final class Blueprinter {
                                 rows.add(new int[] {x, f, z});
                             }
                         } else {
-                            bp.set(x, f - 2, z, Part.FLOOR, 0, i);
-                            bp.set(x, f - 1, z, Part.WATER, 0, i);
+                            // Water level with the room's floor, so the rim is one block above anyone in it: sunk a
+                            // block lower, the rim was two above their feet and nobody without a block got out.
+                            bp.set(x, f - 1, z, Part.FLOOR, 0, i);
+                            bp.set(x, f, z, Part.WATER, 0, i);
                         }
                     }
                 }
-                rows.set(2, new int[] {cx, f - 1, cz});
+                rows.set(2, new int[] {cx, f, cz});
             }
             case TOMB -> {
                 // The sarcophagus, two long, candles at its corners.

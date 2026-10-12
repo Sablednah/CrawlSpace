@@ -108,6 +108,45 @@ public final class Shrines {
         return true;
     }
 
+    /**
+     * From Triggers' tick, once a second: every shrine altar within twelve of a
+     * player who has not used it draws enchanting glyphs into it, the way a
+     * table draws them from its books, so it reads as something to use (Sable,
+     * 2026-10-12). Used, it goes quiet, which also marks the ones still to try.
+     * A cursed shrine shimmers like the rest: telling them apart is the omen's job.
+     */
+    static void shimmer(ServerLevel level, ServerPlayer player, Site site) {
+        BlockPos o = site.origin();
+        BlockPos feet = player.blockPosition();
+        com.sablednah.crawlspace.build.Blueprint bp = site.built().blueprint();
+        net.minecraft.util.RandomSource rng = level.getRandom();
+        for (int dx = -12; dx <= 12; dx++) {
+            for (int dz = -12; dz <= 12; dz++) {
+                for (int dy = -3; dy <= 2; dy++) {
+                    BlockPos p = feet.offset(dx, dy, dz);
+                    int code = bp.get(p.getX() - o.getX(), p.getY() - o.getY(), p.getZ() - o.getZ());
+                    if (code == 0 || com.sablednah.crawlspace.build.Blueprint.part(code) != com.sablednah.crawlspace.build.Part.ALTAR
+                            || USED.contains(player.getUUID() + "@" + p.asLong())) {
+                        continue;
+                    }
+                    int li = com.sablednah.crawlspace.build.Blueprint.level(code);
+                    com.sablednah.crawlspace.plan.LevelPlan lp = site.built().plan().levels().get(li);
+                    Room r = lp.room(lp.region(p.getX() - o.getX(), p.getZ() - o.getZ()));
+                    if (r == null || r.role != Role.SHRINE) {
+                        continue;
+                    }
+                    // With a count of 0 the "spread" is the glyph's start, relative to where it ends: each one
+                    // flies in from up to two blocks out and above, and lands on the altar's top.
+                    for (int n = 0; n < 10; n++) {
+                        level.sendParticles(ParticleTypes.ENCHANT, p.getX() + 0.5, p.getY() + 1.1, p.getZ() + 0.5, 0,
+                                rng.nextGaussian() * 1.2, 0.6 + rng.nextDouble() * 1.4, rng.nextGaussian() * 1.2, 1.0);
+                    }
+                    level.sendParticles(ParticleTypes.END_ROD, p.getX() + 0.5, p.getY() + 1.3, p.getZ() + 0.5, 1, 0.2, 0.1, 0.2, 0.01);
+                }
+            }
+        }
+    }
+
     /** Per player: shrines and tells they have been asked about this session. */
     private static final java.util.Map<java.util.UUID, java.util.Set<Long>> ASKED = new java.util.HashMap<>();
 
