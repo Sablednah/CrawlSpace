@@ -39,6 +39,25 @@ public final class Blueprint {
         return a != null && a.contains(((long) x << 32) ^ (z & 0xffffffffL));
     }
 
+    /** Statue blocks, by position: a block state written out, as /setblock takes it. Also an exit frame's disguise. */
+    private final Map<Long, String> statues = new HashMap<>();
+
+    /** Sets a statue block: {@code state} as /setblock takes it, turned {@code turns} quarter turns clockwise. */
+    public void statue(int x, int y, int z, String state, int turns, int level) {
+        set(x, y, z, Part.OBJ_STATUE, turns, level);
+        statues.put(Trigger.key(x, y, z), state);
+    }
+
+    /** What a hidden exit frame looks like until its job is done: part of the statue it is set in. */
+    public void disguise(int x, int y, int z, String state) {
+        statues.put(Trigger.key(x, y, z), state);
+    }
+
+    /** The statue block (or disguise) at a position, or null. */
+    public String statueAt(int x, int y, int z) {
+        return statues.get(Trigger.key(x, y, z));
+    }
+
     public Blueprint(int minY, int maxY) {
         this.minY = minY;
         this.maxY = maxY;

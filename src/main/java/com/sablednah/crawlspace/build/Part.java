@@ -234,7 +234,19 @@ public enum Part {
      */
     STEP_SLAB,
     /** The Fountain's dry basin, a cauldron by the way out: the vial is poured into it. */
-    OBJ_BASIN;
+    OBJ_BASIN,
+    /**
+     * A statue's block, written out in full in the blueprint's statue table (see
+     * {@link Blueprint#statue}): the objective rooms' set pieces, which need more
+     * blocks than a part each. Facing is the quarter turns to rotate it by.
+     */
+    OBJ_STATUE,
+    /** The firechasm's open drop, above its lava. */
+    OBJ_CHASM,
+    /** The firechasm's bridge: a plank that gives way a moment after it is stepped on, and comes back. */
+    OBJ_PLANK,
+    /** A rotten plank in the bridge: gives way at once, unless the player is quick enough (a perception mod's DEX). */
+    OBJ_ROTTEN;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).
@@ -254,7 +266,8 @@ public enum Part {
                     VOID, RESTART, PATH_HIDDEN, CRUMBLE, DRIPLEAF, PIT_TILE,
                     PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER, WINDOW_BARS, PEDESTAL, ICE_TILE,
                     PREVIEW_TREASURE, PREVIEW_SHRINE, PREVIEW_PUZZLE, PREVIEW_GUARD, PREVIEW_LAIR, BOSS_ALTAR, TP_PAD, FORBIDDEN,
-                    EXIT_FRAME, OBJ_BRIDGE, OBJ_RELIC, OBJ_DRAGON, OBJ_RIM, OBJ_GLOW, OBJ_TOMB, OBJ_IDOL, OBJ_IDOL_HEAD, OBJ_BASIN -> true;
+                    EXIT_FRAME, OBJ_BRIDGE, OBJ_RELIC, OBJ_DRAGON, OBJ_RIM, OBJ_GLOW, OBJ_TOMB, OBJ_IDOL, OBJ_IDOL_HEAD, OBJ_BASIN,
+                    OBJ_STATUE, OBJ_PLANK, OBJ_ROTTEN -> true;
             default -> false;
         };
     }
@@ -268,7 +281,8 @@ public enum Part {
     public boolean mayBeMissing() {
         return switch (this) {
             // The quick exit is not built until its job is done: nothing to put back before then.
-            case CRUMBLE, DRIPLEAF, PIT_TILE, LOCKED_LOWER, LOCKED_UPPER, PORTCULLIS, ONEWAY_LOWER, ONEWAY_UPPER, EXIT_FRAME -> true;
+            case CRUMBLE, DRIPLEAF, PIT_TILE, LOCKED_LOWER, LOCKED_UPPER, PORTCULLIS, ONEWAY_LOWER, ONEWAY_UPPER, EXIT_FRAME,
+                    OBJ_PLANK, OBJ_ROTTEN -> true;
             default -> false;
         };
     }
