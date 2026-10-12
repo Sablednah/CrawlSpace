@@ -7,6 +7,7 @@
 - No building over a puzzle room's void.
 - **A showcase dungeon.** `/crawlspace showcase` builds one with everything in it: every theme, feeling, trap, puzzle, vault and lock, to look round without hunting.
 - **Vault cages are copper grates**, not a single iron bar through the item.
+- **Restocking.** Every 12 hours (configurable) a dungeon fills again: its rooms wake, its traps re-arm, its chests refill. Never while someone else is inside.
 - **Seals for the deepest door.** The bottom altar wants a seal from each level above that has a lair (from its boss) or a puzzle (in its hoard). A vault token stands in for a missing one, and after half an hour on the bottom level the altar takes gold alone.
 - **Token vaults.** Some treasure rooms are barred, with a cauldron outside. The guards of that level carry vault tokens; feed the cauldron enough and the bars rise.
 - **The gelatinous cube.** A wall-to-wall cube of green jelly glides along a corridor, its last meals frozen inside. Touch it and it engulfs you; kill it and what it swallowed spills out, some of it still alive.

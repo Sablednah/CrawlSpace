@@ -35,6 +35,7 @@ what the rig showed):
 - false lairs;
 - token vaults;
 - seals for the deepest door, with fallbacks;
+- restocking every 12 hours;
 - the gelatinous cube;
 - portcullis and key, and the portcullis trap;
 - one-way valves;

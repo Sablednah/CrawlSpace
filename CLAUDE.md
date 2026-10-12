@@ -755,6 +755,34 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Restocking (Sable's ruling, 2026-10-12)
+
+`neoforge/Restocks`, with `play.restockHours` (12; 0 never), in real time, so
+it comes round daily-ish at no fixed hour.
+- **When:** a player's first visit starts the clock (`restockAt:<origin>` in
+  CrawlState's new value map). When a player is in a dungeon whose time has
+  passed, and no one else is inside, it restocks and tells them.
+- **Lazy, so unloaded chunks do not matter:**
+  - Every encounter trigger (rooms, lairs, decoys, survival, tokens) and
+    the cube is un-fired (`CrawlState.unfire`), so each wakes again on
+    approach.
+  - Mimic and trapped-chest markers (chest + 150) are cleared.
+  - The dungeon's epoch counter rises. A chest opened later whose
+    `chest:<pos>` epoch is behind is cleared and given its table again
+    (`Site.tableFor`, shared with first placement).
+- **Left alone:**
+  - Lootr's chests and anything not a vanilla chest or barrel.
+  - What is done once: vaults, puzzles, seals, the tomb, the altar's count.
+    An altar lair's boss, un-fired, sleeps until the next offering.
+- **`/crawlspace restock`** forces one where you stand.
+- **CrawlState** gained `unfire` and an optional `values` map
+  (`Codec.unboundedMap`, `optionalFieldOf`), so older saves load as they were.
+- **Seen on the rig** (seed 4):
+  - Level 2: 5 of 13 rooms awake became 0 of 13 (6 rooms un-fired in
+    all).
+  - A chest emptied as if looted got `chests/tier1` back on use, and not
+    again in the same epoch.
+
 ## Seals gate the finale's altar (Sable's ruling, 2026-10-12)
 
 `neoforge/Seals`. Each level above the bottom that has a true lair gives a

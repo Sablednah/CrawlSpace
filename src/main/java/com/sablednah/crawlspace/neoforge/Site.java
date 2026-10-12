@@ -143,12 +143,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
         // A dark level's loot is a tier better: the dark is the price.
         boolean dark = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).feeling == com.sablednah.crawlspace.plan.Feeling.DARK;
         int tier = Math.min(5, 1 + li / 2 + (dark ? 1 : 0));
-        String table = switch (part) {
-            case CHEST -> "chests/tier" + tier;
-            case HOARD_CHEST -> "chests/tier" + Math.min(5, tier + 1);
-            case BARREL -> "chests/supplies";
-            default -> null;
-        };
+        String table = tableFor(built, code);
         if (part == Part.RUMOURS && level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.LecternBlockEntity lectern) {
             lectern.setBook(Rumours.book(this, built));
             return;
@@ -167,6 +162,20 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
             String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();
             spawner.setEntityId(Bestiary.common(theme, random), random);
         }
+    }
+
+    /** The loot table a container of this code is filled from, or null. A dark level's loot is a tier better. */
+    static String tableFor(Built built, int code) {
+        Part part = Blueprint.part(code);
+        int li = Math.max(0, Blueprint.level(code));
+        boolean dark = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).feeling == com.sablednah.crawlspace.plan.Feeling.DARK;
+        int tier = Math.min(5, 1 + li / 2 + (dark ? 1 : 0));
+        return switch (part) {
+            case CHEST -> "chests/tier" + tier;
+            case HOARD_CHEST -> "chests/tier" + Math.min(5, tier + 1);
+            case BARREL -> "chests/supplies";
+            default -> null;
+        };
     }
 
     /** Whether a world position is inside this dungeon's footprint, tower included. */
