@@ -89,6 +89,16 @@ public final class ObjectiveRooms {
     private static String job(Trigger t) {
         return JOBS[t.targets()[0][0]][t.targets()[0][1]];
     }
+
+    /** For /crawlspace info full: the room's name and which job it set, e.g. "the Fountain of Light (job 2)". */
+    static String describe(Trigger t) {
+        return NAMES[t.targets()[0][0]] + " (job " + (t.targets()[0][1] + 1) + ")";
+    }
+
+    /** For /crawlspace info full: what the job asks. */
+    static String jobText(Trigger t) {
+        return job(t);
+    }
     private static final Map<UUID, Set<Long>> TOLD = new HashMap<>();
 
     private ObjectiveRooms() {
