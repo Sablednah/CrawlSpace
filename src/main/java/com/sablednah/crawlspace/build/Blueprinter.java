@@ -591,6 +591,19 @@ public final class Blueprinter {
         }
         bp.set(exit[0], f, exit[1], Part.EXIT_FRAME, facingOf(exit[2], exit[3]), i);
         rows.set(1, new int[] {exit[0], f, exit[1]});
+        if (type == FOUNTAIN && job == 1) {
+            // The dry basin beside the way out, along the wall; in front of it if neither side is free.
+            int[][] spots = {{exit[0] + exit[3], exit[1] + exit[2]}, {exit[0] - exit[3], exit[1] - exit[2]},
+                    {exit[0] + exit[2], exit[1] + exit[3]}};
+            for (int[] s : spots) {
+                int here = bp.get(s[0], f, s[1]);
+                if (r.contains(s[0], s[1]) && level.cell(s[0], s[1]) == Cell.FLOOR && !nearDoor(level, s[0], s[1])
+                        && (here == 0 || Blueprint.part(here) == Part.AIR)) {
+                    bp.set(s[0], f, s[1], Part.OBJ_BASIN, 0, i);
+                    break;
+                }
+            }
+        }
         // A few lanterns on the floor by the walls: its own lights went with the dressing.
         int lit = 0;
         for (int x = r.minX(); x <= r.maxX() && lit < 4; x += Math.max(1, r.w / 3)) {
