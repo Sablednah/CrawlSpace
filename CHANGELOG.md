@@ -18,6 +18,8 @@
   - **The Fighting Pit:** three deep, with a barred cage in its far wall, bones, blood and spikes on its floor, one lamp hanging over it, and a gong on the far rim.
 - **The way out is part of the set piece:** set in the dragon's plinth, the fountain's rim, the idol's dais, the head of the tomb's plinth, or under the pit's gong. It looks like the stone around it until the job is done, and the room's first message says where it is.
 - **Objective rooms are guarded from the level below.** The first time you go in, a band from the next level down comes for you.
+- **Numbered guards can no longer be farmed.** A monster killed out of order gives no experience and drops nothing; the one that rises in its place pays once, when killed in order.
+- **Strict numbered guards from the third level down:** one wrong kill and every one you have already killed rises again, and you start from I. Those give nothing the second time. The room says so as it wakes.
 - **Survival rooms wait for you to be inside.** The bars drop once someone is in the room and nobody stands in a doorway, so they no longer push you out into the corridor, and the countdown shows to everyone inside.
 - **`/crawlspace info full`** (ops): everything on every level of the dungeon you are in: objective room and job, bosses, altars, prisoners, puzzles, vaults, survival rooms, cubes, levers, secret doors and traps. Click an entry to go there.
 - **Corridor steps you can always climb.** Where nothing is free in front of a stair, the step is a slab instead, so a one-wide corridor never meets a stair's tall side.

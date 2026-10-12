@@ -93,6 +93,12 @@ public final class Powers {
     /** A numbered monster: "crawlspace_order_<group>" and "crawlspace_num_<n>"; the group is its trigger's position. */
     static final String ORDER = "crawlspace_order_";
     static final String NUM = "crawlspace_num_";
+    /** A strict numbered group: one wrong kill and every one already killed rises again (Sable, 2026-10-12). */
+    static final String STRICT = "crawlspace_strict";
+    /** Killed out of order: no experience and no drops, or a wrong kill could be farmed (Sable, 2026-10-12). */
+    static final String NOXP = "crawlspace_noxp";
+    /** A strict group's fallen, by group: {type, number, x, y, z}, to raise again on a wrong kill. */
+    private static final java.util.Map<Long, java.util.List<Object[]>> FALLEN = new java.util.HashMap<>();
     /** A hunted level's hunter: it stalks, room by room, toward whoever is on its level. */
     static final String HUNTER = "crawlspace_hunter";
     /** A summoned minion: it carries no loot and its summoner counts it. */
@@ -447,6 +453,10 @@ public final class Powers {
 
     /** An elite drops something from the loot of its depth, as a boss does from its hoard. */
     public static void onDrops(LivingDropsEvent e) {
+        if (e.getEntity().getTags().contains(NOXP)) {
+            e.setCanceled(true);
+            return;
+        }
         if (!(e.getEntity() instanceof Mob mob) || !(mob.level() instanceof ServerLevel level) || !mob.getTags().contains(ELITE)) {
             return;
         }
@@ -567,7 +577,10 @@ public final class Powers {
     }
 
     /** Numbers a monster of an ordered group: its numeral in its name, its group and number in its tags. */
-    static void number(Mob mob, net.minecraft.core.BlockPos group, int n, int of) {
+    static void number(Mob mob, net.minecraft.core.BlockPos group, int n, int of, boolean strict) {
+        if (strict) {
+            mob.addTag(STRICT);
+        }
         mob.addTag(ORDER + group.asLong());
         mob.addTag(NUM + n);
         mob.setCustomName(Component.literal(roman(n) + ": " + mob.getType().getDescription().getString()).withStyle(ChatFormatting.GOLD));
@@ -606,25 +619,28 @@ public final class Powers {
             left++;
         }
         ServerPlayer killer = source.getEntity() instanceof ServerPlayer p ? p : null;
+        boolean strict = mob.getTags().contains(STRICT);
         if (left > 0 && n > lowest) {
-            Entity e = mob.getType().create(level, EntitySpawnReason.MOB_SUMMONED);
-            if (e instanceof Mob again) {
-                again.snapTo(mob.getX(), mob.getY(), mob.getZ(), mob.getYRot(), 0);
-                again.addTag(NOROLL);
-                again.finalizeSpawn(level, level.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.MOB_SUMMONED, null);
-                number(again, net.minecraft.core.BlockPos.of(group), (int) n, 0);
-                again.addTag(Bestiary.KIN);
-                again.setPersistenceRequired();
-                level.addFreshEntity(again);
-                if (killer != null) {
-                    again.setTarget(killer);
+            mob.addTag(NOXP);
+            rise(level, mob.getType(), group, (int) n, mob.getX(), mob.getY(), mob.getZ(), strict, false, killer);
+            java.util.List<Object[]> fallen = FALLEN.remove(group);
+            if (strict && fallen != null) {
+                for (Object[] f : fallen) {
+                    // Paid for once already: raised again, they give nothing a second time.
+                    rise(level, (EntityType<?>) f[0], group, (Integer) f[1], (Double) f[2], (Double) f[3], (Double) f[4], true, true, killer);
                 }
-                level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, mob.getX(), mob.getY() + 1, mob.getZ(), 20, 0.3, 0.6, 0.3, 0.02);
             }
             if (killer != null) {
-                Triggers.tell(killer, "Out of order! " + roman((int) n) + " rises again. Kill " + roman((int) lowest) + " first.");
+                Triggers.tell(killer, strict && fallen != null
+                        ? "Out of order! They all rise again. Start from I."
+                        : "Out of order! " + roman((int) n) + " rises again. Kill " + roman((int) lowest) + " first.");
             }
             return;
+        }
+        if (strict && left > 0) {
+            FALLEN.computeIfAbsent(group, g -> new java.util.ArrayList<>()).add(new Object[] {mob.getType(), (int) n, mob.getX(), mob.getY(), mob.getZ()});
+        } else {
+            FALLEN.remove(group);
         }
         if (left == 0) {
             net.minecraft.core.BlockPos at = net.minecraft.core.BlockPos.of(group).below();
@@ -649,6 +665,29 @@ public final class Powers {
                 bless(level, killer, at);
             }
         }
+    }
+
+    /** A numbered monster rising again where it fell, its number on its brow. */
+    private static void rise(ServerLevel level, EntityType<?> type, long group, int n, double x, double y, double z, boolean strict,
+            boolean paid, ServerPlayer killer) {
+        Entity e = type.create(level, EntitySpawnReason.MOB_SUMMONED);
+        if (!(e instanceof Mob again)) {
+            return;
+        }
+        again.snapTo(x, y, z, 0, 0);
+        again.addTag(NOROLL);
+        again.finalizeSpawn(level, level.getCurrentDifficultyAt(again.blockPosition()), EntitySpawnReason.MOB_SUMMONED, null);
+        number(again, net.minecraft.core.BlockPos.of(group), n, 0, strict);
+        again.addTag(Bestiary.KIN);
+        if (paid) {
+            again.addTag(NOXP);
+        }
+        again.setPersistenceRequired();
+        level.addFreshEntity(again);
+        if (killer != null) {
+            again.setTarget(killer);
+        }
+        level.sendParticles(ParticleTypes.SOUL_FIRE_FLAME, x, y + 1, z, 20, 0.3, 0.6, 0.3, 0.02);
     }
 
     /** The blessings a solved puzzle can give: one, for six minutes. */
@@ -678,6 +717,7 @@ public final class Powers {
 
     public static void clear() {
         TRACKED.clear();
+        FALLEN.clear();
     }
 
     static void modify(Mob mob, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr, String id, double amount,
