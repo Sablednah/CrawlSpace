@@ -63,7 +63,8 @@ public final class CrawlCommands {
                                         .suggests((c, b) -> SharedSuggestionProvider.suggest(Tour.KINDS, b))
                                         .executes(ctx -> tour(ctx, IntegerArgumentType.getInteger(ctx, "level"),
                                                 StringArgumentType.getString(ctx, "what"))))))
-                .then(Commands.literal("info").executes(CrawlCommands::info))
+                .then(Commands.literal("info").executes(CrawlCommands::info)
+                        .then(Commands.literal("full").executes(CrawlCommands::infoFull)))
                 .then(Commands.literal("breaches").executes(CrawlCommands::breaches))
                 .then(Commands.literal("useitem").executes(ctx -> {
                     // Using what is in your hand, through the same handler a real use reaches (a replay tablet).
@@ -169,6 +170,7 @@ public final class CrawlCommands {
                 + "/crawlspace goto <level> [what]  - 0 is the tower, 1 the first level down;\n"
                 + "    what: a corridor style (straight, angled, winding, curved) or a room (lair, hall, exit...)\n"
                 + "/crawlspace info  - your last build's seed and where it is\n"
+                + "/crawlspace info full  - everything on every level of the dungeon you are in, each a link to go there\n"
                 + "/crawlspace undo  - put back what your last build replaced\n"
                 + "/crawlspace cancel  - stop builds in progress\n"
                 + "/crawlspace export  - write the themes in force as a datapack to edit");
@@ -485,6 +487,150 @@ public final class CrawlCommands {
             say(src, b.append('.').toString());
         }
         return 1;
+    }
+
+    /**
+     * Everything on every level of the dungeon you are in, for finding one with
+     * a given room in it (Sable, 2026-10-12). Each entry is a link to
+     * /crawlspace goto where goto knows the thing.
+     */
+    private static int infoFull(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
+        CommandSourceStack src = ctx.getSource();
+        Builds.Placed last = current(src.getPlayerOrException());
+        if (last == null) {
+            fail(src, "You are not in a dungeon, and have not built one since the server started. "
+                    + "/locate structure crawlspace:dungeon finds one.");
+            return 0;
+        }
+        DungeonPlan plan = last.plan();
+        String heroic = Heroic.traits(last.level(), last.site());
+        say(src, "Seed " + plan.seed() + ", tower at " + last.origin().toShortString() + ", " + plan.levels().size() + " level(s)"
+                + (heroic == null ? "" : ", heroic: " + heroic) + ". Click an entry to go there.");
+        for (LevelPlan l : plan.levels()) {
+            int n = l.index + 1;
+            net.minecraft.network.chat.MutableComponent line = Component.literal(n + ": ").withStyle(ChatFormatting.GOLD)
+                    .append(Component.literal(l.theme.name() + (l.feeling == com.sablednah.crawlspace.plan.Feeling.NONE ? ""
+                            : " (" + l.feeling.name().toLowerCase(java.util.Locale.ROOT) + ")")).withStyle(ChatFormatting.YELLOW))
+                    .append(Component.literal(" - " + l.rooms.size() + " rooms, " + l.stairsDown.size() + " stair(s) down, "
+                            + l.pits.size() + " pit(s)").withStyle(ChatFormatting.GRAY));
+            src.sendSystemMessage(line);
+            java.util.List<Component> items = new java.util.ArrayList<>();
+            // Rooms by role, the ordinary ones left out.
+            java.util.Map<com.sablednah.crawlspace.plan.Role, Integer> roles = new java.util.EnumMap<>(com.sablednah.crawlspace.plan.Role.class);
+            for (com.sablednah.crawlspace.plan.Room r : l.rooms) {
+                roles.merge(r.role, 1, Integer::sum);
+            }
+            for (var e : roles.entrySet()) {
+                String word = switch (e.getKey()) {
+                    case LAIR -> "lair";
+                    case HALL -> "hall";
+                    case GUARD -> "guard";
+                    case TREASURE -> "treasure";
+                    case SECRET -> "secret";
+                    case SHRINE -> "shrine";
+                    case KEY -> "key";
+                    case PUZZLE -> "puzzle";
+                    default -> null;
+                };
+                if (word == null && e.getKey() != com.sablednah.crawlspace.plan.Role.FALSE_LAIR) {
+                    continue; // entry, exit and plain rooms; the objective is listed from its trigger
+                }
+                String name = e.getKey().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+                items.add(entry(n, word,
+                        (e.getValue() > 1 ? e.getValue() + " " : "") + name + (e.getValue() > 1 ? "s" : ""), null));
+            }
+            // What the blueprint put there.
+            java.util.Map<com.sablednah.crawlspace.build.Trigger.Kind, Integer> kinds = new java.util.EnumMap<>(com.sablednah.crawlspace.build.Trigger.Kind.class);
+            int traps = 0;
+            java.util.Map<String, Integer> trapKinds = new java.util.TreeMap<>();
+            for (com.sablednah.crawlspace.build.Trigger t : last.built().blueprint().triggers()) {
+                if (t.level() != l.index) {
+                    continue;
+                }
+                if (t.kind() == com.sablednah.crawlspace.build.Trigger.Kind.OBJECTIVE) {
+                    items.add(0, entry(n, "objective", "OBJECTIVE: " + ObjectiveRooms.describe(t), ObjectiveRooms.jobText(t)));
+                    continue;
+                }
+                if (t.kind() == com.sablednah.crawlspace.build.Trigger.Kind.BOSS) {
+                    boolean altar = Altars.sleeps(last.site(), t);
+                    boolean prisoner = Prisoners.keeps(last.site(), t);
+                    items.add(entry(n, altar ? "bossaltar" : "lair", "boss" + (altar ? " (sleeps at an altar)" : "")
+                            + (prisoner ? " + prisoner" : ""), null));
+                    continue;
+                }
+                if (t.kind().isTrap()) {
+                    traps++;
+                    trapKinds.merge(t.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '), 1, Integer::sum);
+                    continue;
+                }
+                kinds.merge(t.kind(), 1, Integer::sum);
+            }
+            for (var e : kinds.entrySet()) {
+                String word = switch (e.getKey()) {
+                    case LEVER -> "lever";
+                    case SECRET -> "secretdoor";
+                    case PORTCULLIS -> "portcullis";
+                    case WINCH -> "winch";
+                    case ONEWAY -> "oneway";
+                    case VAULT -> "vault";
+                    case ICE_BOARD -> "ice";
+                    case TELEPORT_MAZE -> "teleport";
+                    case SURVIVAL -> "survival";
+                    case CUBE -> "cube";
+                    case TOKEN_VAULT -> "tokenvault";
+                    case TOKENS -> "tokens";
+                    case ORDERED -> "numbered";
+                    case FORBIDDEN -> "forbidden";
+                    case ALTAR -> "altar";
+                    case DECOY -> "decoy";
+                    default -> null;
+                };
+                String name = switch (e.getKey()) {
+                    case ENCOUNTER -> "monster room";
+                    case SECRET -> "secret door";
+                    case ONEWAY -> "one-way door";
+                    case VAULT -> "vault pedestal";
+                    case ICE_BOARD -> "ice board";
+                    case TELEPORT_MAZE -> "teleport maze";
+                    case SURVIVAL -> "survival room";
+                    case CUBE -> "gelatinous cube";
+                    case TOKEN_VAULT -> "token vault";
+                    case TOKENS -> "token guard room";
+                    case ORDERED -> "numbered guard room";
+                    case FORBIDDEN -> "forbidden seal";
+                    case DECOY_BOSS -> "false boss";
+                    case PUZZLE -> "puzzle restart";
+                    case PIT_EDGE, TREASURE -> null;
+                    default -> e.getKey().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+                };
+                if (name == null) {
+                    continue;
+                }
+                items.add(entry(n, word, (e.getValue() > 1 ? e.getValue() + " " : "") + name + (e.getValue() > 1 ? "s" : ""), null));
+            }
+            if (traps > 0) {
+                items.add(entry(n, "trap", traps + " trap" + (traps > 1 ? "s" : "") + " " + trapKinds, null));
+            }
+            net.minecraft.network.chat.MutableComponent row = Component.literal("   ");
+            for (int i = 0; i < items.size(); i++) {
+                row.append(i == 0 ? Component.empty() : Component.literal(", ").withStyle(ChatFormatting.DARK_GRAY)).append(items.get(i));
+            }
+            src.sendSystemMessage(row);
+        }
+        return 1;
+    }
+
+    /** One entry of info full: a link to goto when it knows the thing, with what it is on hover. */
+    private static Component entry(int level, String gotoWord, String text, String hover) {
+        net.minecraft.network.chat.MutableComponent c = Component.literal(text)
+                .withStyle(text.startsWith("OBJECTIVE") ? ChatFormatting.AQUA : gotoWord == null ? ChatFormatting.GRAY : ChatFormatting.WHITE);
+        if (gotoWord != null) {
+            String cmd = "/crawlspace goto " + level + " " + gotoWord;
+            String tip = (hover == null ? "" : hover + "\n") + "Click: " + cmd;
+            c.withStyle(s -> s.withClickEvent(new net.minecraft.network.chat.ClickEvent.RunCommand(cmd))
+                    .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(Component.literal(tip))));
+        }
+        return c;
     }
 
     private static int undo(CommandContext<CommandSourceStack> ctx) throws CommandSyntaxException {
