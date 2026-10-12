@@ -385,8 +385,6 @@ public final class Blueprinter {
      * Ambushes: a group waiting partway along a long corridor, likelier deeper
      * down. They stand along the corridor's middle, on clear floor.
      */
-    /** How often a level between the top and the bottom has an objective room. */
-    static final double OBJECTIVE_CHANCE = 0.5;
     /** The objective rooms, by type: the first target's first number. */
     public static final int PIT = 0, FIRECHASM = 1, FOUNTAIN = 2, TOMB = 3, IDOL = 4;
 
@@ -399,17 +397,16 @@ public final class Blueprinter {
      */
     private static void objective(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice dice) {
         LevelPlan level = plan.levels().get(i);
-        if (i < 1 || i >= plan.levels().size() - 1 || !(level.showcase || dice.chance(OBJECTIVE_CHANCE))) {
+        if (i < 1 || i >= plan.levels().size() - 1) {
             return;
         }
         // A showcase gives each objective it manages to place the next type, so the few that fit show the range.
         int type = level.showcase ? (int) (bp.triggers().stream().filter(t -> t.kind() == Trigger.Kind.OBJECTIVE).count() % 5) : dice.nextInt(5);
+        // The planner keeps a room for it (Sable, 2026-10-12): a rectangle 15 to 19 across, on the loop.
         Room best = null;
         int bestF = 0;
         for (Room r : level.rooms) {
-            // Rectangles only: a pit in the crossing of a cross-shaped room cut its arms apart (seed 16).
-            if (r.role != Role.ROOM && r.role != Role.HALL || Math.min(r.w, r.h) < 11 || r.pool
-                    || r.shape != com.sablednah.crawlspace.plan.Shape.RECT && r.shape != com.sablednah.crawlspace.plan.Shape.HALL) {
+            if (r.role != Role.OBJECTIVE || r.pool) {
                 continue;
             }
             int f = floorAt(plan, i, r.centerX(), r.centerZ());
@@ -442,12 +439,17 @@ public final class Blueprinter {
         // Clear it: its dressing, traps and encounter go; its walls and doors stay.
         for (int x = r.minX(); x <= r.maxX(); x++) {
             for (int z = r.minZ(); z <= r.maxZ(); z++) {
-                if (r.contains(x, z) && level.cell(x, z) == Cell.FLOOR) {
+                int here = bp.get(x, f, z);
+                // A one-way door's lever stands just inside its room: it stays, and so does its trigger.
+                if (r.contains(x, z) && level.cell(x, z) == Cell.FLOOR && (here == 0 || Blueprint.part(here) != Part.LEVER)) {
                     // Each cell to its own ceiling: one height for the room cut through lower ceilings at its edges.
                     bp.set(x, f - 1, z, Part.FLOOR, 0, i);
                     bp.fill(x, z, f, f + clearHeight(level, x, z) - 1, Part.AIR, i);
                     for (int dy = -3; dy <= 3; dy++) {
-                        bp.removeTrigger(x, f + dy, z);
+                        Trigger old = bp.triggerAt(x, f + dy, z);
+                        if (old != null && (old.kind() == Trigger.Kind.ENCOUNTER || old.kind() == Trigger.Kind.DECOY || old.kind().isTrap())) {
+                            bp.removeTrigger(x, f + dy, z);
+                        }
                     }
                 }
             }
@@ -2044,7 +2046,13 @@ public final class Blueprinter {
         // Its own dice, so the mazes of rooms that stay mazes are as they were.
         com.sablednah.crawlspace.plan.Dice tdice = com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x7E1FL);
         if (plan.levels().get(i).showcase) {
-            // A showcase takes turns (maze, ice, teleport), and where its turn does not fit, tries the other.
+            // A showcase first makes whichever special puzzle it has not got yet, where one fits; then takes turns
+            // (maze, ice, teleport), trying the other where its turn does not fit.
+            boolean noTeleport = bp.triggers().stream().noneMatch(t -> t.kind() == Trigger.Kind.TELEPORT_MAZE);
+            boolean noIce = bp.triggers().stream().noneMatch(t -> t.kind() == Trigger.Kind.ICE_BOARD);
+            if (i >= 1 && (noTeleport && teleportMaze(bp, plan, i, r, tdice) || noIce && iceBoard(bp, plan, i, r))) {
+                return;
+            }
             if (i % 3 == 1 && (iceBoard(bp, plan, i, r) || teleportMaze(bp, plan, i, r, tdice))
                     || i % 3 == 2 && (teleportMaze(bp, plan, i, r, tdice) || iceBoard(bp, plan, i, r))) {
                 return;
@@ -2451,6 +2459,12 @@ public final class Blueprinter {
                         && !seen.contains(key(x, z))) {
                     return; // the railing would cut part of the room off from the stair: leave the hole open
                 }
+            }
+        }
+        for (long k : rail) {
+            int here = bp.get((int) (k >> 32), top, (int) k);
+            if (here != 0 && Blueprint.part(here) == Part.LEVER) {
+                return; // a one-way door's lever stands on the line: railing it over left the door with nothing to pull (seed 23)
             }
         }
         for (long k : rail) {

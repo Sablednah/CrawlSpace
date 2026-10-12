@@ -23,6 +23,8 @@ public enum Role {
     LAIR('L'),
     /** A pretender's lair: looks the part, its boss falls too easily, and the real one is behind a secret wall. */
     FALSE_LAIR('F'),
+    /** An objective room: a big rectangle kept for a set piece with a job, and a quick exit (Warhammer Quest). */
+    OBJECTIVE('O'),
     /** A quiet room: a pool, an altar. */
     SHRINE('W'),
     /** Holds the lever for the level's locked door. */

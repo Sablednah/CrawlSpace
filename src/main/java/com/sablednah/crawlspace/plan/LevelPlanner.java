@@ -51,6 +51,9 @@ public final class LevelPlanner {
      * @param arrival where the stair from above comes down; the entry room is centred on it
      * @param bottom  the last level: its far room is the final lair, with no stair further down
      */
+    /** How often a level between the top and the bottom keeps a room for an objective. */
+    static final double OBJECTIVE_CHANCE = 0.5;
+
     /** How often a lair above the bottom is a false one, with the real lair behind a secret wall (Tomb of Horrors). */
     static final double FALSE_LAIR_CHANCE = 0.35;
 
@@ -100,12 +103,34 @@ public final class LevelPlanner {
         int exitAt = loopSize / 2 + dice.between(0, loopSize % 2);
         int lairAt = bottom ? exitAt
                 : index >= 1 && (show && index == 2 || dice.chance(0.6)) ? pickOther(dice, loopSize, exitAt) : -1;
+        // An objective room, between the top and the bottom: a loop slot of its own, sized for its set piece.
+        int objectiveAt = -1;
+        if (index >= 1 && !bottom && (show || dice.chance(OBJECTIVE_CHANCE))) {
+            for (int tries = 0; tries < 8 && objectiveAt < 0; tries++) {
+                int k = pickOther(dice, loopSize, exitAt);
+                if (k != lairAt && k != 0) {
+                    objectiveAt = k;
+                }
+            }
+        }
+        // A showcase's first level below the top keeps a plain rectangle big enough for a teleport maze: the
+        // objective room takes the biggest room on every level that has one, and the showcase must show both.
+        int roomyAt = -1;
+        if (show && index == 1) {
+            for (int k = 1; k < loopSize && roomyAt < 0; k++) {
+                if (k != exitAt && k != lairAt && k != objectiveAt) {
+                    roomyAt = k;
+                }
+            }
+        }
         for (int i = 0; i < loopSize; i++) {
             Role role = i == 0 ? Role.ENTRY
                     : i == lairAt ? Role.LAIR
+                    : i == objectiveAt ? Role.OBJECTIVE
                     : i == exitAt ? Role.EXIT
+                    : i == roomyAt ? Role.ROOM
                     : dice.chance(0.25) ? Role.GUARD : Role.ROOM;
-            loop.add(makeRoom(level.rooms.size(), role, theme, dice, level));
+            loop.add(i == roomyAt ? roomyRoom(level.rooms.size(), level) : makeRoom(level.rooms.size(), role, theme, dice, level));
         }
         for (int i = 0; i < loopSize; i++) {
             Link link = new Link(loop.get(i), loop.get((i + 1) % loopSize), LinkKind.DOOR, true);
@@ -369,6 +394,15 @@ public final class LevelPlanner {
         return true;
     }
 
+    /** A plain open rectangle, 15 a side: room for any puzzle. */
+    static Room roomyRoom(int id, LevelPlan level) {
+        boolean[][] mask = RoomShapes.mask(Shape.RECT, 15, 15, 1, new Dice(id));
+        Room room = new Room(id, Role.ROOM, Shape.RECT, 15, 15, mask);
+        room.open = true;
+        level.rooms.add(room);
+        return room;
+    }
+
     static Room makeRoom(int id, Role role, Theme theme, Dice dice, LevelPlan level) {
         double scale = theme.roomScale();
         int lo;
@@ -378,9 +412,11 @@ public final class LevelPlanner {
             case LAIR -> { lo = 15; hi = 23; }
             case TREASURE, SECRET, KEY -> { lo = 5; hi = 9; }
             case SHRINE -> { lo = 9; hi = 13; }
+            case OBJECTIVE -> { lo = 15; hi = 19; }
             default -> { lo = 9; hi = 15; }
         }
-        Shape shape = Shape.values()[dice.weighted(theme.shapeWeights())];
+        // An objective room is always a rectangle: its set pieces (a pit, a chasm) need the whole floor round them.
+        Shape shape = role == Role.OBJECTIVE ? Shape.RECT : Shape.values()[dice.weighted(theme.shapeWeights())];
         if (shape == Shape.HALL && role == Role.ROOM) {
             role = Role.HALL;
         }
@@ -395,8 +431,9 @@ public final class LevelPlanner {
         int w = dice.oddBetween(lo, hi);
         int h = dice.oddBetween(lo, hi);
         if (role != Role.TREASURE && role != Role.SECRET && role != Role.KEY) {
-            w = oddAtLeast((int) Math.round(w * scale), 5);
-            h = oddAtLeast((int) Math.round(h * scale), 5);
+            int least = role == Role.OBJECTIVE ? 15 : 5;
+            w = oddAtLeast((int) Math.round(w * scale), least);
+            h = oddAtLeast((int) Math.round(h * scale), least);
         }
         // Long thin halls read better than squares; nudge one axis out.
         if (role == Role.HALL && dice.chance(0.5)) {
@@ -631,6 +668,8 @@ public final class LevelPlanner {
             } else if (r.role == Role.EXIT) {
                 square(level, cx, cz, 1, Cell.STAIR_DOWN);
                 level.stairsDown.add(new int[] {cx, cz});
+            } else if (r.open) {
+                continue;
             } else if (r.shape == Shape.HALL && Math.min(r.w, r.h) >= 9) {
                 pillars(level, r, dice);
             } else if ((r.role == Role.SHRINE || r.shape == Shape.CAVE
