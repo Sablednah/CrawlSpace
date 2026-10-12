@@ -69,6 +69,7 @@ public final class Triggers {
         if (code != 0 && com.sablednah.crawlspace.build.Blueprint.part(code) == com.sablednah.crawlspace.build.Part.HOARD_CHEST
                 && !player.isSpectator() && inPuzzleRoom(site, pos)) {
             Powers.bless(level, player, pos);
+            Seals.hoard(level, player, site, pos);
         }
         Sleepers.noise(level, player, pos);
         if (!player.isSpectator() && Prisoners.useBars(level, player, pos)) {
@@ -562,6 +563,7 @@ public final class Triggers {
             Shrines.notice(level, player, here.site());
             Forbidden.tick(level, player, here.site());
             Cubes.wake(level, player, here.site());
+            Seals.wait(level, player, here.site());
         }
         if (player.tickCount % 20 == 0) {
             final Site site = here.site();
