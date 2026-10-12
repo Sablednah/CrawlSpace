@@ -56,6 +56,10 @@ import net.minecraft.world.level.levelgen.Heightmap;
 public final class ObjectiveRooms {
 
     static final String FOE = "crawlspace_objective_foe";
+    /** On each foe, the key of the room it belongs to: a foe that chased you out of the room still ends its job. */
+    private static final String OF = "crawlspace_objective_of_";
+    /** When each tomb was last struck: one blow a second (Sable, 2026-10-12: it could be spam-clicked). */
+    private static final Map<Long, Long> STRUCK = new HashMap<>();
     static final String RELIC = "crawlspace_relic";
     private static final int STARTED = 1200;
     private static final int DONE = 1201;
@@ -170,8 +174,8 @@ public final class ObjectiveRooms {
             int job = t.targets()[0][1];
             boolean foeJob = type == Blueprinter.PIT || type == Blueprinter.IDOL || type == Blueprinter.TOMB && job == 0
                     || type == Blueprinter.FIRECHASM && job == 1;
-            if (started && foeJob && level.getEntitiesOfClass(Mob.class, new net.minecraft.world.phys.AABB(k).inflate(32),
-                    m -> m.isAlive() && (m.entityTags().contains(FOE) || m.entityTags().contains(THIEF))).isEmpty()
+            if (started && foeJob && level.getEntitiesOfClass(Mob.class, new net.minecraft.world.phys.AABB(k).inflate(128),
+                    m -> m.isAlive() && m.entityTags().contains(OF + k.asLong())).isEmpty()
                     && !(type == Blueprinter.FIRECHASM && eyeAbout(level, k))) {
                 state.unfire(k.above(STARTED));
                 started = false;
@@ -289,7 +293,7 @@ public final class ObjectiveRooms {
                     state.fire(k.above(STARTED));
                     Mob thief = foe(level, site, t, EntityType.PILLAGER, "The Eye-Thief", anchor, player, 1);
                     if (thief != null) {
-                        thief.removeTag(FOE);
+                        thief.removeTag(FOE); // keeps OF: while he lives, the job stays started
                         thief.addTag(THIEF);
                     }
                 }
@@ -298,7 +302,8 @@ public final class ObjectiveRooms {
                 // While it stands, the dead keep coming: a band every twenty seconds once the first blow is struck.
                 if (started && level.getGameTime() - SINCE.getOrDefault(k.asLong(), 0L) > 400) {
                     SINCE.put(k.asLong(), level.getGameTime());
-                    Bestiary.band(level, site, t.level(), anchor.above().offset(2, 0, 0), 2, player);
+                    // They carry knockback, to drive whoever is breaking the tomb away from it (Sable, 2026-10-12).
+                    Bestiary.band(level, site, t.level(), standAt(level, anchor.above().offset(2, 0, 0)), 2, player, ObjectiveRooms::shove);
                     Triggers.tell(player, "The dead answer the tomb's call!");
                 }
             }
@@ -414,6 +419,7 @@ public final class ObjectiveRooms {
         mob.setCustomName(Component.literal(name).withStyle(ChatFormatting.DARK_RED));
         mob.setCustomNameVisible(true);
         mob.addTag(FOE);
+        mob.addTag(OF + key(site, t).asLong());
         mob.addTag(Bestiary.KIN);
         mob.setPersistenceRequired();
         level.addFreshEntity(mob);
@@ -483,6 +489,11 @@ public final class ObjectiveRooms {
                     Triggers.tell(player, "The dragon's eye socket is empty. The Eye-Thief has it.");
                 }
             } else if (part == Part.OBJ_TOMB && type == Blueprinter.TOMB && job == 1 && !done) {
+                Long last = STRUCK.get(k.asLong());
+                if (last != null && level.getGameTime() - last < 20) {
+                    return true; // one blow a second
+                }
+                STRUCK.put(k.asLong(), level.getGameTime());
                 state.fire(k.above(STARTED));
                 String key = "tomb:" + k.asLong();
                 int blows = state.get(key) == null ? 0 : Integer.parseInt(state.get(key)) + 1;
@@ -543,8 +554,17 @@ public final class ObjectiveRooms {
         if (site == null) {
             return;
         }
+        long of = Long.MIN_VALUE;
+        for (String tag : mob.entityTags()) {
+            if (tag.startsWith(OF)) {
+                of = Long.parseLong(tag.substring(OF.length()));
+            }
+        }
         for (Trigger t : site.built().blueprint().triggers()) {
-            if (t.kind() == Trigger.Kind.OBJECTIVE && key(site, t).closerThan(mob.blockPosition(), 24)) {
+            // Its own room's job, wherever it fell: the ascended shaman chased Sable out of reach of the old
+            // 24-block test, his job stayed open, and a new shaman rose each time he died.
+            if (t.kind() == Trigger.Kind.OBJECTIVE && (of == Long.MIN_VALUE ? key(site, t).closerThan(mob.blockPosition(), 24)
+                    : key(site, t).asLong() == of)) {
                 ServerPlayer near = level.getNearestPlayer(mob, 32) instanceof ServerPlayer p ? p : null;
                 complete(level, site, t, near);
                 return;
@@ -653,6 +673,23 @@ public final class ObjectiveRooms {
         return best;
     }
 
+    /** A tomb's dead: knockback on whatever they hold (punch on a bow), and a sword with it if they hold nothing. */
+    private static void shove(Mob mob) {
+        if (!(mob.level() instanceof ServerLevel level)) {
+            return;
+        }
+        var enchants = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
+        ItemStack held = mob.getMainHandItem();
+        if (held.isEmpty()) {
+            held = new ItemStack(Items.STONE_SWORD);
+            mob.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, held);
+        }
+        boolean bow = held.is(Items.BOW) || held.is(Items.CROSSBOW);
+        held.enchant(enchants.getOrThrow(bow ? net.minecraft.world.item.enchantment.Enchantments.PUNCH
+                : net.minecraft.world.item.enchantment.Enchantments.KNOCKBACK), 2);
+        mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.MAINHAND, 0f);
+    }
+
     /** The fountain's raised bowl, spilling light and water. */
     private static void spray(ServerLevel level, BlockPos k) {
         // The trigger sits a block above the room's floor at its middle: the bowl is a block above that.
@@ -742,5 +779,6 @@ public final class ObjectiveRooms {
         BARS.clear();
         SINCE.clear();
         OPENED.clear();
+        STRUCK.clear();
     }
 }
