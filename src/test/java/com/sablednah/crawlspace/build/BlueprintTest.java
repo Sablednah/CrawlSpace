@@ -537,7 +537,7 @@ class BlueprintTest {
         for (Trigger.Kind k : new Trigger.Kind[] {Trigger.Kind.DARTS, Trigger.Kind.GAS, Trigger.Kind.ALARM, Trigger.Kind.WEBS,
                 Trigger.Kind.ROCKFALL, Trigger.Kind.FROST, Trigger.Kind.FIRE, Trigger.Kind.SUMMON, Trigger.Kind.VAULT,
                 Trigger.Kind.PORTCULLIS, Trigger.Kind.ICE_BOARD, Trigger.Kind.ORDERED, Trigger.Kind.BOSS, Trigger.Kind.LEVER,
-                Trigger.Kind.TELEPORT_MAZE, Trigger.Kind.ALTAR, Trigger.Kind.SURVIVAL, Trigger.Kind.FORBIDDEN, Trigger.Kind.DECOY_BOSS, Trigger.Kind.CUBE, Trigger.Kind.TOKEN_VAULT, Trigger.Kind.TOKENS}) {
+                Trigger.Kind.TELEPORT_MAZE, Trigger.Kind.ALTAR, Trigger.Kind.SURVIVAL, Trigger.Kind.FORBIDDEN, Trigger.Kind.DECOY_BOSS, Trigger.Kind.CUBE, Trigger.Kind.TOKEN_VAULT, Trigger.Kind.TOKENS, Trigger.Kind.OBJECTIVE}) {
             assertTrue(kinds.contains(k), "the showcase has no " + k);
         }
         assertFalse(com.sablednah.crawlspace.plan.Showcase.on(12345L), "an ordinary seed is not a showcase");
@@ -677,6 +677,33 @@ class BlueprintTest {
         }
         System.out.println("TOKEN vaults " + vaults);
         assertTrue(vaults > 0, "no token vaults");
+    }
+
+    /**
+     * Objective rooms: each between the top and the bottom, with its exit frame
+     * and its job's anchor in place, of a known type. And every type turns up.
+     */
+    @Test
+    void objectiveRoomsAreWhole() {
+        java.util.Map<Integer, Integer> types = new java.util.TreeMap<>();
+        for (long seed = 1; seed <= 40; seed++) {
+            DungeonPlan plan = Planner.plan(seed, 5);
+            Blueprint bp = Blueprinter.blueprint(plan);
+            for (Trigger t : bp.triggers()) {
+                if (t.kind() != Trigger.Kind.OBJECTIVE) {
+                    continue;
+                }
+                int type = t.targets()[0][0];
+                assertTrue(type >= 0 && type < 5, "seed " + seed + ": type " + type);
+                assertTrue(t.level() > 0 && t.level() < plan.levels().size() - 1, "seed " + seed + ": an objective on the top or bottom");
+                int[] frame = t.targets()[1];
+                assertEquals(Part.EXIT_FRAME, Blueprint.part(bp.get(frame[0], frame[1], frame[2])), "seed " + seed + ": no exit frame");
+                assertTrue(t.targets()[2] != null, "seed " + seed + ": no anchor");
+                types.merge(type, 1, Integer::sum);
+            }
+        }
+        System.out.println("OBJECTIVES by type " + types);
+        assertEquals(5, types.size(), "every type turns up");
     }
 
     /** A finale with an arena has its altar, on the gallery, on the bottom level, and only there. */

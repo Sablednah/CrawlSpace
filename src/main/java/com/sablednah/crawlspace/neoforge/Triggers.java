@@ -83,6 +83,11 @@ public final class Triggers {
             e.setCancellationResult(InteractionResult.SUCCESS);
             return;
         }
+        if (!player.isSpectator() && ObjectiveRooms.use(level, player, site, pos)) {
+            e.setCanceled(true);
+            e.setCancellationResult(InteractionResult.SUCCESS);
+            return;
+        }
         if (!player.isSpectator() && Tokens.use(level, player, site, pos)) {
             e.setCanceled(true);
             e.setCancellationResult(InteractionResult.SUCCESS);
@@ -566,6 +571,7 @@ public final class Triggers {
             Cubes.wake(level, player, here.site());
             Seals.wait(level, player, here.site());
             Restocks.check(level, player, here.site());
+            ObjectiveRooms.tick(level, player, here.site());
         }
         if (player.tickCount % 20 == 0) {
             final Site site = here.site();

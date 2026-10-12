@@ -34,6 +34,12 @@ public record Trigger(Kind kind, int x, int y, int z, int level, int[][] targets
         TOKENS,
         /** A token vault's cauldron: target 0 is {tokens needed, 0, 0}; the rest are its portcullis bars. */
         TOKEN_VAULT,
+        /**
+         * An objective room: target 0 is {type, 0, 0}, target 1 the quick exit's frame, target 2 the job's
+         * anchor (the pit's floor, the relic's pedestal, the basin, the tomb, the idol); the rest are the
+         * job's own places (the fountain's corrupted blocks, the lava's cells).
+         */
+        OBJECTIVE,
         /** A gelatinous cube's beat: the targets are its corridor's centre line, {x, y, z} a cell, end to end. */
         CUBE,
         /** A guard room whose doors seal as it wakes: hold out against waves until they open (Hades). */
