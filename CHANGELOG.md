@@ -7,6 +7,7 @@
 - No building over a puzzle room's void.
 - **A showcase dungeon.** `/crawlspace showcase` builds one with everything in it: every theme, feeling, trap, puzzle, vault and lock, to look round without hunting.
 - **Vault cages are copper grates**, not a single iron bar through the item.
+- **Token vaults.** Some treasure rooms are barred, with a cauldron outside. The guards of that level carry vault tokens; feed the cauldron enough and the bars rise.
 - **The gelatinous cube.** A wall-to-wall cube of green jelly glides along a corridor, its last meals frozen inside. Touch it and it engulfs you; kill it and what it swallowed spills out, some of it still alive.
 - **False lairs.** Some lairs are a pretender's: its boss falls too easily, and something far worse growls from behind a secret wall.
 - **The thing you should not touch.** A sealed tomb ringed with skulls, warning you off. Open it anyway: it pays at once, and the Restless Dead fill every room you cleared on that level until you leave it.

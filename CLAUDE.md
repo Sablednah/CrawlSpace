@@ -755,6 +755,33 @@ A GUARD room from level 2 wakes as `Trigger.Kind.ORDERED` instead of
   below the stairs' landing, so search by the logged position.
 - `PLANNER_VERSION` 11. 12 is shrine altars and the rumour lectern.
 
+## Token vaults (Wynncraft; Sable's pick, 2026-10-12)
+
+`Blueprinter.tokenVault`: from level 2, 35% of levels (`Dice(seed, level,
+0x70CE7)`; a showcase has one on the first level where it fits).
+- **The vault:** a treasure room with exactly one non-secret door (a door or
+  an arch). Its doorway becomes a portcullis.
+- **The cauldron** (`Part.CAULDRON`, `Trigger.Kind.TOKEN_VAULT`) goes in the
+  corridor beside the door, in a nook: wall beyond it, corridor going on
+  outward. Placed anywhere else, it stood across a corridor running along the
+  wall (seed 5).
+- **The carriers:** the level's plain guard room (or, failing one, any room
+  with a pack) becomes `Kind.TOKENS`. Its monsters are tagged carriers and
+  each drops a Vault Token (`neoforge/Tokens`): a named, glinting trial key
+  tagged with `Keys.id(site, level)`, so it opens only its own vault. The
+  room says "These guards carry vault tokens."
+- **Opening it:** using the cauldron with tokens in hand takes up to what is
+  still needed, min(4, the room's pack). The count is kept as CrawlState
+  markers at cauldron + 700 + n. Short, it says "2 of 4 tokens"; full,
+  `Triggers.raise` lifts the bars.
+- **Optional:** it is a bonus, never the way on.
+- **Tested:**
+  - `tokenVaultsCanBeOpened`: 29 over 40 dungeons, each with bars, a
+    cauldron, and enough tokens on its level.
+  - `triggersAreWired` counts a vault's bars as wired.
+  - On the rig (showcase, level 5): 4 carriers dropped 4 tokens; one use of
+    the cauldron took all 4 and the bars rose.
+
 ## The gelatinous cube (Sable's D&D night, 2026-10-12)
 
 `Blueprinter.cube`: from level 2, 40% of levels (`Dice(seed, level,

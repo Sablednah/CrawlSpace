@@ -33,6 +33,8 @@ what the rig showed):
 - the prisoner;
 - the thing you should not touch;
 - false lairs;
+- token vaults;
+- the gelatinous cube;
 - portcullis and key, and the portcullis trap;
 - one-way valves;
 - windows;
@@ -52,7 +54,7 @@ what the rig showed):
 - STR catches you on a puzzle's edge.
 
 **Not built:**
-- the other puzzles in section 3 (token quota, liars' chests, riddles,
+- the other puzzles in section 3 (liars' chests, riddles,
   item frames, vanishing bridge, Sokoban, water and beam boards);
 - the objective rooms' jobs (2b);
 - seals for the deepest door;

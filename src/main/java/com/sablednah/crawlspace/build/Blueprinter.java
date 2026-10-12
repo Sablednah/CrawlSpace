@@ -260,6 +260,7 @@ public final class Blueprinter {
         encounters(bp, plan, i);
         ambushes(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0xA4B5L));
         cube(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0xC0BEL));
+        tokenVault(bp, plan, i, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, 0x70CE7L));
     }
 
     /**
@@ -383,6 +384,94 @@ public final class Blueprinter {
      * Ambushes: a group waiting partway along a long corridor, likelier deeper
      * down. They stand along the corridor's middle, on clear floor.
      */
+    /** How often a level from the second down has a token vault. */
+    static final double TOKEN_VAULT_CHANCE = 0.35;
+
+    /**
+     * A token vault (Wynncraft; Sable's pick, 2026-10-12): a treasure room with
+     * one way in has a portcullis for a door and a cauldron beside it, and one of
+     * the level's guard rooms carries the tokens that open it, one a monster,
+     * up to four. Optional: it is a bonus, never the way on.
+     */
+    private static void tokenVault(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice dice) {
+        LevelPlan level = plan.levels().get(i);
+        // A showcase has one, on the first level from the second down where one fits.
+        if (i < 1 || !(level.showcase ? bp.triggers().stream().noneMatch(t -> t.kind() == Trigger.Kind.TOKEN_VAULT)
+                : dice.chance(TOKEN_VAULT_CHANCE))) {
+            return;
+        }
+        // A guard room carries them if there is a plain one; failing that, any room with a pack in it.
+        Trigger guards = null;
+        for (Trigger t : bp.triggers()) {
+            if (t.kind() == Trigger.Kind.ENCOUNTER && t.level() == i && t.targets().length >= 2) {
+                Room r = level.room(level.region(t.x(), t.z()));
+                if (r != null && (r.role == Role.GUARD || guards == null && (r.role == Role.ROOM || r.role == Role.HALL))) {
+                    guards = t;
+                    if (r.role == Role.GUARD) {
+                        break;
+                    }
+                }
+            }
+        }
+        if (guards == null) {
+            return;
+        }
+        for (Room r : level.rooms) {
+            if (r.role != Role.TREASURE) {
+                continue;
+            }
+            java.util.List<int[]> doors = new java.util.ArrayList<>();
+            for (com.sablednah.crawlspace.plan.Link l : level.links) {
+                if (l.a == r && l.doorA != null) {
+                    doors.add(l.kind == com.sablednah.crawlspace.plan.LinkKind.SECRET ? null : l.doorA);
+                } else if (l.b == r && l.doorB != null) {
+                    doors.add(l.kind == com.sablednah.crawlspace.plan.LinkKind.SECRET ? null : l.doorB);
+                }
+            }
+            if (doors.size() != 1 || doors.get(0) == null) {
+                continue;
+            }
+            int[] d = doors.get(0);
+            Cell c = level.cell(d[0], d[1]);
+            if (c != Cell.DOOR && c != Cell.ARCH) {
+                continue;
+            }
+            int f = floorAt(plan, i, d[0], d[1]);
+            // The cauldron: in the corridor outside, beside the doorway, in a nook: wall beyond it and corridor going
+            // on outward from it, so it never stands across a corridor that runs along the wall (seed 5 did).
+            int ox = d[0] + d[2];
+            int oz = d[1] + d[3];
+            int[] cauldron = null;
+            for (int side : new int[] {1, -1}) {
+                int cx = ox + side * d[3];
+                int cz = oz + side * d[2];
+                int here = bp.get(cx, f, cz);
+                boolean nook = level.cell(cx + side * d[3], cz + side * d[2]) == Cell.WALL
+                        && level.cell(cx + d[2], cz + d[3]).isWalkable() && level.cell(ox + d[2], oz + d[3]).isWalkable();
+                if (nook && level.cell(cx, cz) == Cell.CORRIDOR && level.cell(ox, oz).isWalkable() && floorAt(plan, i, cx, cz) == f
+                        && (here == 0 || Blueprint.part(here) == Part.AIR) && bp.triggerAt(cx, f, cz) == null) {
+                    cauldron = new int[] {cx, cz};
+                    break;
+                }
+            }
+            if (cauldron == null) {
+                continue;
+            }
+            int top = c == Cell.ARCH ? f + 2 : f + 1;
+            java.util.List<int[]> rows = new java.util.ArrayList<>();
+            int needed = Math.min(4, guards.targets().length);
+            rows.add(new int[] {needed, 0, 0});
+            for (int y = f; y <= top; y++) {
+                bp.set(d[0], y, d[1], Part.PORTCULLIS, 0, i);
+                rows.add(new int[] {d[0], y, d[1]});
+            }
+            bp.set(cauldron[0], f, cauldron[1], Part.CAULDRON, 0, i);
+            bp.addTrigger(new Trigger(Trigger.Kind.TOKEN_VAULT, cauldron[0], f, cauldron[1], i, rows.toArray(new int[0][])));
+            bp.addTrigger(new Trigger(Trigger.Kind.TOKENS, guards.x(), guards.y(), guards.z(), i, guards.targets()));
+            return;
+        }
+    }
+
     /** How often a level from the second down has a gelatinous cube patrolling one of its corridors. */
     static final double CUBE_CHANCE = 0.4;
 
