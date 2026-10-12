@@ -59,7 +59,7 @@ what the rig showed):
 **Not built:**
 - the other puzzles in section 3 (liars' chests, riddles,
   item frames, vanishing bridge, Sokoban, water and beam boards);
-- the objective rooms' harder jobs (2b): only the easiest of each is built;
+- the objective rooms' remaining jobs (2b): two of each are built;
 - cycle types on the planner.
 
 **Benched for a future add-on (Sable, 2026-10-11):** rival factions that

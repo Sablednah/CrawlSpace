@@ -62,12 +62,30 @@ public final class ObjectiveRooms {
     /** Fountain stones broken: at stone.above(BROKEN). */
     private static final int BROKEN = 1202;
     private static final String[] NAMES = {"the Fighting Pit", "the Firechasm", "the Fountain of Light", "the Tomb Chamber", "the Idol Chamber"};
-    private static final String[] JOBS = {
-            "Drop into the pit, and its champion rises to meet you.",
-            "Take the relic from its pedestal and throw it into the fire.",
-            "Break the four corrupted stones in its rim. Each will cost you.",
-            "Lift the lid, and lay what rises to rest.",
-            "Its shaman wakes! Kill the shaman."};
+    /** Each room's jobs, by type then job: the easiest first. */
+    private static final String[][] JOBS = {
+            {"Drop into the pit, and its champion rises to meet you.",
+                    "Its guardian waits in the pit, and will not come out until you go in, or strike it from the rim."},
+            {"Take the relic from its pedestal and throw it into the fire.",
+                    "The Eye-Thief has the dragon's eye. Take it from him, and set it in the dragon's head."},
+            {"Break the four corrupted stones in its rim. Each will cost you.",
+                    "Fill a vial at its basin, and carry the light to the portal frame in the wall."},
+            {"Lift the lid, and lay what rises to rest.",
+                    "Break the tomb: twenty blows. While it stands, the dead keep coming."},
+            {"Its shaman wakes! Kill the shaman.",
+                    "Its shaman is summoning something. Kill him before the summoning ends, or he becomes it."}};
+    static final String THIEF = "crawlspace_eye_thief";
+    static final String EYE = "crawlspace_dragon_eye";
+    static final String VIAL = "crawlspace_vial";
+    private static final int SUMMONING_SECONDS = 45;
+    private static final int TOMB_BLOWS = 20;
+    /** Per objective (its trigger's key): when a summoning began, and its bar; when the tomb last sent its dead. */
+    private static final Map<Long, Long> SINCE = new HashMap<>();
+    private static final Map<Long, net.minecraft.server.level.ServerBossEvent> BARS = new HashMap<>();
+
+    private static String job(Trigger t) {
+        return JOBS[t.targets()[0][0]][t.targets()[0][1]];
+    }
     private static final Map<UUID, Set<Long>> TOLD = new HashMap<>();
 
     private ObjectiveRooms() {
@@ -108,7 +126,7 @@ public final class ObjectiveRooms {
             if (TOLD.computeIfAbsent(player.getUUID(), x -> new HashSet<>()).add(k.asLong())) {
                 player.sendSystemMessage(Component.literal(capital(NAMES[type]) + ". " + (done
                         ? "Its work is done. The portal frame in the wall takes you to the surface."
-                        : JOBS[type] + " When it is done, the portal frame in the wall is a way out.")).withStyle(ChatFormatting.GOLD));
+                        : job(t) + " When it is done, the portal frame in the wall is a way out.")).withStyle(ChatFormatting.GOLD));
             }
             if (done || player.isCreative() || level.getDifficulty() == net.minecraft.world.Difficulty.PEACEFUL) {
                 continue;
@@ -117,10 +135,18 @@ public final class ObjectiveRooms {
             boolean started = state.hasFired(k.above(STARTED));
             // A foe that vanished without dying (Peaceful, lava, a despawn) would leave the job started for ever:
             // with nothing of it left in the room, the job can be begun again.
-            if (started && type != Blueprinter.FIRECHASM && type != Blueprinter.FOUNTAIN && level.getEntitiesOfClass(Mob.class,
-                    new net.minecraft.world.phys.AABB(k).inflate(32), m -> m.isAlive() && m.getTags().contains(FOE)).isEmpty()) {
+            int job = t.targets()[0][1];
+            boolean foeJob = type == Blueprinter.PIT || type == Blueprinter.IDOL || type == Blueprinter.TOMB && job == 0
+                    || type == Blueprinter.FIRECHASM && job == 1;
+            if (started && foeJob && level.getEntitiesOfClass(Mob.class, new net.minecraft.world.phys.AABB(k).inflate(32),
+                    m -> m.isAlive() && (m.getTags().contains(FOE) || m.getTags().contains(THIEF))).isEmpty()
+                    && !(type == Blueprinter.FIRECHASM && eyeAbout(level, k))) {
                 state.unfire(k.above(STARTED));
                 started = false;
+            }
+            if (job == 1) {
+                second(level, site, t, player, state, k, type, anchor, started);
+                continue;
             }
             if (type == Blueprinter.PIT && !started && player.getY() < anchor.getY() + 1.5
                     && Math.abs(player.getX() - anchor.getX()) < 6 && Math.abs(player.getZ() - anchor.getZ()) < 6) {
@@ -148,6 +174,152 @@ public final class ObjectiveRooms {
                     break;
                 }
             }
+        }
+    }
+
+    /** Whether a dragon's eye is about: dropped near the room, or carried by anyone. */
+    private static boolean eyeAbout(ServerLevel level, BlockPos k) {
+        if (!level.getEntitiesOfClass(ItemEntity.class, new net.minecraft.world.phys.AABB(k).inflate(32), e -> flag(e.getItem(), EYE)).isEmpty()) {
+            return true;
+        }
+        for (ServerPlayer p : level.players()) {
+            for (int i = 0; i < p.getInventory().getContainerSize(); i++) {
+                if (flag(p.getInventory().getItem(i), EYE)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean flag(ItemStack stack, String key) {
+        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        return data != null && data.copyTag().getBooleanOr(key, false);
+    }
+
+    private static ItemStack special(net.minecraft.world.item.Item item, String name, String key) {
+        ItemStack s = new ItemStack(item);
+        s.set(DataComponents.CUSTOM_NAME, Component.literal(name).withStyle(st -> st.withItalic(false).withColor(ChatFormatting.GOLD)));
+        CompoundTag tag = new CompoundTag();
+        tag.putBoolean(key, true);
+        s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+        s.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        return s;
+    }
+
+    /** The second job of each room, run from the tick while a player is in it. */
+    private static void second(ServerLevel level, Site site, Trigger t, ServerPlayer player, CrawlState state, BlockPos k, int type,
+            BlockPos anchor, boolean started) {
+        switch (type) {
+            case Blueprinter.PIT -> {
+                if (!started) {
+                    state.fire(k.above(STARTED));
+                    Mob g = foe(level, site, t, EntityType.ZOMBIE, "The Pit Guardian", anchor, null, 3);
+                    if (g != null) {
+                        g.setNoAi(true);
+                    }
+                }
+                // It comes for whoever drops in.
+                if (player.getY() < anchor.getY() + 1.5 && Math.abs(player.getX() - anchor.getX()) < 6 && Math.abs(player.getZ() - anchor.getZ()) < 6) {
+                    rouse(level, k, player);
+                }
+            }
+            case Blueprinter.FIRECHASM -> {
+                if (!started) {
+                    state.fire(k.above(STARTED));
+                    Mob thief = foe(level, site, t, EntityType.PILLAGER, "The Eye-Thief", anchor, player, 1);
+                    if (thief != null) {
+                        thief.removeTag(FOE);
+                        thief.addTag(THIEF);
+                    }
+                }
+            }
+            case Blueprinter.TOMB -> {
+                // While it stands, the dead keep coming: a band every twenty seconds once the first blow is struck.
+                if (started && level.getGameTime() - SINCE.getOrDefault(k.asLong(), 0L) > 400) {
+                    SINCE.put(k.asLong(), level.getGameTime());
+                    Bestiary.band(level, site, t.level(), anchor.above().offset(2, 0, 0), 2, player);
+                    Triggers.tell(player, "The dead answer the tomb's call!");
+                }
+            }
+            case Blueprinter.IDOL -> {
+                if (!started) {
+                    state.fire(k.above(STARTED));
+                    Mob shaman = foe(level, site, t, EntityType.EVOKER, "The Shaman", anchor.above(), player, 1);
+                    if (shaman != null) {
+                        shaman.setNoAi(true);
+                    }
+                    SINCE.put(k.asLong(), level.getGameTime());
+                    var bar = new net.minecraft.server.level.ServerBossEvent(Component.literal("The summoning").withStyle(ChatFormatting.DARK_PURPLE),
+                            net.minecraft.world.BossEvent.BossBarColor.PURPLE, net.minecraft.world.BossEvent.BossBarOverlay.PROGRESS);
+                    BARS.put(k.asLong(), bar);
+                }
+                summoning(level, k, player);
+            }
+            default -> {
+            }
+        }
+    }
+
+    /** The idol's summoning: a bar running down; at its end, the shaman becomes what he was calling. */
+    private static void summoning(ServerLevel level, BlockPos k, ServerPlayer player) {
+        var bar = BARS.get(k.asLong());
+        Long since = SINCE.get(k.asLong());
+        java.util.List<Mob> shamans = level.getEntitiesOfClass(Mob.class, new net.minecraft.world.phys.AABB(k).inflate(32),
+                m -> m.isAlive() && m.getTags().contains(FOE) && m.isNoAi());
+        if (shamans.isEmpty()) {
+            if (bar != null) {
+                bar.removeAllPlayers();
+                BARS.remove(k.asLong());
+            }
+            return;
+        }
+        Mob shaman = shamans.get(0);
+        // A restart forgets when it began: the summoning is then simply over.
+        long elapsed = since == null ? SUMMONING_SECONDS * 20L : level.getGameTime() - since;
+        if (bar != null) {
+            bar.addPlayer(player);
+            bar.setProgress(Math.max(0f, 1f - elapsed / (SUMMONING_SECONDS * 20f)));
+        }
+        level.sendParticles(ParticleTypes.WITCH, shaman.getX(), shaman.getY() + 2, shaman.getZ(), 6, 0.4, 0.4, 0.4, 0.02);
+        if (elapsed < SUMMONING_SECONDS * 20L) {
+            return;
+        }
+        if (bar != null) {
+            bar.removeAllPlayers();
+            BARS.remove(k.asLong());
+        }
+        shaman.setNoAi(false);
+        var max = shaman.getAttribute(Attributes.MAX_HEALTH);
+        if (max != null) {
+            max.setBaseValue(max.getBaseValue() * 3);
+            shaman.setHealth(shaman.getMaxHealth());
+        }
+        shaman.setCustomName(Component.literal("The Ascended Shaman").withStyle(ChatFormatting.DARK_PURPLE));
+        Bosses.track(level, shaman, net.minecraft.world.BossEvent.BossBarColor.PURPLE);
+        shaman.setTarget(player);
+        level.playSound(null, shaman.blockPosition(), SoundEvents.WITHER_SPAWN, SoundSource.HOSTILE, 0.8f, 1.2f);
+        Triggers.tell(player, "Too late: the summoning is done, and the shaman has become it!");
+    }
+
+    /** The pit's guardian comes out: someone dropped in, or struck it. */
+    private static void rouse(ServerLevel level, BlockPos k, ServerPlayer player) {
+        for (Mob g : level.getEntitiesOfClass(Mob.class, new net.minecraft.world.phys.AABB(k).inflate(32),
+                m -> m.isAlive() && m.getTags().contains(FOE) && m.isNoAi() && m.getType() == EntityType.ZOMBIE)) {
+            g.setNoAi(false);
+            if (player != null) {
+                g.setTarget(player);
+            }
+            level.playSound(null, g.blockPosition(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.5f, 1f);
+        }
+    }
+
+    /** Striking the pit's guardian rouses it; the channelling shaman can be struck. */
+    public static void onHurt(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) {
+        if (e.getEntity() instanceof Mob m && m.getTags().contains(FOE) && m.isNoAi() && m.getType() == EntityType.ZOMBIE
+                && m.level() instanceof ServerLevel level) {
+            ServerPlayer p = e.getSource().getEntity() instanceof ServerPlayer sp ? sp : null;
+            rouse(level, m.blockPosition(), p);
         }
     }
 
@@ -191,7 +363,8 @@ public final class ObjectiveRooms {
             return false;
         }
         Part part = Blueprint.part(code);
-        if (part != Part.OBJ_RELIC && part != Part.OBJ_TOMB && part != Part.EXIT_FRAME) {
+        if (part != Part.OBJ_RELIC && part != Part.OBJ_TOMB && part != Part.EXIT_FRAME && part != Part.OBJ_DRAGON
+                && part != Part.OBJ_RIM && part != Part.OBJ_GLOW) {
             return false;
         }
         for (Trigger t : site.built().blueprint().triggers()) {
@@ -202,13 +375,53 @@ public final class ObjectiveRooms {
             BlockPos k = key(site, t);
             boolean done = state.hasFired(k.above(DONE));
             int type = t.targets()[0][0];
+            int job = t.targets()[0][1];
+            ItemStack hand = player.getMainHandItem();
             if (part == Part.EXIT_FRAME) {
-                if (!done) {
-                    Triggers.tell(player, "The way out is closed. " + JOBS[type]);
+                if (!done && type == Blueprinter.FOUNTAIN && job == 1 && flag(hand, VIAL)) {
+                    hand.shrink(1);
+                    complete(level, site, t, player);
+                } else if (!done) {
+                    Triggers.tell(player, "The way out is closed. " + job(t));
                 } else {
                     surface(level, player, site);
                 }
-            } else if (part == Part.OBJ_RELIC && !done) {
+            } else if ((part == Part.OBJ_RIM || part == Part.OBJ_GLOW) && type == Blueprinter.FOUNTAIN && job == 1 && !done) {
+                ItemStack vial = special(Items.EXPERIENCE_BOTTLE, "Vial of Light", VIAL);
+                if (!player.getInventory().add(vial)) {
+                    level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY() + 0.5, player.getZ(), vial));
+                }
+                level.playSound(null, pos, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1f, 1f);
+                Triggers.tell(player, "You fill a vial with the fountain's light. Carry it to the portal frame in the wall.");
+            } else if (part == Part.OBJ_DRAGON && type == Blueprinter.FIRECHASM && job == 1 && !done) {
+                if (flag(hand, EYE)) {
+                    hand.shrink(1);
+                    level.sendParticles(ParticleTypes.FLAME, pos.getX() + 0.5, pos.getY() + 0.8, pos.getZ() + 0.5, 30, 0.3, 0.3, 0.3, 0.05);
+                    complete(level, site, t, player);
+                } else {
+                    Triggers.tell(player, "The dragon's eye socket is empty. The Eye-Thief has it.");
+                }
+            } else if (part == Part.OBJ_TOMB && type == Blueprinter.TOMB && job == 1 && !done) {
+                state.fire(k.above(STARTED));
+                String key = "tomb:" + k.asLong();
+                int blows = state.get(key) == null ? 0 : Integer.parseInt(state.get(key)) + 1;
+                state.put(key, Integer.toString(blows));
+                level.playSound(null, pos, SoundEvents.STONE_BREAK, SoundSource.BLOCKS, 1.2f, 0.6f + blows * 0.02f);
+                level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, level.getBlockState(pos)),
+                        pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, 12, 0.3, 0.2, 0.3, 0.1);
+                if (blows >= TOMB_BLOWS) {
+                    for (int dx = -1; dx <= 2; dx++) {
+                        BlockPos b = pos.offset(dx, 0, 0);
+                        if (level.getBlockState(b).is(Blocks.POLISHED_DEEPSLATE)) {
+                            level.setBlock(b, Blocks.AIR.defaultBlockState(), 3);
+                        }
+                    }
+                    complete(level, site, t, player);
+                } else {
+                    player.displayClientMessage(Component.literal("The tomb cracks: " + (TOMB_BLOWS - blows) + " more blows.")
+                            .withStyle(ChatFormatting.GRAY), true);
+                }
+            } else if (part == Part.OBJ_RELIC && job == 0 && !done) {
                 ItemStack relic = new ItemStack(Items.HEART_OF_THE_SEA);
                 relic.set(DataComponents.CUSTOM_NAME, Component.literal("The Relic").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GOLD)));
                 CompoundTag tag = new CompoundTag();
@@ -222,7 +435,7 @@ public final class ObjectiveRooms {
                     level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY() + 0.5, player.getZ(), relic));
                 }
                 Triggers.tell(player, "You take the relic. Throw it into the fire (drop it into the lava).");
-            } else if (part == Part.OBJ_TOMB && !done && !state.hasFired(k.above(STARTED))) {
+            } else if (part == Part.OBJ_TOMB && job == 0 && !done && !state.hasFired(k.above(STARTED))) {
                 state.fire(k.above(STARTED));
                 level.playSound(null, pos, SoundEvents.STONE_BREAK, SoundSource.BLOCKS, 1.5f, 0.5f);
                 foe(level, site, t, EntityType.WITHER_SKELETON, "The Tomb Lord", pos.above(), player, 2);
@@ -232,8 +445,17 @@ public final class ObjectiveRooms {
         return false;
     }
 
-    /** A foe of an objective falls: its room's job is done. */
+    /** A foe of an objective falls: its room's job is done. The Eye-Thief drops the dragon's eye instead. */
     static void died(ServerLevel level, Mob mob) {
+        if (mob.getTags().contains(THIEF)) {
+            mob.spawnAtLocation(level, special(Items.ENDER_EYE, "The Dragon's Eye", EYE));
+            for (ServerPlayer p : level.players()) {
+                if (p.distanceToSqr(mob) < 24 * 24) {
+                    Triggers.tell(p, "The Eye-Thief drops the dragon's eye. Set it in the dragon's head.");
+                }
+            }
+            return;
+        }
         if (!mob.getTags().contains(FOE)) {
             return;
         }
@@ -344,5 +566,8 @@ public final class ObjectiveRooms {
 
     public static void clear() {
         TOLD.clear();
+        BARS.values().forEach(net.minecraft.server.level.ServerBossEvent::removeAllPlayers);
+        BARS.clear();
+        SINCE.clear();
     }
 }

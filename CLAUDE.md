@@ -779,6 +779,20 @@ piece.
 | Tomb Chamber | a sarcophagus with candles | use it; the Tomb Lord rises; kill it |
 | Idol Chamber | a gold idol with a piglin head | walk in; the Shaman (an evoker) and two vindicators wake; kill the Shaman |
 
+- **Second jobs** (2026-10-12). Each room now rolls one of two jobs
+  (`targets[0][1]`; a showcase alternates):
+
+| Room | Second job |
+|---|---|
+| Fighting Pit | The Pit Guardian waits in the pit, no AI, until a player drops in or strikes it. |
+| Firechasm | The Eye-Thief (a pillager) carries "The Dragon's Eye"; use the dragon's head with it. If he dies and the eye is lost, he comes again. |
+| Fountain of Light | Use its rim for a "Vial of Light", then use the exit frame with it. The rim is whole, with no corrupted stones. |
+| Tomb Chamber | 20 blows (uses). While it stands, a band of the dead comes every 20 s; the last blow breaks it. |
+| Idol Chamber | The Shaman channels, no AI, under a 45 s purple bar. Kill him in time, or he becomes "The Ascended Shaman": a boss bar and three times the health. |
+
+  Seen on the rig: all five done. The Ascended Shaman rose at 50 s, and 4 of
+  the dead arrived during the blows. The guardian's wait is unproven: the
+  test's `goto` dropped the player straight into the pit.
 - **Foes** are elites with doubled health. If a started job's foe vanishes
   without dying (Peaceful, lava), the job can be begun again. On the rig, a
   Peaceful switch had left one started for good.
