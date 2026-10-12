@@ -22,7 +22,7 @@ final class Tour {
     static final List<String> KINDS = List.of(
             "straight", "angled", "winding", "curved", "lair", "hall", "exit", "entry", "shrine", "guard",
             "treasure", "secret", "key", "room", "lever", "trap", "pit", "decoy", "secretdoor", "locked", "puzzle",
-            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena", "vault", "altar", "rumours", "tell", "ice", "numbered", "preview", "lairdoor", "bossaltar", "teleport", "survival", "forbidden", "cube");
+            "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "window", "arena", "vault", "altar", "rumours", "tell", "ice", "numbered", "preview", "lairdoor", "bossaltar", "teleport", "survival", "forbidden", "cube", "tokenvault", "tokens");
 
     private Tour() {
     }
@@ -48,6 +48,8 @@ final class Tour {
             case "teleport" -> com.sablednah.crawlspace.build.Trigger.Kind.TELEPORT_MAZE;
             case "survival" -> com.sablednah.crawlspace.build.Trigger.Kind.SURVIVAL;
             case "cube" -> com.sablednah.crawlspace.build.Trigger.Kind.CUBE;
+            case "tokenvault" -> com.sablednah.crawlspace.build.Trigger.Kind.TOKEN_VAULT;
+            case "tokens" -> com.sablednah.crawlspace.build.Trigger.Kind.TOKENS;
             case "numbered" -> com.sablednah.crawlspace.build.Trigger.Kind.ORDERED;
             default -> throw new IllegalArgumentException(what);
         };

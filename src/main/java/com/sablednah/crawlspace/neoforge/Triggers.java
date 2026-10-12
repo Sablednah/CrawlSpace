@@ -81,6 +81,11 @@ public final class Triggers {
             e.setCancellationResult(InteractionResult.SUCCESS);
             return;
         }
+        if (!player.isSpectator() && Tokens.use(level, player, site, pos)) {
+            e.setCanceled(true);
+            e.setCancellationResult(InteractionResult.SUCCESS);
+            return;
+        }
         if (!player.isSpectator() && Forbidden.use(level, player, site, pos)) {
             e.setCanceled(true);
             e.setCancellationResult(InteractionResult.SUCCESS);
@@ -258,7 +263,7 @@ public final class Triggers {
     }
 
     /** A portcullis rises: its bars go from the bottom up, a few ticks apart. */
-    private static void raise(ServerLevel level, Site site, int[][] bars) {
+    static void raise(ServerLevel level, Site site, int[][] bars) {
         BlockPos o = site.origin();
         BlockPos first = o.offset(bars[0][0], bars[0][1], bars[0][2]);
         level.playSound(null, first, SoundEvents.IRON_DOOR_OPEN, SoundSource.BLOCKS, 1f, 0.6f);
