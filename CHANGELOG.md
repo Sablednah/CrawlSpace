@@ -21,7 +21,7 @@
 - **The gelatinous cube.** A wall-to-wall cube of green jelly glides along a corridor, its last meals frozen inside. Touch it and it engulfs you; kill it and what it swallowed spills out, some of it still alive.
 - **False lairs.** Some lairs are a pretender's: its boss falls too easily, and something far worse growls from behind a secret wall.
 - **The thing you should not touch.** A sealed tomb ringed with skulls, warning you off. Open it anyway: it pays at once, and the Restless Dead fill every room you cleared on that level until you leave it.
-- **Prisoners.** Some lairs keep a captive behind bars. Kill the beast, then free them: they leave you something, and tell you something true about the dungeon.
+- **Prisoners.** Some lairs keep a captive behind bars. Kill the beast, then free them: they leave you something, and tell you something true about the dungeon. The cell's bars join up round its corner, rather than standing as two separate stubs.
 - **More for LegendQuest's dice** (with LegendQuest 2.9.2 or newer): spot a mimic, draw a trapped chest's needle, read a trap's tell or a shrine's omen, and slip past a sentry. The API has five new optional hooks for any RPG mod.
 - **Sleeping guardians.** Some lairs above the bottom sleep, snoring. Sneak, and you can take the hoard from under their noses; stand up, strike, or creak a chest open, and the whole pack wakes.
 - **Survival rooms.** Some guard rooms bar their doors as they wake: hold out for a minute against waves, and the doors open on a chest.
