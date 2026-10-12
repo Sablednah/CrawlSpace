@@ -24,11 +24,14 @@ public final class CrawlState extends SavedData {
 
     private static final Codec<CrawlState> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.LONG.listOf().fieldOf("fired").forGetter(s -> new ArrayList<>(s.fired)),
-            CompoundTag.CODEC.listOf().fieldOf("built").forGetter(s -> s.built.stream().map(Site::save).toList())
-    ).apply(i, (fired, built) -> {
+            CompoundTag.CODEC.listOf().fieldOf("built").forGetter(s -> s.built.stream().map(Site::save).toList()),
+            // Optional, so a world saved before it existed loads as it was.
+            Codec.unboundedMap(Codec.STRING, Codec.STRING).optionalFieldOf("values", java.util.Map.of()).forGetter(s -> s.values)
+    ).apply(i, (fired, built, values) -> {
         CrawlState s = new CrawlState();
         s.fired.addAll(fired);
         built.forEach(t -> s.built.add(Site.load(t)));
+        s.values.putAll(values);
         return s;
     }));
 
@@ -37,6 +40,8 @@ public final class CrawlState extends SavedData {
 
     private final Set<Long> fired = new HashSet<>();
     private final List<Site> built = new ArrayList<>();
+    /** Small facts by name: a dungeon's last restock, its replay traits. */
+    private final java.util.Map<String, String> values = new java.util.HashMap<>();
 
     public static CrawlState of(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(TYPE);
@@ -48,6 +53,23 @@ public final class CrawlState extends SavedData {
 
     public void fire(BlockPos pos) {
         if (fired.add(pos.asLong())) {
+            setDirty();
+        }
+    }
+
+    /** Forgets that a trigger fired: a restocked room wakes again. */
+    public void unfire(BlockPos pos) {
+        if (fired.remove(pos.asLong())) {
+            setDirty();
+        }
+    }
+
+    public String get(String key) {
+        return values.get(key);
+    }
+
+    public void put(String key, String value) {
+        if (value == null ? values.remove(key) != null : !value.equals(values.put(key, value))) {
             setDirty();
         }
     }

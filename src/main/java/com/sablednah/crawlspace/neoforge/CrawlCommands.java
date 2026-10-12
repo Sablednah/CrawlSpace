@@ -65,6 +65,18 @@ public final class CrawlCommands {
                                                 StringArgumentType.getString(ctx, "what"))))))
                 .then(Commands.literal("info").executes(CrawlCommands::info))
                 .then(Commands.literal("breaches").executes(CrawlCommands::breaches))
+                .then(Commands.literal("restock").executes(ctx -> {
+                    // Fills the dungeon you stand in again now, as if its hours had passed.
+                    ServerPlayer p = ctx.getSource().getPlayerOrException();
+                    Site site = Dungeons.at(ctx.getSource().getLevel(), p.blockPosition()).orElse(null);
+                    if (site == null) {
+                        fail(ctx.getSource(), "Stand inside a dungeon.");
+                        return 0;
+                    }
+                    int rooms = Restocks.restock(ctx.getSource().getLevel(), site);
+                    say(ctx.getSource(), "Restocked: " + rooms + " room(s) will wake again, and chests refill as they are opened.");
+                    return 1;
+                }))
                 .then(Commands.literal("use").then(Commands.argument("pos", net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos())
                         .executes(ctx -> {
                             // A right-click on that block, through the same handler a real one reaches: for testing

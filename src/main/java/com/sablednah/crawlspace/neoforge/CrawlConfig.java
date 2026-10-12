@@ -19,6 +19,7 @@ public final class CrawlConfig {
     private static final ModConfigSpec.DoubleValue DISARM_CHANCE;
     private static final ModConfigSpec.IntValue SPAWNER_USES;
     private static final ModConfigSpec.IntValue EVENT_SECONDS;
+    private static final ModConfigSpec.IntValue RESTOCK_HOURS;
     private static final ModConfigSpec.BooleanValue PROTECT;
     private static final ModConfigSpec.BooleanValue PROTECT_EXPLOSIONS;
     private static final ModConfigSpec.BooleanValue PROTECT_REPAIR;
@@ -68,6 +69,11 @@ public final class CrawlConfig {
                 "something happens (a wandering band, a sound in the dark, the light going out, a stranger...).",
                 "Fighting makes noise: for a while after, a 2 counts too. 0 turns events off.")
                 .defineInRange("eventSeconds", 45, 0, 3600);
+        RESTOCK_HOURS = b.comment(
+                "Hours (real time) before a dungeon restocks: its rooms fill with monsters again and its chests refill",
+                "as they are next opened. Never while anyone else is inside; it happens as someone arrives. Lootr's",
+                "chests refill by Lootr's own rules. 0: dungeons never restock.")
+                .defineInRange("restockHours", 12, 0, 8760);
         b.pop();
         b.push("protection");
         PROTECT = b.comment(
@@ -113,6 +119,10 @@ public final class CrawlConfig {
 
     public static int eventSeconds() {
         return get(EVENT_SECONDS, 45);
+    }
+
+    public static int restockHours() {
+        return get(RESTOCK_HOURS, 12);
     }
 
     public static int spawnerUses() {
