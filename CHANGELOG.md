@@ -16,6 +16,9 @@
   - **The Idol Chamber:** a gold idol enthroned on a sandstone dais, red-eyed and horned, a burning orb before it and a carved square in the floor.
   - **The Tomb Chamber:** the sarcophagus on a raised plinth, a skull at its head, soul lanterns on four posts and cobwebs in the corners.
   - **The Fighting Pit:** three deep, with a barred cage in its far wall, bones, blood and spikes on its floor, one lamp hanging over it, and a gong on the far rim.
+- **Objective rooms are dressed to match:** the theme's floor border and medallion, pilasters, coving all round, panelling with a dado rail, a colonnade two in from the walls, lamps hanging on chains and banners between the pilasters.
+- **An objective's foe ends its own room's job wherever it falls.** The Idol's ascended shaman could chase you out of reach, die uncounted, and rise again as a new shaman, over and over.
+- **The Tomb takes one blow a second**, so it cannot be clicked down before its dead arrive, and the dead it calls carry knockback (punch on a bow) to drive you off it.
 - **The way out is part of the set piece:** set in the dragon's plinth, the fountain's rim, the idol's dais, the head of the tomb's plinth, or under the pit's gong. It looks like the stone around it until the job is done, and the room's first message says where it is.
 - **Objective rooms are guarded from the level below.** The first time you go in, a band from the next level down comes for you.
 - **Numbered guards can no longer be farmed.** A monster killed out of order gives no experience and drops nothing; the one that rises in its place pays once, when killed in order.
