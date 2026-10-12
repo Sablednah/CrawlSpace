@@ -30,7 +30,13 @@ public final class Crumbles {
             Blocks.CRACKED_STONE_BRICKS.defaultBlockState(),
             Blocks.COBBLESTONE.defaultBlockState()};
 
+    /** A wooden bridge's stages: a plank, then half of one, then nothing. */
+    static final BlockState[] PLANKS = {
+            Blocks.DARK_OAK_PLANKS.defaultBlockState(),
+            Blocks.DARK_OAK_SLAB.defaultBlockState()};
+
     private static final class Crumble {
+        BlockState[] stages = STAGES;
         final ServerLevel level;
         final List<BlockPos> blocks;
         final int interval;
@@ -64,6 +70,11 @@ public final class Crumbles {
      * @param onCollapse   run as the last stage goes, or null
      */
     static void start(ServerLevel level, List<BlockPos> blocks, int interval, int restoreAfter, Runnable onCollapse) {
+        start(level, blocks, interval, restoreAfter, onCollapse, STAGES);
+    }
+
+    /** As above, through the given stages: {@link #PLANKS} for a wooden bridge. */
+    static void start(ServerLevel level, List<BlockPos> blocks, int interval, int restoreAfter, Runnable onCollapse, BlockState[] stages) {
         for (BlockPos p : blocks) {
             if (BUSY.contains(p)) {
                 return;
@@ -71,8 +82,14 @@ public final class Crumbles {
         }
         BUSY.addAll(blocks);
         Crumble c = new Crumble(level, List.copyOf(blocks), interval, restoreAfter, onCollapse);
+        c.stages = stages;
         ACTIVE.add(c);
-        level.playSound(null, blocks.get(0), SoundEvents.STONE_HIT, SoundSource.BLOCKS, 1f, 0.6f);
+        level.playSound(null, blocks.get(0), stages == STAGES ? SoundEvents.STONE_HIT : SoundEvents.WOOD_HIT, SoundSource.BLOCKS, 1f, 0.6f);
+    }
+
+    /** Whether a block is already crumbling (or waiting to come back). */
+    static boolean busy(BlockPos p) {
+        return BUSY.contains(p);
     }
 
     private record Later(ServerLevel level, long at, Runnable task) {
@@ -107,7 +124,7 @@ public final class Crumbles {
                 if (now >= c.restoreAt) {
                     for (BlockPos p : c.blocks) {
                         if (c.level.getBlockState(p).isAir()) {
-                            c.level.setBlock(p, STAGES[0], 3);
+                            c.level.setBlock(p, c.stages[0], 3);
                         }
                     }
                     BUSY.removeAll(c.blocks);
@@ -120,14 +137,16 @@ public final class Crumbles {
             }
             c.stage++;
             c.next = now + c.interval;
-            boolean gone = c.stage >= STAGES.length;
+            boolean gone = c.stage >= c.stages.length;
             for (BlockPos p : c.blocks) {
                 BlockState was = c.level.getBlockState(p);
-                c.level.setBlock(p, gone ? Blocks.AIR.defaultBlockState() : STAGES[c.stage], 3);
+                c.level.setBlock(p, gone ? Blocks.AIR.defaultBlockState() : c.stages[c.stage], 3);
                 c.level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, was), p.getX() + 0.5, p.getY() + 0.9,
                         p.getZ() + 0.5, 6, 0.3, 0.1, 0.3, 0.05);
             }
-            c.level.playSound(null, c.blocks.get(0), gone ? SoundEvents.GRAVEL_BREAK : SoundEvents.STONE_BREAK,
+            boolean wood = c.stages != STAGES;
+            c.level.playSound(null, c.blocks.get(0), wood ? (gone ? SoundEvents.WOOD_BREAK : SoundEvents.WOOD_HIT)
+                    : gone ? SoundEvents.GRAVEL_BREAK : SoundEvents.STONE_BREAK,
                     SoundSource.BLOCKS, 1f, gone ? 0.7f : 1.1f);
             if (gone) {
                 if (c.onCollapse != null) {
