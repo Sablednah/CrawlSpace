@@ -63,6 +63,12 @@ public final class CrawlCommands {
                                         .suggests((c, b) -> SharedSuggestionProvider.suggest(Tour.KINDS, b))
                                         .executes(ctx -> tour(ctx, IntegerArgumentType.getInteger(ctx, "level"),
                                                 StringArgumentType.getString(ctx, "what"))))))
+                .then(Commands.literal("gotodoor")
+                        .then(Commands.argument("level", IntegerArgumentType.integer(1, MAX_LEVELS))
+                                .then(Commands.argument("what", StringArgumentType.word())
+                                        .suggests((c, b) -> SharedSuggestionProvider.suggest(Tour.KINDS, b))
+                                        .executes(ctx -> gotoDoor(ctx, IntegerArgumentType.getInteger(ctx, "level"),
+                                                StringArgumentType.getString(ctx, "what"))))))
                 .then(Commands.literal("info").executes(CrawlCommands::info)
                         .then(Commands.literal("full").executes(CrawlCommands::infoFull)))
                 .then(Commands.literal("breaches").executes(CrawlCommands::breaches))
@@ -170,6 +176,7 @@ public final class CrawlCommands {
                 + "/crawlspace goto <level> [what]  - 0 is the tower, 1 the first level down;\n"
                 + "    what: a corridor style (straight, angled, winding, curved) or a room (lair, hall, exit...)\n"
                 + "/crawlspace info  - your last build's seed and where it is\n"
+                + "/crawlspace gotodoor <level> <what>  - outside a door of that room, facing in, out of its wake range\n"
                 + "/crawlspace info full  - everything on every level of the dungeon you are in, each a link to go there\n"
                 + "/crawlspace undo  - put back what your last build replaced\n"
                 + "/crawlspace cancel  - stop builds in progress\n"
@@ -301,7 +308,23 @@ public final class CrawlCommands {
             return 0;
         }
         LevelPlan level = last.plan().levels().get(index - 1);
-        double[] spot = switch (what) {
+        double[] spot = spotFor(level, last, what);
+        if (spot == null) {
+            fail(src, "No " + what + " on level " + index + ". Try one of: " + String.join(", ", Tour.KINDS));
+            return 0;
+        }
+        BlockPos o = last.origin();
+        int cx = (int) Math.floor(spot[0]);
+        int cz = (int) Math.floor(spot[1]);
+        double y = o.getY() + Blueprinter.floorY(last.plan(), index - 1) + level.height(cx, cz);
+        player.teleportTo(last.level(), o.getX() + spot[0], y, o.getZ() + spot[1], Set.of(), (float) spot[2], 0f, false);
+        say(src, "Level " + index + ", " + what + ".");
+        return 1;
+    }
+
+    /** Where {@code what} is on a level: {x, z, yaw} in dungeon coordinates, or null. */
+    private static double[] spotFor(LevelPlan level, Builds.Placed last, String what) {
+        return switch (what) {
             case "lever", "trap", "pit", "decoy", "secretdoor", "locked", "portcullis", "droptrap", "winch", "oneway", "onewaydoor", "vault", "ice", "numbered", "teleport", "survival", "cube", "tokenvault", "tokens", "objective" -> Tour.findTrigger(level, last.built().blueprint(), what);
             case "window" -> Tour.findWindow(level, last.built().blueprint());
             case "arena" -> Tour.findArena(level, last.built().blueprint());
@@ -314,22 +337,98 @@ public final class CrawlCommands {
             case "tomb" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.OBJ_TOMB);
             case "relic" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.OBJ_RELIC);
             case "corrupt" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.OBJ_CORRUPT);
-            case "idol" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.OBJ_IDOL);
+            // The idol is a statue now (planner 25): its room's objective is the place.
+            case "idol" -> Tour.findTrigger(level, last.built().blueprint(), "objective");
             case "exitframe" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.EXIT_FRAME);
             case "bossaltar" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.BOSS_ALTAR);
             case "lairdoor" -> Tour.findPart(level, last.built().blueprint(), com.sablednah.crawlspace.build.Part.PREVIEW_LAIR);
             default -> Tour.find(level, what, level.index * 31L + System.nanoTime() % 7);
         };
-        if (spot == null) {
-            fail(src, "No " + what + " on level " + index + ". Try one of: " + String.join(", ", Tour.KINDS));
+    }
+
+    /**
+     * Outside a doorway of the room that holds {@code what}, facing in: for
+     * testing what happens as you enter (a survival room sealing, the pit's
+     * guardian, a room waking). Stands back along the corridor until out of the
+     * room's wake range where the corridor allows (Sable, 2026-10-13).
+     */
+    private static int gotoDoor(CommandContext<CommandSourceStack> ctx, int index, String what) throws CommandSyntaxException {
+        CommandSourceStack src = ctx.getSource();
+        ServerPlayer player = src.getPlayerOrException();
+        Builds.Placed last = current(player);
+        if (last == null || index < 1 || index > last.plan().levels().size()) {
+            fail(src, last == null ? "No build yet this session." : "That dungeon has levels 1 to " + last.plan().levels().size() + ".");
+            return 0;
+        }
+        LevelPlan level = last.plan().levels().get(index - 1);
+        double[] spot = spotFor(level, last, what);
+        int region = spot == null ? -1 : level.region((int) Math.floor(spot[0]), (int) Math.floor(spot[1]));
+        com.sablednah.crawlspace.plan.Room room = region < 0 ? null : level.room(region);
+        if (room == null) {
+            fail(src, spot == null ? "No " + what + " on level " + index + "." : "The " + what + " on level " + index + " is not in a room.");
+            return 0;
+        }
+        // The room's waking points, to stand back from.
+        java.util.List<int[]> wakes = new java.util.ArrayList<>();
+        for (com.sablednah.crawlspace.build.Trigger t : last.built().blueprint().triggers()) {
+            if (t.level() == index - 1 && t.kind().isEncounter() && level.region(t.x(), t.z()) == region) {
+                wakes.add(new int[] {t.x(), t.z()});
+            }
+        }
+        double[] best = null;
+        int bestScore = -1;
+        for (com.sablednah.crawlspace.plan.Link l : level.links) {
+            if (l.kind == com.sablednah.crawlspace.plan.LinkKind.SECRET) {
+                continue;
+            }
+            int[] door = l.a == room ? l.doorA : l.b == room ? l.doorB : null;
+            if (door == null) {
+                continue;
+            }
+            for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                int ox = door[0] + d[0];
+                int oz = door[1] + d[1];
+                if (!level.cell(ox, oz).isWalkable() || level.region(ox, oz) == region) {
+                    continue;
+                }
+                // Out along the corridor while it runs straight, until nothing in the room is within wake range.
+                int sx = ox;
+                int sz = oz;
+                int score = 0;
+                for (int k = 1; k <= 14; k++) {
+                    int nx = door[0] + d[0] * k;
+                    int nz = door[1] + d[1] * k;
+                    if (!level.cell(nx, nz).isWalkable() || level.region(nx, nz) == region) {
+                        break;
+                    }
+                    sx = nx;
+                    sz = nz;
+                    score = k;
+                    boolean clear = true;
+                    for (int[] w : wakes) {
+                        clear &= Math.max(Math.abs(w[0] - nx), Math.abs(w[1] - nz)) > 11;
+                    }
+                    if (clear && k >= 2) {
+                        score = 100 + k;
+                        break;
+                    }
+                }
+                if (score > bestScore) {
+                    bestScore = score;
+                    best = new double[] {sx + 0.5, sz + 0.5, Math.toDegrees(Math.atan2(d[0], -d[1]))};
+                }
+            }
+        }
+        if (best == null) {
+            fail(src, "The room with the " + what + " on level " + index + " has no doorway to stand at.");
             return 0;
         }
         BlockPos o = last.origin();
-        int cx = (int) Math.floor(spot[0]);
-        int cz = (int) Math.floor(spot[1]);
-        double y = o.getY() + Blueprinter.floorY(last.plan(), index - 1) + level.height(cx, cz);
-        player.teleportTo(last.level(), o.getX() + spot[0], y, o.getZ() + spot[1], Set.of(), (float) spot[2], 0f, false);
-        say(src, "Level " + index + ", " + what + ".");
+        int bx = (int) Math.floor(best[0]);
+        int bz = (int) Math.floor(best[1]);
+        double y = o.getY() + Blueprinter.floorY(last.plan(), index - 1) + level.height(bx, bz);
+        player.teleportTo(last.level(), o.getX() + best[0], y, o.getZ() + best[1], Set.of(), (float) best[2], 0f, false);
+        say(src, "Level " + index + ", outside the " + what + "'s door" + (bestScore >= 100 ? "." : ": the corridor turns, so the room may already be awake."));
         return 1;
     }
 
