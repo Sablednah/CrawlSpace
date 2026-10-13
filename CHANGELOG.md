@@ -25,6 +25,7 @@
 - **Numbered guards can no longer be farmed.** A monster killed out of order gives no experience and drops nothing; the one that rises in its place pays once, when killed in order.
 - **Strict numbered guards from the third level down:** one wrong kill and every one you have already killed rises again, and you start from I. Those give nothing the second time. The room says so as it wakes.
 - **Survival rooms wait for you to be inside.** The bars drop once someone is in the room and nobody stands in a doorway, so they no longer push you out into the corridor, and the countdown shows to everyone inside.
+- **`/crawlspace gotodoor <level> <what>`** (ops): outside a doorway of the room that holds it, facing in and stood back out of its wake range where the corridor allows, for testing what happens as you enter.
 - **`/crawlspace info full`** (ops): everything on every level of the dungeon you are in: objective room and job, bosses, altars, prisoners, puzzles, vaults, survival rooms, cubes, levers, secret doors and traps. Click an entry to go there.
 - **Corridor steps you can always climb.** Where nothing is free in front of a stair, the step is a slab instead, so a one-wide corridor never meets a stair's tall side.
 - **Shrines shimmer.** An altar you have not used draws enchanting glyphs into it, so it reads as something to use.
