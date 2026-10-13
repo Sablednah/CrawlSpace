@@ -593,8 +593,19 @@ public final class ObjectiveRooms {
                 continue;
             }
             CrawlState state = CrawlState.of(level);
+            // The stone is cleansed, not broken: it is the fountain's rim, and a hole in it let the water out
+            // (Sable, 2026-10-13). A cleansed stone holds.
+            e.setCanceled(true);
+            if (state.hasFired(pos.above(BROKEN))) {
+                return;
+            }
             state.fire(pos.above(BROKEN));
+            level.setBlock(pos, Blocks.SMOOTH_QUARTZ.defaultBlockState(), 3);
+            level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_BREAK, SoundSource.BLOCKS, 1.2f, 0.8f);
             player.hurtServer(level, level.damageSources().magic(), 4f);
+            // Each stone calls its guardians, from the level below, with knockback to drive you off the rim.
+            int below = Math.min(t.level() + 1, site.built().plan().levels().size() - 1);
+            Bestiary.band(level, site, below, standAt(level, pos.above()), 2, player, ObjectiveRooms::shove);
             int left = 0;
             for (int k = 3; k < t.targets().length; k++) {
                 left += state.hasFired(at(site, t.targets()[k]).above(BROKEN)) ? 0 : 1;
@@ -603,7 +614,7 @@ public final class ObjectiveRooms {
             if (left == 0) {
                 complete(level, site, t, player);
             } else {
-                Triggers.tell(player, "The corruption bites as it breaks. " + left + " more.");
+                Triggers.tell(player, "The corruption bites as it is cleansed, and its guardians come! " + left + " more.");
             }
             return;
         }
