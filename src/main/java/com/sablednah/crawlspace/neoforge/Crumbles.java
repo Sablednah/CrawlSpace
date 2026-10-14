@@ -30,10 +30,10 @@ public final class Crumbles {
             Blocks.CRACKED_STONE_BRICKS.defaultBlockState(),
             Blocks.COBBLESTONE.defaultBlockState()};
 
-    /** A wooden bridge's stages: a plank, then half of one, then nothing. */
+    /** A wooden bridge's stages: a plank, then half of one, then nothing. Crimson, which does not burn. */
     static final BlockState[] PLANKS = {
-            Blocks.DARK_OAK_PLANKS.defaultBlockState(),
-            Blocks.DARK_OAK_SLAB.defaultBlockState()};
+            Blocks.CRIMSON_PLANKS.defaultBlockState(),
+            Blocks.CRIMSON_SLAB.defaultBlockState()};
 
     private static final class Crumble {
         BlockState[] stages = STAGES;
