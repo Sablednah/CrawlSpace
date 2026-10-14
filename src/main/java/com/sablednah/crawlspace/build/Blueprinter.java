@@ -407,6 +407,17 @@ public final class Blueprinter {
      */
     private static void objective(Blueprint bp, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dice dice) {
         LevelPlan level = plan.levels().get(i);
+        if (level.gallery) {
+            // The gallery: every objective room, in order, each with its own job.
+            int k = 0;
+            for (Room r : level.rooms) {
+                if (r.role == Role.OBJECTIVE) {
+                    int[] tj = com.sablednah.crawlspace.plan.Gallery.job(k++);
+                    objectiveRoom(bp, plan, i, r, floorAt(plan, i, r.centerX(), r.centerZ()), tj[0], tj[1], dice);
+                }
+            }
+            return;
+        }
         if (i < 1 || i >= plan.levels().size() - 1) {
             return;
         }
@@ -443,8 +454,16 @@ public final class Blueprinter {
         if (best == null) {
             return;
         }
-        Room r = best;
-        int f = bestF;
+        // Which of the room's jobs: two each so far, the easiest and the next. A showcase alternates them.
+        long placed = bp.triggers().stream().filter(t -> t.kind() == Trigger.Kind.OBJECTIVE).count();
+        int job = level.showcase ? (int) (placed / 5 + i) % 2 : dice.nextInt(2);
+        objectiveRoom(bp, plan, i, best, bestF, type, job, dice);
+    }
+
+    /** Clears one objective room and builds its set piece, for a type and job. */
+    private static void objectiveRoom(Blueprint bp, DungeonPlan plan, int i, Room r, int f, int type, int job,
+            com.sablednah.crawlspace.plan.Dice dice) {
+        LevelPlan level = plan.levels().get(i);
         int h = clearHeight(level, r.centerX(), r.centerZ());
         // Clear it: its dressing, traps and encounter go; its walls and doors stay.
         for (int x = r.minX(); x <= r.maxX(); x++) {
@@ -467,9 +486,6 @@ public final class Blueprinter {
         int cx = r.centerX();
         int cz = r.centerZ();
         java.util.List<int[]> rows = new java.util.ArrayList<>();
-        // Which of the room's jobs: two each so far, the easiest and the next. A showcase alternates them.
-        long placed = bp.triggers().stream().filter(t -> t.kind() == Trigger.Kind.OBJECTIVE).count();
-        int job = level.showcase ? (int) (placed / 5 + i) % 2 : dice.nextInt(2);
         rows.add(new int[] {type, job, 0});
         // The set piece, after the card; the way out is part of it (Sable, 2026-10-12).
         SetPieces.Built built = switch (type) {

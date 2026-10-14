@@ -658,7 +658,7 @@ public final class LevelPlanner {
     }
 
     /** Stairwells, pillars and pools. */
-    private static void features(LevelPlan level, Dice dice) {
+    static void features(LevelPlan level, Dice dice) {
         for (Room r : level.rooms) {
             int cx = r.centerX();
             int cz = r.centerZ();

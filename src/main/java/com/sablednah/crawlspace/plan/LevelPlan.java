@@ -43,6 +43,8 @@ public final class LevelPlan {
     public Feeling feeling = Feeling.NONE;
     /** A showcase level: every feature that can, appears (see {@link Showcase}). */
     public boolean showcase;
+    /** The objective gallery's one level (see {@link Gallery}): every objective room, one job each. */
+    public boolean gallery;
     /** How many tries the planner needed. 1 is the healthy figure. */
     public int attempts;
 
