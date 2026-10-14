@@ -48,8 +48,10 @@ public final class Planner {
         return new DungeonPlan(seed, LEVEL_SPACING, DungeonPlan.MIN_TOP, out);
     }
 
-    /** How often a level gets a puzzle room, where it has a room that suits one. */
-    static final double PUZZLE_CHANCE = 0.45;
+    /** How often a level gets a puzzle room, where it has a room that suits one: nearly always (Sable, 2026-10-14). */
+    static final double PUZZLE_CHANCE = 0.95;
+    /** And how often a second, where another room suits. */
+    static final double SECOND_PUZZLE_CHANCE = 0.35;
 
     /**
      * Turns one plain rectangular room, all open floor, 7 to 17 cells a side,
@@ -62,7 +64,9 @@ public final class Planner {
         }
         List<Room> candidates = new ArrayList<>();
         for (Room r : level.rooms) {
-            if (r.role != Role.ROOM || r.shape != Shape.RECT || Math.min(r.w, r.h) < 7 || Math.max(r.w, r.h) > 17) {
+            // Any shape the maze can walk, not only rectangles: two levels in three had no plain rectangular
+            // room, so most went without (Sable wants one on nearly every level, 2026-10-14). Not caves.
+            if (r.role != Role.ROOM || r.shape == Shape.CAVE || Math.min(r.w, r.h) < 7 || Math.max(r.w, r.h) > 17) {
                 continue;
             }
             boolean onewayLever = false; // a one-way door's lever stands just inside its room: not on a maze's void
@@ -72,6 +76,7 @@ public final class Planner {
             if (onewayLever) {
                 continue;
             }
+            // A pool, stairs or a pit rule a room out: a pool may be where a pit from the level above lands.
             boolean open = true;
             for (int x = r.minX(); x <= r.maxX() && open; x++) {
                 for (int z = r.minZ(); z <= r.maxZ() && open; z++) {
@@ -88,8 +93,16 @@ public final class Planner {
             if (level.showcase) {
                 pick = candidates.stream().max(java.util.Comparator.comparingInt(r -> Math.min(r.w, r.h))).orElse(pick);
             }
-            pick.role = Role.PUZZLE;
+            makePuzzle(level, pick);
+            candidates.remove(pick);
+            if (!candidates.isEmpty() && (level.showcase || dice.chance(SECOND_PUZZLE_CHANCE))) {
+                makePuzzle(level, candidates.get(dice.nextInt(candidates.size())));
+            }
         }
+    }
+
+    private static void makePuzzle(LevelPlan level, Room r) {
+        r.role = Role.PUZZLE;
     }
 
     /** How often a level gets a sealed room reached only by falling into it, where one fits. */
