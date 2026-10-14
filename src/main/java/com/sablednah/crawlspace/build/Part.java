@@ -282,7 +282,7 @@ public enum Part {
         return switch (this) {
             // The quick exit is not built until its job is done: nothing to put back before then.
             case CRUMBLE, DRIPLEAF, PIT_TILE, LOCKED_LOWER, LOCKED_UPPER, PORTCULLIS, ONEWAY_LOWER, ONEWAY_UPPER, EXIT_FRAME,
-                    OBJ_PLANK, OBJ_ROTTEN -> true;
+                    OBJ_PLANK, OBJ_ROTTEN, OBJ_TOMB -> true; // the tomb, once its job breaks it
             default -> false;
         };
     }
