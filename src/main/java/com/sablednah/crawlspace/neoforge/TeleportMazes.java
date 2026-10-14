@@ -62,7 +62,7 @@ public final class TeleportMazes {
                 BlockPos to = o.offset(p[3], p[4], p[5]);
                 level.sendParticles(ParticleTypes.PORTAL, player.getX(), player.getY() + 1, player.getZ(), 30, 0.3, 0.6, 0.3, 0.3);
                 level.playSound(null, player.blockPosition(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, 1.2f);
-                player.teleportTo(level, to.getX() + 0.5, to.getY(), to.getZ() + 0.5, java.util.Set.of(), player.getYRot(), player.getXRot(), false);
+                player.teleportTo(level, to.getX() + 0.5, to.getY(), to.getZ() + 0.5, player.getYRot(), player.getXRot());
                 level.sendParticles(ParticleTypes.REVERSE_PORTAL, to.getX() + 0.5, to.getY() + 1, to.getZ() + 0.5, 30, 0.3, 0.6, 0.3, 0.1);
                 LAST.put(player.getUUID(), to.below().asLong());
                 WHEN.put(player.getUUID(), now);

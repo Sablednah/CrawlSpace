@@ -189,9 +189,10 @@ public final class Altars {
 
     private static void scale(AttributeInstance a, String id, double by) {
         if (a != null) {
-            a.addOrReplacePermanentModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(
-                    net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, id), by,
-                    net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+            java.util.UUID uuid = Powers.uuid(id);
+            a.removeModifier(uuid);
+            a.addPermanentModifier(new net.minecraft.world.entity.ai.attributes.AttributeModifier(uuid, "crawlspace:" + id, by,
+                    net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.MULTIPLY_TOTAL));
         }
     }
 
@@ -222,14 +223,12 @@ public final class Altars {
             }
         }
         if (n > 0) {
-            var loot = level.getServer().reloadableRegistries().getLootTable(net.minecraft.resources.ResourceKey.create(
-                    net.minecraft.core.registries.Registries.LOOT_TABLE,
-                    net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + Math.min(5, 3 + n))));
+            var loot = level.getServer().getLootData().getLootTable(new net.minecraft.resources.ResourceLocation(CrawlSpace.MODID, "chests/tier" + Math.min(5, 3 + n)));
             var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
                     .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, mob.position())
                     .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
             for (ItemStack stack : loot.getRandomItems(params)) {
-                mob.spawnAtLocation(level, stack);
+                mob.spawnAtLocation(stack);
             }
             level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, mob.getX(), mob.getY() + 1, mob.getZ(), 40, 0.6, 0.8, 0.6, 0.3);
         }

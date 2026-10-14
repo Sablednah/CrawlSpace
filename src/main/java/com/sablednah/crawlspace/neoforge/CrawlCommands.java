@@ -39,7 +39,7 @@ public final class CrawlCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("crawlspace")
-                .requires(src -> Commands.hasPermission(Commands.LEVEL_GAMEMASTERS).test(src))
+                .requires(src -> src.hasPermission(2))
                 .executes(CrawlCommands::help)
                 .then(Commands.literal("build")
                         .executes(ctx -> build(ctx, 0, null))
@@ -78,7 +78,7 @@ public final class CrawlCommands {
                 .then(Commands.literal("useitem").executes(ctx -> {
                     // Using what is in your hand, through the same handler a real use reaches (a replay tablet).
                     ServerPlayer p = ctx.getSource().getPlayerOrException();
-                    var event = new net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickItem(p,
+                    var event = new net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickItem(p,
                             net.minecraft.world.InteractionHand.MAIN_HAND);
                     Heroic.onUseItem(event);
                     say(ctx.getSource(), event.isCanceled() ? "Used: the dungeon took it." : "Used: nothing of the dungeon's answered.");
@@ -102,7 +102,7 @@ public final class CrawlCommands {
                             // what a click does without aiming one from a script.
                             ServerPlayer p = ctx.getSource().getPlayerOrException();
                             net.minecraft.core.BlockPos at = net.minecraft.commands.arguments.coordinates.BlockPosArgument.getLoadedBlockPos(ctx, "pos");
-                            var event = new net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock(p,
+                            var event = new net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock(p,
                                     net.minecraft.world.InteractionHand.MAIN_HAND, at, new net.minecraft.world.phys.BlockHitResult(
                                             net.minecraft.world.phys.Vec3.atCenterOf(at), net.minecraft.core.Direction.UP, at, false));
                             Triggers.onUse(event);
@@ -193,7 +193,7 @@ public final class CrawlCommands {
         ServerPlayer player = src.getPlayerOrException();
         ServerLevel level = (ServerLevel) player.level();
         BlockPos origin = player.blockPosition().offset(0, 0, 6);
-        int room = (origin.getY() - level.getMinY() - 6 - DungeonPlan.MIN_TOP) / Planner.LEVEL_SPACING + 1;
+        int room = (origin.getY() - level.getMinBuildHeight() - 6 - DungeonPlan.MIN_TOP) / Planner.LEVEL_SPACING + 1;
         if (room < 1) {
             fail(src, "Too close to the bottom of the world for even one level. Go up and try again.");
             return 0;
@@ -207,7 +207,7 @@ public final class CrawlCommands {
         Site site;
         try {
             site = Site.fit(seed, wanted, 1, origin, (x, z) -> ground(level, origin.getX() + x, origin.getZ() + z) - origin.getY(),
-                    level.getMinY(), EntranceStyle.of(level.getBiome(origin)));
+                    level.getMinBuildHeight(), EntranceStyle.of(level.getBiome(origin)));
         } catch (IllegalStateException e) {
             fail(src, "Could not plan seed " + seed + ": " + e.getMessage());
             return 0;
@@ -290,7 +290,7 @@ public final class CrawlCommands {
             y = o.getY() + Blueprinter.floorY(plan, index - 1) + level.height(s[0] + 2, s[1]);
             z = o.getZ() + s[1] + 0.5;
         }
-        player.teleportTo(last.level(), x, y, z, Set.of(), player.getYRot(), player.getXRot(), false);
+        player.teleportTo(last.level(), x, y, z, player.getYRot(), player.getXRot());
         say(src, index == 0 ? "At the tower." : "Level " + index + ": " + plan.levels().get(index - 1).theme.name() + ".");
         return 1;
     }
@@ -321,7 +321,7 @@ public final class CrawlCommands {
         int cx = (int) Math.floor(spot[0]);
         int cz = (int) Math.floor(spot[1]);
         double y = o.getY() + Blueprinter.floorY(last.plan(), index - 1) + level.height(cx, cz);
-        player.teleportTo(last.level(), o.getX() + spot[0], y, o.getZ() + spot[1], Set.of(), (float) spot[2], 0f, false);
+        player.teleportTo(last.level(), o.getX() + spot[0], y, o.getZ() + spot[1], (float) spot[2], 0f);
         say(src, "Level " + index + ", " + what + ".");
         return 1;
     }
@@ -431,7 +431,7 @@ public final class CrawlCommands {
         int bx = (int) Math.floor(best[0]);
         int bz = (int) Math.floor(best[1]);
         double y = o.getY() + Blueprinter.floorY(last.plan(), index - 1) + level.height(bx, bz);
-        player.teleportTo(last.level(), o.getX() + best[0], y, o.getZ() + best[1], Set.of(), (float) best[2], 0f, false);
+        player.teleportTo(last.level(), o.getX() + best[0], y, o.getZ() + best[1], (float) best[2], 0f);
         say(src, "Level " + index + ", outside the " + what + "'s door" + (bestScore >= 100 ? "." : ": the corridor turns, so the room may already be awake."));
         return 1;
     }
@@ -731,8 +731,8 @@ public final class CrawlCommands {
         if (gotoWord != null) {
             String cmd = "/crawlspace goto " + level + " " + gotoWord;
             String tip = (hover == null ? "" : hover + "\n") + "Click: " + cmd;
-            c.withStyle(s -> s.withClickEvent(new net.minecraft.network.chat.ClickEvent.RunCommand(cmd))
-                    .withHoverEvent(new net.minecraft.network.chat.HoverEvent.ShowText(Component.literal(tip))));
+            c.withStyle(s -> s.withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND, cmd))
+                    .withHoverEvent(new net.minecraft.network.chat.HoverEvent(net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT, Component.literal(tip))));
         }
         return c;
     }

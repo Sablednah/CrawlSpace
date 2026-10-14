@@ -13,7 +13,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -23,17 +23,17 @@ import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
-import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
-import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.event.entity.living.LivingDropsEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 
 /**
  * What makes a dungeon monster more than a vanilla one: an elite's affixes,
@@ -154,22 +154,22 @@ public final class Powers {
             mob.addTag(a.tag());
             name.append(a.prefix).append(' ');
             switch (a) {
-                case FRENZIED -> modify(mob, Attributes.MOVEMENT_SPEED, "elite_speed", 0.35, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+                case FRENZIED -> modify(mob, Attributes.MOVEMENT_SPEED, "elite_speed", 0.35, AttributeModifier.Operation.MULTIPLY_BASE);
                 case ARMOURED -> {
-                    modify(mob, Attributes.ARMOR, "elite_armour", 8, AttributeModifier.Operation.ADD_VALUE);
-                    modify(mob, Attributes.KNOCKBACK_RESISTANCE, "elite_knockback", 0.5, AttributeModifier.Operation.ADD_VALUE);
+                    modify(mob, Attributes.ARMOR, "elite_armour", 8, AttributeModifier.Operation.ADDITION);
+                    modify(mob, Attributes.KNOCKBACK_RESISTANCE, "elite_knockback", 0.5, AttributeModifier.Operation.ADDITION);
                 }
                 case HULKING -> {
-                    modify(mob, Attributes.SCALE, "elite_scale", 0.3, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-                    modify(mob, Attributes.MAX_HEALTH, "elite_health", 0.75, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-                    modify(mob, Attributes.ATTACK_DAMAGE, "elite_damage", 2, AttributeModifier.Operation.ADD_VALUE);
+                    // 1.20.1 has no scale attribute (1.20.5): modify(mob, Attributes.SCALE, "elite_scale", 0.3, AttributeModifier.Operation.MULTIPLY_BASE);
+                    modify(mob, Attributes.MAX_HEALTH, "elite_health", 0.75, AttributeModifier.Operation.MULTIPLY_BASE);
+                    modify(mob, Attributes.ATTACK_DAMAGE, "elite_damage", 2, AttributeModifier.Operation.ADDITION);
                 }
                 case BURNING -> mob.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, -1, 0, false, false));
                 default -> {
                 }
             }
         }
-        modify(mob, Attributes.MAX_HEALTH, "elite_toughness", 0.25, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        modify(mob, Attributes.MAX_HEALTH, "elite_toughness", 0.25, AttributeModifier.Operation.MULTIPLY_BASE);
         mob.setHealth(mob.getMaxHealth());
         name.append(mob.getType().getDescription().getString());
         mob.setCustomName(Component.literal(name.toString()).withStyle(got.size() > 1 ? ChatFormatting.LIGHT_PURPLE : got.get(0).colour));
@@ -326,15 +326,15 @@ public final class Powers {
             return;
         }
         for (int k = 0; k < count && s.minions.size() < 8; k++) {
-            Entity e = type.create(level, EntitySpawnReason.MOB_SUMMONED);
+            Entity e = type.create(level);
             if (!(e instanceof Mob minion)) {
                 return;
             }
             double a = mob.getRandom().nextDouble() * Math.PI * 2;
             double r = mob.getBbWidth() / 2 + 1;
-            minion.snapTo(mob.getX() + Math.cos(a) * r, mob.getY(), mob.getZ() + Math.sin(a) * r, mob.getRandom().nextFloat() * 360, 0);
+            minion.moveTo(mob.getX() + Math.cos(a) * r, mob.getY(), mob.getZ() + Math.sin(a) * r, mob.getRandom().nextFloat() * 360, 0);
             minion.addTag(NOROLL);
-            minion.finalizeSpawn(level, level.getCurrentDifficultyAt(minion.blockPosition()), EntitySpawnReason.MOB_SUMMONED, null);
+            minion.finalizeSpawn(level, level.getCurrentDifficultyAt(minion.blockPosition()), MobSpawnType.MOB_SUMMONED, null, null);
             minion.addTag(Bestiary.KIN);
             minion.addTag(SPAWN);
             if (mob.getTarget() != null) {
@@ -351,7 +351,7 @@ public final class Powers {
         for (String t : mob.getTags()) {
             if (t.startsWith(MINION)) {
                 return net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE
-                        .getOptional(Identifier.tryParse(t.substring(MINION.length()))).orElse(null);
+                        .getOptional(ResourceLocation.tryParse(t.substring(MINION.length()))).orElse(null);
             }
         }
         return null;
@@ -360,8 +360,8 @@ public final class Powers {
     /** At half health a boss turns faster and harder, says so, and a summoner calls a burst at once. */
     private static void enrage(ServerLevel level, Mob mob, State s) {
         mob.addTag(ENRAGED);
-        modify(mob, Attributes.MOVEMENT_SPEED, "enraged_speed", 0.3, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-        modify(mob, Attributes.ATTACK_DAMAGE, "enraged_damage", 2, AttributeModifier.Operation.ADD_VALUE);
+        modify(mob, Attributes.MOVEMENT_SPEED, "enraged_speed", 0.3, AttributeModifier.Operation.MULTIPLY_BASE);
+        modify(mob, Attributes.ATTACK_DAMAGE, "enraged_damage", 2, AttributeModifier.Operation.ADDITION);
         level.sendParticles(ParticleTypes.ANGRY_VILLAGER, mob.getX(), mob.getY() + mob.getBbHeight(), mob.getZ(), 8, 0.6, 0.3, 0.6, 0);
         level.playSound(null, mob.blockPosition(), SoundEvents.RAVAGER_ROAR, SoundSource.HOSTILE, 1.5f, 0.8f);
         if (mob.getTags().contains(POWER + "summon")) {
@@ -378,17 +378,24 @@ public final class Powers {
 
     // ---- what they do when they hit, are hit, and die ----
 
-    /** Venom, fire and thirst on a hit; and a small warden's sonic boom made small with it. */
-    public static void onHurt(LivingIncomingDamageEvent e) {
+    /**
+     * A Wardling's sonic boom, cut as its size would have cut it. 1.20.1 has no
+     * scale attribute, so a Wardling is warden-sized there: the boom is cut by a
+     * fixed (0.6 squared), from LivingHurtEvent, where the amount can be changed.
+     */
+    public static void onHurtAmount(net.minecraftforge.event.entity.living.LivingHurtEvent e) {
+        if (e.getSource().getEntity() instanceof Mob attacker && attacker.getTags().contains(SCALED)
+                && e.getSource().is(DamageTypes.SONIC_BOOM)) {
+            e.setAmount(e.getAmount() * 0.36f);
+        }
+    }
+
+    /** Venom, fire and thirst on a hit. */
+    public static void onHurt(LivingAttackEvent e) {
         if (!(e.getSource().getEntity() instanceof Mob attacker) || !(attacker.level() instanceof ServerLevel)) {
             return;
         }
         java.util.Set<String> tags = attacker.getTags();
-        if (tags.contains(SCALED) && e.getSource().is(DamageTypes.SONIC_BOOM)) {
-            // Its sonic boom does the same whatever its size: a Wardling would hit as hard as a warden.
-            double scale = attacker.getAttributeValue(Attributes.SCALE);
-            e.setAmount((float) (e.getAmount() * Math.min(1, scale * scale)));
-        }
         if (e.getSource().getDirectEntity() != attacker) {
             return; // the rest are melee: not an arrow, not a boom from across the room
         }
@@ -397,7 +404,7 @@ public final class Powers {
             victim.addEffect(new MobEffectInstance(MobEffects.POISON, 100, 0), attacker);
         }
         if (tags.contains(Affix.BURNING.tag())) {
-            victim.igniteForSeconds(4);
+            victim.setSecondsOnFire(4);
         }
         if (tags.contains(Affix.VAMPIRIC.tag())) {
             attacker.heal(e.getAmount() * 0.5f);
@@ -425,16 +432,16 @@ public final class Powers {
         if (tags.contains(Affix.SPLITTING.tag())) {
             int n = 2 + mob.getRandom().nextInt(2);
             for (int k = 0; k < n; k++) {
-                Entity c = mob.getType().create(level, EntitySpawnReason.MOB_SUMMONED);
+                Entity c = mob.getType().create(level);
                 if (!(c instanceof Mob copy)) {
                     break;
                 }
-                copy.snapTo(mob.getX() + (mob.getRandom().nextDouble() - 0.5), mob.getY(), mob.getZ() + (mob.getRandom().nextDouble() - 0.5),
+                copy.moveTo(mob.getX() + (mob.getRandom().nextDouble() - 0.5), mob.getY(), mob.getZ() + (mob.getRandom().nextDouble() - 0.5),
                         mob.getRandom().nextFloat() * 360, 0);
                 copy.addTag(NOROLL);
-                copy.finalizeSpawn(level, level.getCurrentDifficultyAt(copy.blockPosition()), EntitySpawnReason.MOB_SUMMONED, null);
-                modify(copy, Attributes.SCALE, "split_scale", -0.4, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-                modify(copy, Attributes.MAX_HEALTH, "split_health", -0.6, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+                copy.finalizeSpawn(level, level.getCurrentDifficultyAt(copy.blockPosition()), MobSpawnType.MOB_SUMMONED, null, null);
+                // 1.20.1 has no scale attribute (1.20.5): modify(copy, Attributes.SCALE, "split_scale", -0.4, AttributeModifier.Operation.MULTIPLY_BASE);
+                modify(copy, Attributes.MAX_HEALTH, "split_health", -0.6, AttributeModifier.Operation.MULTIPLY_BASE);
                 copy.setHealth(copy.getMaxHealth());
                 copy.addTag(Bestiary.KIN);
                 copy.addTag(SPAWN);
@@ -471,8 +478,7 @@ public final class Powers {
             }
         }
         int tier = Math.min(5, 1 + depth / 2);
-        var table = level.getServer().reloadableRegistries().getLootTable(net.minecraft.resources.ResourceKey.create(
-                net.minecraft.core.registries.Registries.LOOT_TABLE, Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + tier)));
+        var table = level.getServer().getLootData().getLootTable(new ResourceLocation(CrawlSpace.MODID, "chests/tier" + tier));
         var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
                 .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, mob.position())
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
@@ -491,9 +497,9 @@ public final class Powers {
      * protected wall block for one protection does not know. Creepers still
      * explode; that is the explosion filter's to handle.
      */
-    public static void onGrief(net.neoforged.neoforge.event.entity.EntityMobGriefingEvent e) {
+    public static void onGrief(net.minecraftforge.event.entity.EntityMobGriefingEvent e) {
         if (e.getEntity().getTags().contains(Bestiary.KIN) && !(e.getEntity() instanceof net.minecraft.world.entity.monster.Creeper)) {
-            e.setCanGrief(false);
+            e.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
         }
     }
 
@@ -506,20 +512,20 @@ public final class Powers {
      * A position inside a dungeon is enough to know it is one of ours: the event
      * does not say which spawner asked.
      */
-    public static void onSpawnPlacement(net.neoforged.neoforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck e) {
-        if (e.getSpawnType() == net.minecraft.world.entity.EntitySpawnReason.SPAWNER && CrawlConfig.spawnersIgnoreLight()
+    public static void onSpawnPlacement(net.minecraftforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck e) {
+        if (e.getSpawnType() == net.minecraft.world.entity.MobSpawnType.SPAWNER && CrawlConfig.spawnersIgnoreLight()
                 && Dungeons.at(e.getLevel().getLevel(), e.getPos()).isPresent()) {
-            e.setResult(net.neoforged.neoforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck.Result.SUCCEED);
+            e.setResult(net.minecraftforge.eventbus.api.Event.Result.ALLOW);
         }
     }
 
-    public static void onSpawnPosition(net.neoforged.neoforge.event.entity.living.MobSpawnEvent.PositionCheck e) {
-        if (e.getSpawnType() == net.minecraft.world.entity.EntitySpawnReason.SPAWNER && e.getSpawner() != null
+    public static void onSpawnPosition(net.minecraftforge.event.entity.living.MobSpawnEvent.PositionCheck e) {
+        if (e.getSpawnType() == net.minecraft.world.entity.MobSpawnType.SPAWNER && e.getSpawner() != null
                 && CrawlConfig.spawnersIgnoreLight()
                 && Dungeons.at(e.getLevel().getLevel(), e.getEntity().blockPosition()).isPresent()) {
             e.setResult(e.getEntity().checkSpawnObstruction(e.getLevel())
-                    ? net.neoforged.neoforge.event.entity.living.MobSpawnEvent.PositionCheck.Result.SUCCEED
-                    : net.neoforged.neoforge.event.entity.living.MobSpawnEvent.PositionCheck.Result.FAIL);
+                    ? net.minecraftforge.eventbus.api.Event.Result.ALLOW
+                    : net.minecraftforge.eventbus.api.Event.Result.DENY);
         }
     }
 
@@ -530,9 +536,9 @@ public final class Powers {
      * Dungeons). What it makes are the dungeon's own, so they leave each other
      * alone like the rest.
      */
-    public static void onSpawnerSpawn(net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent e) {
-        if (e.getSpawner() == null || e.getSpawner().left().isEmpty()
-                || !(e.getSpawner().left().get() instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner)
+    public static void onSpawnerSpawn(net.minecraftforge.event.entity.living.MobSpawnEvent.FinalizeSpawn e) {
+        if (e.getSpawner() == null
+                || !(e.getSpawner().getSpawnerBlockEntity() instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner)
                 || !(spawner.getLevel() instanceof ServerLevel level)) {
             return;
         }
@@ -546,7 +552,7 @@ public final class Powers {
             return;
         }
         net.minecraft.nbt.CompoundTag data = spawner.getPersistentData();
-        int made = data.getIntOr("crawlspace_spawns", 0) + 1;
+        int made = data.getInt("crawlspace_spawns") + 1;
         data.putInt("crawlspace_spawns", made);
         spawner.setChanged();
         if (made >= cap) {
@@ -655,9 +661,8 @@ public final class Powers {
             level.setBlock(at, net.minecraft.world.level.block.Blocks.CHEST.defaultBlockState(), 3);
             CrawlSpace.LOGGER.info("CrawlSpace: a numbered group cleared in order; its chest is at {}", at);
             int depth = (int) Math.max(0, tagged(mob, DEPTH));
-            net.minecraft.world.RandomizableContainer.setBlockEntityLootTable(level, level.getRandom(), at,
-                    net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,
-                            Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + Math.min(5, 2 + depth / 2))));
+            net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity.setLootTable(level, level.getRandom(), at,
+                    new ResourceLocation(CrawlSpace.MODID, "chests/tier" + Math.min(5, 2 + depth / 2)));
             level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, at.getX() + 0.5, at.getY() + 1, at.getZ() + 0.5, 30, 0.4, 0.6, 0.4, 0.2);
             level.playSound(null, at, SoundEvents.PLAYER_LEVELUP, SoundSource.BLOCKS, 1f, 1f);
             if (killer != null) {
@@ -670,13 +675,13 @@ public final class Powers {
     /** A numbered monster rising again where it fell, its number on its brow. */
     private static void rise(ServerLevel level, EntityType<?> type, long group, int n, double x, double y, double z, boolean strict,
             boolean paid, ServerPlayer killer) {
-        Entity e = type.create(level, EntitySpawnReason.MOB_SUMMONED);
+        Entity e = type.create(level);
         if (!(e instanceof Mob again)) {
             return;
         }
-        again.snapTo(x, y, z, 0, 0);
+        again.moveTo(x, y, z, 0, 0);
         again.addTag(NOROLL);
-        again.finalizeSpawn(level, level.getCurrentDifficultyAt(again.blockPosition()), EntitySpawnReason.MOB_SUMMONED, null);
+        again.finalizeSpawn(level, level.getCurrentDifficultyAt(again.blockPosition()), MobSpawnType.MOB_SUMMONED, null, null);
         number(again, net.minecraft.core.BlockPos.of(group), n, 0, strict);
         again.addTag(Bestiary.KIN);
         if (paid) {
@@ -691,8 +696,8 @@ public final class Powers {
     }
 
     /** The blessings a solved puzzle can give: one, for six minutes. */
-    private static final List<net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect>> BLESSINGS = List.of(
-            MobEffects.STRENGTH, MobEffects.REGENERATION, MobEffects.HASTE, MobEffects.SPEED, MobEffects.RESISTANCE, MobEffects.JUMP_BOOST);
+    private static final List<net.minecraft.world.effect.MobEffect> BLESSINGS = List.of(
+            MobEffects.DAMAGE_BOOST, MobEffects.REGENERATION, MobEffects.DIG_SPEED, MobEffects.MOVEMENT_SPEED, MobEffects.DAMAGE_RESISTANCE, MobEffects.JUMP);
     private static final java.util.Set<String> BLESSED = new java.util.HashSet<>();
 
     /**
@@ -704,14 +709,14 @@ public final class Powers {
         if (!BLESSED.add(player.getUUID() + "@" + chest.asLong())) {
             return;
         }
-        net.minecraft.core.Holder<net.minecraft.world.effect.MobEffect> effect = BLESSINGS.get(level.getRandom().nextInt(BLESSINGS.size()));
+        net.minecraft.world.effect.MobEffect effect = BLESSINGS.get(level.getRandom().nextInt(BLESSINGS.size()));
         // A replay tablet's blessing boon doubles it.
         boolean twice = Heroic.has(level, player.blockPosition(), Tablets.Boon.BLESSED);
         player.addEffect(new MobEffectInstance(effect, (twice ? 12 : 6) * 60 * 20, 0));
         level.sendParticles(ParticleTypes.HAPPY_VILLAGER, player.getX(), player.getY() + 1, player.getZ(), 16, 0.5, 0.6, 0.5, 0);
         level.playSound(null, player.blockPosition(), SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 0.8f, 1.2f);
         player.displayClientMessage(Component.literal("The maze rewards you: ")
-                .append(Component.translatable(effect.value().getDescriptionId())).append(Component.literal(twice ? " for twelve minutes." : " for six minutes."))
+                .append(Component.translatable(effect.getDescriptionId())).append(Component.literal(twice ? " for twelve minutes." : " for six minutes."))
                 .withStyle(ChatFormatting.AQUA), true);
     }
 
@@ -720,12 +725,17 @@ public final class Powers {
         FALLEN.clear();
     }
 
-    static void modify(Mob mob, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr, String id, double amount,
+    static void modify(Mob mob, net.minecraft.world.entity.ai.attributes.Attribute attr, String id, double amount,
             AttributeModifier.Operation op) {
         AttributeInstance inst = mob.getAttribute(attr);
-        Identifier key = Identifier.fromNamespaceAndPath(CrawlSpace.MODID, id);
-        if (inst != null && amount != 0 && !inst.hasModifier(key)) {
-            inst.addPermanentModifier(new AttributeModifier(key, amount, op));
+        java.util.UUID key = uuid(id);
+        if (inst != null && amount != 0 && inst.getModifier(key) == null) {
+            inst.addPermanentModifier(new AttributeModifier(key, "crawlspace:" + id, amount, op));
         }
+    }
+
+    /** 1.20.1 names attribute modifiers by UUID: one from each of our modifier names, the same every time. */
+    static java.util.UUID uuid(String id) {
+        return java.util.UUID.nameUUIDFromBytes(("crawlspace:" + id).getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 }

@@ -224,9 +224,8 @@ public final class SurvivalRooms {
             at = at.above();
         }
         f.level.setBlock(at, Blocks.CHEST.defaultBlockState(), 3);
-        net.minecraft.world.RandomizableContainer.setBlockEntityLootTable(f.level, f.level.getRandom(), at,
-                net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,
-                        net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + Math.min(5, 2 + f.trigger.level() / 2))));
+        net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity.setLootTable(f.level, f.level.getRandom(), at,
+                new net.minecraft.resources.ResourceLocation(CrawlSpace.MODID, "chests/tier" + Math.min(5, 2 + f.trigger.level() / 2)));
         f.level.sendParticles(ParticleTypes.TOTEM_OF_UNDYING, at.getX() + 0.5, at.getY() + 1, at.getZ() + 0.5, 30, 0.4, 0.6, 0.4, 0.2);
         f.level.playSound(null, at, SoundEvents.PLAYER_LEVELUP, SoundSource.BLOCKS, 1f, 1f);
         for (ServerPlayer p : in) {

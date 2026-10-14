@@ -10,7 +10,6 @@ import com.sablednah.crawlspace.build.Trigger;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -19,14 +18,12 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Display;
-import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
-import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.item.component.ItemLore;
 
 /**
  * Seals for the deepest door (DCSS runes, Tomb of Annihilation; Sable's ruling,
@@ -87,21 +84,21 @@ public final class Seals {
     static ItemStack make(Site site, int li) {
         String theme = site.built().plan().levels().get(li).theme.name();
         ItemStack seal = new ItemStack(Items.ECHO_SHARD);
-        seal.set(DataComponents.CUSTOM_NAME, Component.literal("Seal of the " + theme + " (level " + (li + 1) + ")")
+        ItemNbt.name(seal, Component.literal("Seal of the " + theme + " (level " + (li + 1) + ")")
                 .withStyle(s -> s.withItalic(false).withColor(ChatFormatting.LIGHT_PURPLE)));
-        seal.set(DataComponents.LORE, new ItemLore(List.of(Component.literal("Set it on the altar at the bottom of this dungeon.")
-                .withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GRAY)))));
+        ItemNbt.lore(seal, List.of(Component.literal("Set it on the altar at the bottom of this dungeon.")
+                .withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GRAY))));
         CompoundTag tag = new CompoundTag();
         tag.putString(TAG, Keys.id(site, li));
-        seal.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
-        seal.set(DataComponents.RARITY, Rarity.EPIC);
-        seal.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        ItemNbt.data(seal, tag);
+        // (no per-item rarity in 1.20.1: the name carries the colour)
+        ItemNbt.glint(seal);
         return seal;
     }
 
     private static String sealId(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        return data == null ? null : data.copyTag().getStringOr(TAG, "").isEmpty() ? null : data.copyTag().getStringOr(TAG, "");
+        net.minecraft.nbt.CompoundTag data = ItemNbt.data(stack);
+        return data == null ? null : data.getString(TAG).isEmpty() ? null : data.getString(TAG);
     }
 
     /** A true lair's boss falls above the bottom: its level's seal. */
@@ -117,7 +114,7 @@ public final class Seals {
         if (li < 0 || li >= site.built().plan().levels().size() - 1 || !hasBoss(site, li)) {
             return;
         }
-        mob.spawnAtLocation(level, make(site, li));
+        mob.spawnAtLocation(make(site, li));
         for (ServerPlayer p : level.players()) {
             if (p.distanceToSqr(mob) < 32 * 32) {
                 Triggers.tell(p, "It drops a seal. The altar at the bottom of this dungeon wants it.");
@@ -180,7 +177,7 @@ public final class Seals {
         List<Integer> needed = sources(site);
         ItemStack hand = player.getMainHandItem();
         String sid = sealId(hand);
-        String tid = hand.is(Items.TRIAL_KEY) ? tokenId(hand) : null;
+        String tid = hand.is(Items.TRIPWIRE_HOOK) ? tokenId(hand) : null;
         String prefix = Keys.id(site, 0);
         prefix = prefix.substring(0, prefix.lastIndexOf('/') + 1);
         if (sid != null && sid.startsWith(prefix)) {
@@ -219,18 +216,18 @@ public final class Seals {
     }
 
     private static String tokenId(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        String id = data == null ? "" : data.copyTag().getStringOr("crawlspace_token", "");
+        net.minecraft.nbt.CompoundTag data = ItemNbt.data(stack);
+        String id = data == null ? "" : data.getString("crawlspace_token");
         return id.isEmpty() ? null : id;
     }
 
     /** A set seal hangs over the altar, turning slowly. */
     private static void show(ServerLevel level, BlockPos altar, int index, ItemStack what) {
-        Display.ItemDisplay d = EntityType.ITEM_DISPLAY.create(level, EntitySpawnReason.EVENT);
+        Display.ItemDisplay d = EntityType.ITEM_DISPLAY.create(level);
         if (d != null) {
             double a = index * 1.2;
             d.getSlot(0).set(what.copyWithCount(1));
-            d.snapTo(altar.getX() + 0.5 + Math.cos(a) * 0.6, altar.getY() + 1.6, altar.getZ() + 0.5 + Math.sin(a) * 0.6, index * 40f, 0);
+            d.moveTo(altar.getX() + 0.5 + Math.cos(a) * 0.6, altar.getY() + 1.6, altar.getZ() + 0.5 + Math.sin(a) * 0.6, index * 40f, 0);
             d.addTag("crawlspace_seal_shown");
             level.addFreshEntity(d);
         }

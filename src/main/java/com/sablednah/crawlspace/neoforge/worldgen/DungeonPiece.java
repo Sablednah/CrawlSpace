@@ -46,8 +46,8 @@ public final class DungeonPiece extends StructurePiece {
 
     DungeonPiece(CompoundTag tag) {
         super(CrawlWorldgen.DUNGEON_PIECE.get(), tag);
-        this.site = Site.load(tag.getCompoundOrEmpty("site"));
-        this.part = Part.valueOf(tag.getStringOr("part", "ALL"));
+        this.site = Site.load(tag.getCompound("site"));
+        this.part = Part.valueOf((tag.contains("part") ? tag.getString("part") : "ALL"));
         if (site.planner() != Site.PLANNER_VERSION) {
             CrawlSpace.LOGGER.warn("CrawlSpace dungeon at {} was planned by planner {}, this is {}: "
                     + "parts not yet generated may not match", site.origin(), site.planner(), Site.PLANNER_VERSION);

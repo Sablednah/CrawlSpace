@@ -7,7 +7,7 @@ import com.sablednah.crawlspace.neoforge.worldgen.DungeonPiece;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
@@ -37,8 +37,8 @@ public final class Dungeons {
 
     /** The generated dungeon whose footprint holds {@code pos}, if any. */
     public static Optional<Site> generatedAt(ServerLevel level, BlockPos pos) {
-        Structure structure = level.registryAccess().lookupOrThrow(Registries.STRUCTURE)
-                .getValue(Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "dungeon"));
+        Structure structure = level.registryAccess().registryOrThrow(Registries.STRUCTURE)
+                .get(new ResourceLocation(CrawlSpace.MODID, "dungeon"));
         if (structure == null) {
             return Optional.empty();
         }

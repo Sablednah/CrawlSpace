@@ -1,6 +1,6 @@
 package com.sablednah.crawlspace.neoforge;
 
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec;
 
 /**
  * Server settings ({@code config/crawlspace-server.toml}; NeoForge 21.x keeps server configs there, not per world). Read live
@@ -9,21 +9,21 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  */
 public final class CrawlConfig {
 
-    public static final ModConfigSpec SPEC;
-    private static final ModConfigSpec.BooleanValue ENABLED;
-    private static final ModConfigSpec.IntValue SPACING;
-    private static final ModConfigSpec.IntValue SEPARATION;
-    private static final ModConfigSpec.IntValue MAX_LEVELS;
-    private static final ModConfigSpec.IntValue MIN_LEVELS;
-    private static final ModConfigSpec.EnumValue<Hints> HINTS;
-    private static final ModConfigSpec.DoubleValue DISARM_CHANCE;
-    private static final ModConfigSpec.IntValue SPAWNER_USES;
-    private static final ModConfigSpec.BooleanValue SPAWNERS_IGNORE_LIGHT;
-    private static final ModConfigSpec.IntValue EVENT_SECONDS;
-    private static final ModConfigSpec.IntValue RESTOCK_HOURS;
-    private static final ModConfigSpec.BooleanValue PROTECT;
-    private static final ModConfigSpec.BooleanValue PROTECT_EXPLOSIONS;
-    private static final ModConfigSpec.BooleanValue PROTECT_REPAIR;
+    public static final ForgeConfigSpec SPEC;
+    private static final ForgeConfigSpec.BooleanValue ENABLED;
+    private static final ForgeConfigSpec.IntValue SPACING;
+    private static final ForgeConfigSpec.IntValue SEPARATION;
+    private static final ForgeConfigSpec.IntValue MAX_LEVELS;
+    private static final ForgeConfigSpec.IntValue MIN_LEVELS;
+    private static final ForgeConfigSpec.EnumValue<Hints> HINTS;
+    private static final ForgeConfigSpec.DoubleValue DISARM_CHANCE;
+    private static final ForgeConfigSpec.IntValue SPAWNER_USES;
+    private static final ForgeConfigSpec.BooleanValue SPAWNERS_IGNORE_LIGHT;
+    private static final ForgeConfigSpec.IntValue EVENT_SECONDS;
+    private static final ForgeConfigSpec.IntValue RESTOCK_HOURS;
+    private static final ForgeConfigSpec.BooleanValue PROTECT;
+    private static final ForgeConfigSpec.BooleanValue PROTECT_EXPLOSIONS;
+    private static final ForgeConfigSpec.BooleanValue PROTECT_REPAIR;
 
     /** Whether secret walls look different and traps and treasure give off particles. */
     public enum Hints {
@@ -34,7 +34,7 @@ public final class CrawlConfig {
     }
 
     static {
-        ModConfigSpec.Builder b = new ModConfigSpec.Builder();
+        ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
         b.push("worldgen");
         ENABLED = b.comment("Generate dungeons in new chunks.").define("enabled", true);
         SPACING = b.comment(
@@ -172,7 +172,7 @@ public final class CrawlConfig {
     }
 
     /** Before the world's config is loaded, the defaults. */
-    private static <T> T get(ModConfigSpec.ConfigValue<T> v, T fallback) {
+    private static <T> T get(ForgeConfigSpec.ConfigValue<T> v, T fallback) {
         try {
             return v.get();
         } catch (IllegalStateException e) {

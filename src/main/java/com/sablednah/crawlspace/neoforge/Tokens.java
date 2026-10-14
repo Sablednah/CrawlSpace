@@ -7,7 +7,6 @@ import com.sablednah.crawlspace.build.Trigger;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -19,8 +18,6 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
-import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.item.component.ItemLore;
 
 /**
  * Token vaults (Wynncraft; Sable's pick, 2026-10-12). One guard room on a level
@@ -41,24 +38,24 @@ public final class Tokens {
     }
 
     static ItemStack make(Site site, int li) {
-        ItemStack token = new ItemStack(Items.TRIAL_KEY);
-        token.set(DataComponents.CUSTOM_NAME, Component.literal("Vault Token").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GOLD)));
-        token.set(DataComponents.LORE, new ItemLore(List.of(Component.literal("For the cauldron by the sealed vault on level " + (li + 1) + ".")
-                .withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GRAY)))));
+        ItemStack token = new ItemStack(Items.TRIPWIRE_HOOK);
+        ItemNbt.name(token, Component.literal("Vault Token").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GOLD)));
+        ItemNbt.lore(token, List.of(Component.literal("For the cauldron by the sealed vault on level " + (li + 1) + ".")
+                .withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GRAY))));
         CompoundTag tag = new CompoundTag();
         tag.putString(TAG, Keys.id(site, li));
-        token.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
-        token.set(DataComponents.RARITY, Rarity.UNCOMMON);
-        token.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        ItemNbt.data(token, tag);
+        // (no per-item rarity in 1.20.1: the name carries the colour)
+        ItemNbt.glint(token);
         return token;
     }
 
     private static String idOf(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        net.minecraft.nbt.CompoundTag data = ItemNbt.data(stack);
         if (data == null) {
             return null;
         }
-        String id = data.copyTag().getStringOr(TAG, "");
+        String id = data.getString(TAG);
         return id.isEmpty() ? null : id;
     }
 
@@ -70,7 +67,7 @@ public final class Tokens {
         Site site = Dungeons.at(level, mob.blockPosition()).orElse(null);
         int li = site == null ? -1 : Arrivals.levelAt(site, mob.blockPosition());
         if (li >= 0) {
-            mob.spawnAtLocation(level, make(site, li));
+            mob.spawnAtLocation(make(site, li));
         }
     }
 

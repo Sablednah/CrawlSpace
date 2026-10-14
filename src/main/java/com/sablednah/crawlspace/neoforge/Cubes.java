@@ -21,7 +21,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -115,13 +115,13 @@ public final class Cubes {
             int[] c = t.targets()[k];
             beat[k] = new int[] {o.getX() + c[0], o.getY() + c[1], o.getZ() + c[2]};
         }
-        Slime cube = EntityType.SLIME.create(level, EntitySpawnReason.EVENT);
+        Slime cube = EntityType.SLIME.create(level);
         if (cube == null) {
             return;
         }
         int mid = beat.length / 2;
         cube.setSize(5, false);
-        cube.snapTo(beat[mid][0] + 0.5, beat[mid][1], beat[mid][2] + 0.5, 0, 0);
+        cube.moveTo(beat[mid][0] + 0.5, beat[mid][1], beat[mid][2] + 0.5, 0, 0);
         cube.setNoAi(true);
         // A slime's solid core hides almost everything inside it, so the slime is the cube's touch and its hits,
         // and what you see is a body of green glass the same size, through which its prisoners show.
@@ -138,7 +138,7 @@ public final class Cubes {
         cube.setPersistenceRequired();
         level.addFreshEntity(cube);
         Cube c = new Cube(level, cube.getUUID(), beat, t.level(), mid);
-        Display.BlockDisplay body = EntityType.BLOCK_DISPLAY.create(level, EntitySpawnReason.EVENT);
+        Display.BlockDisplay body = EntityType.BLOCK_DISPLAY.create(level);
         if (body != null) {
             double w = cube.getBbWidth();
             net.minecraft.nbt.CompoundTag tag = new net.minecraft.nbt.CompoundTag();
@@ -152,9 +152,8 @@ public final class Cubes {
             tf.put("scale", floats((float) w, (float) cube.getBbHeight(), (float) w));
             tag.put("transformation", tf);
             tag.putInt("teleport_duration", 2);
-            body.load(net.minecraft.world.level.storage.TagValueInput.create(net.minecraft.util.ProblemReporter.DISCARDING,
-                    level.registryAccess(), tag));
-            body.snapTo(cube.getX(), cube.getY(), cube.getZ(), 0, 0);
+            body.load(tag); // 1.20.1: no teleport smoothing on displays (1.20.2)
+            body.moveTo(cube.getX(), cube.getY(), cube.getZ(), 0, 0);
             body.addTag(HELD);
             body.addTag(BODY);
             level.addFreshEntity(body);
@@ -165,11 +164,11 @@ public final class Cubes {
         String theme = site.built().plan().levels().get(t.level()).theme.name();
         int monsters = 1 + level.getRandom().nextInt(2);
         for (int k = 0; k < monsters; k++) {
-            Entity e = Bestiary.common(theme, level.getRandom()).create(level, EntitySpawnReason.EVENT);
+            Entity e = Bestiary.common(theme, level.getRandom()).create(level);
             if (!(e instanceof Mob m)) {
                 continue;
             }
-            m.snapTo(cube.getX(), cube.getY() + 0.3, cube.getZ(), level.getRandom().nextFloat() * 360f, 0);
+            m.moveTo(cube.getX(), cube.getY() + 0.3, cube.getZ(), level.getRandom().nextFloat() * 360f, 0);
             m.setNoAi(true);
             m.setNoGravity(true);
             m.setSilent(true);
@@ -182,12 +181,12 @@ public final class Cubes {
         ItemStack[] things = {new ItemStack(Items.BONE), new ItemStack(Items.SKELETON_SKULL), new ItemStack(Items.GOLD_INGOT), new ItemStack(Items.IRON_SWORD)};
         double[][] spots = {{0.7, 0.4, 0.7}, {-0.8, 1.6, -0.6}, {0.2, 1.9, 0.8}, {-0.3, 0.9, -0.9}};
         for (int k = 0; k < things.length; k++) {
-            Display.ItemDisplay d = EntityType.ITEM_DISPLAY.create(level, EntitySpawnReason.EVENT);
+            Display.ItemDisplay d = EntityType.ITEM_DISPLAY.create(level);
             if (d == null) {
                 continue;
             }
             d.getSlot(0).set(things[k]);
-            d.snapTo(cube.getX(), cube.getY() + 1, cube.getZ(), level.getRandom().nextFloat() * 360f, 0);
+            d.moveTo(cube.getX(), cube.getY() + 1, cube.getZ(), level.getRandom().nextFloat() * 360f, 0);
             d.addTag(HELD);
             level.addFreshEntity(d);
             c.held.add(d.getUUID());
@@ -227,7 +226,7 @@ public final class Cubes {
             double y = c.beat[k][1] + (c.beat[n][1] - c.beat[k][1]) * f;
             double z = c.beat[k][2] + (c.beat[n][2] - c.beat[k][2]) * f + 0.5;
             float yaw = (float) Math.toDegrees(Math.atan2(-(c.beat[n][0] - c.beat[k][0]) * c.dir, (c.beat[n][2] - c.beat[k][2]) * c.dir));
-            cube.snapTo(x, y, z, yaw, 0);
+            cube.moveTo(x, y, z, yaw, 0);
             cube.setYHeadRot(yaw);
             for (int h = 0; h < c.held.size(); h++) {
                 Entity held = c.level.getEntity(c.held.get(h));
@@ -235,13 +234,13 @@ public final class Cubes {
                     double[] off = c.offsets.get(h);
                     // The body stays square to the corridor; what it holds turns slowly as it drifts.
                     float turn = held.getTags().contains(BODY) ? 0 : held.getYRot() + 0.5f;
-                    held.snapTo(x + off[0], y + off[1], z + off[2], turn, 0);
+                    held.moveTo(x + off[0], y + off[1], z + off[2], turn, 0);
                 }
             }
             if (gameTime % 10 == 0) {
                 for (ServerPlayer p : c.level.players()) {
                     if (!p.isSpectator() && !p.isCreative() && p.getBoundingBox().intersects(cube.getBoundingBox())) {
-                        p.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 30, 2));
+                        p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 30, 2));
                         p.displayClientMessage(Component.literal("The cube engulfs you! Its acid burns.").withStyle(ChatFormatting.GREEN), true);
                     }
                 }
@@ -254,7 +253,7 @@ public final class Cubes {
      * blueprint, and whatever it had swallowed nearby is gathered back into it.
      * Without this it would stand frozen where the server stopped.
      */
-    public static void onJoin(net.neoforged.neoforge.event.entity.EntityJoinLevelEvent e) {
+    public static void onJoin(net.minecraftforge.event.entity.EntityJoinLevelEvent e) {
         if (!(e.getLevel() instanceof ServerLevel level) || !(e.getEntity() instanceof Slime cube) || !cube.getTags().contains(TAG)
                 || CUBES.containsKey(cube.getUUID())) {
             return;
@@ -291,15 +290,8 @@ public final class Cubes {
         });
     }
 
-    /** A cube never splits. */
-    public static void onSplit(net.neoforged.neoforge.event.entity.living.MobSplitEvent e) {
-        if (e.getParent().getTags().contains(TAG)) {
-            e.setCanceled(true);
-        }
-    }
-
     /** Things it holds take no harm until it dies. */
-    public static void onHurt(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) {
+    public static void onHurt(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
         if (e.getEntity().getTags().contains(HELD)) {
             e.setCanceled(true);
         }
@@ -307,6 +299,9 @@ public final class Cubes {
 
     /** A cube dies: its prisoners fall out hurt and angry, its treasure spills, and the rest dissolves. */
     static void died(ServerLevel level, Mob mob) {
+        if (mob instanceof net.minecraft.world.entity.monster.Slime slime && mob.getTags().contains(TAG)) {
+            slime.setSize(1, false); // 1.20.1 has no split event: a size-1 slime does not split as it is removed
+        }
         Cube c = CUBES.remove(mob.getUUID());
         if (c == null || !mob.getTags().contains(TAG)) {
             return;
@@ -329,19 +324,17 @@ public final class Cubes {
             } else if (held instanceof Display.ItemDisplay d) {
                 ItemStack s = d.getSlot(0).get().copy();
                 if (!s.isEmpty()) {
-                    mob.spawnAtLocation(level, s);
+                    mob.spawnAtLocation(s);
                 }
                 d.discard();
             }
         }
-        var loot = level.getServer().reloadableRegistries().getLootTable(net.minecraft.resources.ResourceKey.create(
-                net.minecraft.core.registries.Registries.LOOT_TABLE,
-                net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + Math.min(5, 2 + c.li / 2))));
+        var loot = level.getServer().getLootData().getLootTable(new net.minecraft.resources.ResourceLocation(CrawlSpace.MODID, "chests/tier" + Math.min(5, 2 + c.li / 2)));
         var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
                 .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, mob.position())
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
         for (ItemStack s : loot.getRandomItems(params)) {
-            mob.spawnAtLocation(level, s);
+            mob.spawnAtLocation(s);
         }
         level.sendParticles(ParticleTypes.ITEM_SLIME, mob.getX(), mob.getY() + 1, mob.getZ(), 60, 1.2, 1, 1.2, 0.1);
         level.playSound(null, mob.blockPosition(), SoundEvents.SLIME_DEATH, SoundSource.HOSTILE, 2f, 0.4f);

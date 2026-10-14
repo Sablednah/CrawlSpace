@@ -8,12 +8,12 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
@@ -125,47 +125,48 @@ public final class Mimics {
 
     /** A mimic dies: what its chest held, rolled now, at its feet. */
     static void died(ServerLevel level, Mob mob) {
-        String table = mob.getPersistentData().getStringOr(LOOT, "");
+        String table = mob.getPersistentData().getString(LOOT);
         if (!mob.getTags().contains(TAG) || table.isEmpty()) {
             return;
         }
-        Identifier id = Identifier.tryParse(table);
+        ResourceLocation id = ResourceLocation.tryParse(table);
         if (id == null) {
             return;
         }
-        net.minecraft.world.level.storage.loot.LootTable loot = level.getServer().reloadableRegistries()
-                .getLootTable(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE, id));
+        net.minecraft.world.level.storage.loot.LootTable loot = level.getServer().getLootData()
+                .getLootTable(id);
         net.minecraft.world.level.storage.loot.LootParams params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
                 .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, mob.position())
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
         int n = 0;
         for (ItemStack stack : loot.getRandomItems(params)) {
-            mob.spawnAtLocation(level, stack);
+            mob.spawnAtLocation(stack);
             n++;
         }
         com.sablednah.crawlspace.CrawlSpace.LOGGER.info("CrawlSpace: a mimic died at {} and dropped {} stack(s) of {}", mob.blockPosition(), n, table);
-        mob.spawnAtLocation(level, new ItemStack(Items.CHEST));
+        mob.spawnAtLocation(new ItemStack(Items.CHEST));
     }
 
     /** The chest is gone, and in its place a Mimic, wearing it, set on whoever opened it. */
     private static void bite(ServerLevel level, ServerPlayer player, BlockPos pos, int li) {
         String table = "";
         if (level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity chest) {
-            if (chest.getLootTable() != null) {
-                table = chest.getLootTable().identifier().toString();
+            net.minecraft.nbt.CompoundTag saved = chest.saveWithoutMetadata(); // 1.20.1: the table is only in its NBT
+            if (saved.contains("LootTable")) {
+                table = saved.getString("LootTable");
             } else {
                 // Already rolled (someone looked in from creative): what it holds is what it held.
                 net.minecraft.world.Containers.dropContents(level, pos, chest);
             }
         }
         level.removeBlock(pos, false);
-        Mob mimic = EntityType.HUSK.create(level, EntitySpawnReason.EVENT);
+        Mob mimic = EntityType.HUSK.create(level);
         if (mimic == null) {
             return;
         }
-        mimic.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, player.getYRot() + 180, 0);
+        mimic.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, player.getYRot() + 180, 0);
         mimic.addTag(Powers.NOROLL);
-        mimic.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.EVENT, null);
+        mimic.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), MobSpawnType.EVENT, null, null);
         mimic.setItemSlot(EquipmentSlot.HEAD, new ItemStack(Items.CHEST));
         mimic.setDropChance(EquipmentSlot.HEAD, 0f);
         mimic.getAttribute(Attributes.MAX_HEALTH).setBaseValue(30 + 4.0 * li);

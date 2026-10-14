@@ -18,7 +18,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.ItemStack;
@@ -117,11 +117,11 @@ public final class Prisoners {
         for (BlockPos b : bars) {
             level.setBlock(b, Block.updateFromNeighbourShapes(level.getBlockState(b), level, b), 3);
         }
-        Mob prisoner = EntityType.VILLAGER.create(level, EntitySpawnReason.EVENT);
+        Mob prisoner = EntityType.VILLAGER.create(level);
         if (prisoner == null) {
             return;
         }
-        prisoner.snapTo(best.getX() + 0.5, best.getY(), best.getZ() + 0.5, 0, 0);
+        prisoner.moveTo(best.getX() + 0.5, best.getY(), best.getZ() + 0.5, 0, 0);
         prisoner.setNoAi(true);
         prisoner.setPersistenceRequired();
         prisoner.addTag(TAG);
@@ -147,14 +147,14 @@ public final class Prisoners {
      * {@code setInvulnerable}, which 26.3 no longer has: this is the same on
      * every line.
      */
-    public static void onHurt(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) {
+    public static void onHurt(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
         if (e.getEntity().getTags().contains(TAG)) {
             e.setCanceled(true);
         }
     }
 
     /** Using a prisoner: freed, if the lair's boss is dead. Cancels the villager's own trade screen either way. */
-    public static void onInteract(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.EntityInteract e) {
+    public static void onInteract(net.minecraftforge.event.entity.player.PlayerInteractEvent.EntityInteract e) {
         if (!(e.getTarget() instanceof Mob prisoner) || !prisoner.getTags().contains(TAG)
                 || !(e.getLevel() instanceof ServerLevel level) || !(e.getEntity() instanceof ServerPlayer player)) {
             return;
@@ -218,15 +218,13 @@ public final class Prisoners {
         }
         player.sendSystemMessage(Component.literal("Prisoner: \"Free! Thank you. Take this, and hear me: " + secret + "\"")
                 .withStyle(ChatFormatting.AQUA));
-        var loot = level.getServer().reloadableRegistries().getLootTable(net.minecraft.resources.ResourceKey.create(
-                net.minecraft.core.registries.Registries.LOOT_TABLE,
-                net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + Math.min(5, 1 + li / 2))));
+        var loot = level.getServer().getLootData().getLootTable(new net.minecraft.resources.ResourceLocation(CrawlSpace.MODID, "chests/tier" + Math.min(5, 1 + li / 2)));
         var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
                 .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, prisoner.position())
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
         List<ItemStack> gifts = loot.getRandomItems(params);
         for (int k = 0; k < Math.min(3, gifts.size()); k++) {
-            prisoner.spawnAtLocation(level, gifts.get(k));
+            prisoner.spawnAtLocation(gifts.get(k));
         }
         prisoner.removeTag(TAG);
         Crumbles.later(level, 60, () -> {

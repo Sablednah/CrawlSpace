@@ -197,7 +197,6 @@ public final class Restocks {
         }
         state.put(key, Integer.toString(epoch));
         chest.clearContent();
-        chest.setLootTable(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,
-                net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, table)), level.getRandom().nextLong());
+        chest.setLootTable(new net.minecraft.resources.ResourceLocation(CrawlSpace.MODID, table), level.getRandom().nextLong());
     }
 }

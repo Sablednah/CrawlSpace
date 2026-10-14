@@ -16,7 +16,6 @@ import com.sablednah.crawlspace.plan.Room;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -25,14 +24,13 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.EndPortalFrameBlock;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -202,10 +200,10 @@ public final class ObjectiveRooms {
                 state.fire(k.above(STARTED));
                 Mob shaman = foe(level, site, t, EntityType.EVOKER, "The Shaman", anchor.relative(net.minecraft.core.Direction.UP, 0), player, 1);
                 for (int g = 0; g < 2 && shaman != null; g++) {
-                    Entity e = EntityType.VINDICATOR.create(level, EntitySpawnReason.EVENT);
+                    Entity e = EntityType.VINDICATOR.create(level);
                     if (e instanceof Mob m) {
-                        m.snapTo(shaman.getX() + (g == 0 ? 1.5 : -1.5), shaman.getY(), shaman.getZ(), 0, 0);
-                        m.finalizeSpawn(level, level.getCurrentDifficultyAt(anchor), EntitySpawnReason.EVENT, null);
+                        m.moveTo(shaman.getX() + (g == 0 ? 1.5 : -1.5), shaman.getY(), shaman.getZ(), 0, 0);
+                        m.finalizeSpawn(level, level.getCurrentDifficultyAt(anchor), MobSpawnType.EVENT, null, null);
                         m.addTag(Bestiary.KIN);
                         m.setPersistenceRequired();
                         level.addFreshEntity(m);
@@ -274,8 +272,8 @@ public final class ObjectiveRooms {
     }
 
     private static boolean flag(ItemStack stack, String key) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        return data != null && data.copyTag().getBooleanOr(key, false);
+        net.minecraft.nbt.CompoundTag data = ItemNbt.data(stack);
+        return data != null && data.getBoolean(key);
     }
 
     /**
@@ -286,11 +284,11 @@ public final class ObjectiveRooms {
      */
     private static ItemStack special(net.minecraft.world.item.Item item, String name, String key) {
         ItemStack s = new ItemStack(item);
-        s.set(DataComponents.CUSTOM_NAME, Component.literal(name).withStyle(st -> st.withItalic(false).withColor(ChatFormatting.GOLD)));
+        ItemNbt.name(s, Component.literal(name).withStyle(st -> st.withItalic(false).withColor(ChatFormatting.GOLD)));
         CompoundTag tag = new CompoundTag();
         tag.putBoolean(key, true);
-        s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
-        s.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        ItemNbt.data(s, tag);
+        ItemNbt.glint(s);
         return s;
     }
 
@@ -415,7 +413,7 @@ public final class ObjectiveRooms {
     }
 
     /** Striking the pit's guardian rouses it; the channelling shaman can be struck. */
-    public static void onHurt(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) {
+    public static void onHurt(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
         if (e.getEntity() instanceof Mob m && m.getTags().contains(FOE) && m.isNoAi() && m.getType() == EntityType.ZOMBIE
                 && m.level() instanceof ServerLevel level) {
             ServerPlayer p = e.getSource().getEntity() instanceof ServerPlayer sp ? sp : null;
@@ -424,18 +422,18 @@ public final class ObjectiveRooms {
     }
 
     private static String tag(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
-        return data != null && data.copyTag().getBooleanOr(RELIC, false) ? RELIC : null;
+        net.minecraft.nbt.CompoundTag data = ItemNbt.data(stack);
+        return data != null && data.getBoolean(RELIC) ? RELIC : null;
     }
 
     private static Mob foe(ServerLevel level, Site site, Trigger t, EntityType<?> type, String name, BlockPos at, ServerPlayer player, double health) {
-        Entity e = type.create(level, EntitySpawnReason.EVENT);
+        Entity e = type.create(level);
         if (!(e instanceof Mob mob)) {
             return null;
         }
-        mob.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
+        mob.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, 0, 0);
         mob.addTag(Powers.NOROLL);
-        mob.finalizeSpawn(level, level.getCurrentDifficultyAt(at), EntitySpawnReason.EVENT, null);
+        mob.finalizeSpawn(level, level.getCurrentDifficultyAt(at), MobSpawnType.EVENT, null, null);
         Powers.elite(mob, t.level() + 2, level.getRandom(), 1);
         var max = mob.getAttribute(Attributes.MAX_HEALTH);
         if (max != null) {
@@ -564,14 +562,13 @@ public final class ObjectiveRooms {
                 }
             } else if (part == Part.OBJ_RELIC && job == 0 && !done) {
                 ItemStack relic = new ItemStack(Items.HEART_OF_THE_SEA);
-                relic.set(DataComponents.CUSTOM_NAME, Component.literal("The Relic").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GOLD)));
+                ItemNbt.name(relic, Component.literal("The Relic").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GOLD)));
                 CompoundTag tag = new CompoundTag();
                 tag.putBoolean(RELIC, true);
-                relic.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+                ItemNbt.data(relic, tag);
                 // Fire-proof, like netherite: dropped in lava it floats there long enough to be seen to go in. An
                 // ordinary item burned up within a tick, before the once-a-second check could find it.
-                relic.set(DataComponents.DAMAGE_RESISTANT, new net.minecraft.world.item.component.DamageResistant(
-                        net.minecraft.tags.DamageTypeTags.IS_FIRE));
+                // (fire-proofing is on the item entity in 1.20.1: ObjectiveRooms.onItemJoin)
                 if (!player.getInventory().add(relic)) {
                     level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY() + 0.5, player.getZ(), relic));
                 }
@@ -594,7 +591,7 @@ public final class ObjectiveRooms {
                     CrawlState.of(level).fire(BlockPos.of(Long.parseLong(tag.substring(OF.length()))).above(THIEF_DEAD));
                 }
             }
-            mob.spawnAtLocation(level, special(Items.HEART_OF_THE_SEA, "The Dragon's Eye", EYE));
+            mob.spawnAtLocation(special(Items.HEART_OF_THE_SEA, "The Dragon's Eye", EYE));
             for (ServerPlayer p : level.players()) {
                 if (p.distanceToSqr(mob) < 24 * 24) {
                     Triggers.tell(p, "The Eye-Thief drops the dragon's eye. Set it in the dragon's head.");
@@ -628,7 +625,7 @@ public final class ObjectiveRooms {
     }
 
     /** Breaking a fountain's corrupted stone: it costs, and the fourth completes the job. */
-    public static void onBreak(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent e) {
+    public static void onBreak(net.minecraftforge.event.level.BlockEvent.BreakEvent e) {
         if (!(e.getLevel() instanceof ServerLevel level) || !(e.getPlayer() instanceof ServerPlayer player)) {
             return;
         }
@@ -656,7 +653,7 @@ public final class ObjectiveRooms {
             state.fire(pos.above(BROKEN));
             level.setBlock(pos, Blocks.SMOOTH_QUARTZ.defaultBlockState(), 3);
             level.playSound(null, pos, SoundEvents.AMETHYST_BLOCK_BREAK, SoundSource.BLOCKS, 1.2f, 0.8f);
-            player.hurtServer(level, level.damageSources().magic(), 4f);
+            player.hurt(level.damageSources().magic(), 4f);
             // Each stone calls its guardians, from the level below, with knockback to drive you off the rim.
             int below = Math.min(t.level() + 1, site.built().plan().levels().size() - 1);
             Bestiary.band(level, site, below, standAt(level, pos.above()), 2, player, ObjectiveRooms::shove);
@@ -695,9 +692,8 @@ public final class ObjectiveRooms {
         BlockPos chest = standAt(level, anchor.above());
         if (level.getBlockState(chest).isAir()) {
             level.setBlock(chest, Blocks.CHEST.defaultBlockState(), 3);
-            net.minecraft.world.RandomizableContainer.setBlockEntityLootTable(level, level.getRandom(), chest,
-                    net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,
-                            net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + Math.min(5, 3 + t.level() / 2))));
+            net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity.setLootTable(level, level.getRandom(), chest,
+                    new net.minecraft.resources.ResourceLocation(CrawlSpace.MODID, "chests/tier" + Math.min(5, 3 + t.level() / 2)));
         }
         int tablets = 1 + level.getRandom().nextInt(3);
         for (int n = 0; n < tablets; n++) {
@@ -744,15 +740,14 @@ public final class ObjectiveRooms {
         if (!(mob.level() instanceof ServerLevel level)) {
             return;
         }
-        var enchants = level.registryAccess().lookupOrThrow(net.minecraft.core.registries.Registries.ENCHANTMENT);
         ItemStack held = mob.getMainHandItem();
         if (held.isEmpty()) {
             held = new ItemStack(Items.STONE_SWORD);
             mob.setItemSlot(net.minecraft.world.entity.EquipmentSlot.MAINHAND, held);
         }
         boolean bow = held.is(Items.BOW) || held.is(Items.CROSSBOW);
-        held.enchant(enchants.getOrThrow(bow ? net.minecraft.world.item.enchantment.Enchantments.PUNCH
-                : net.minecraft.world.item.enchantment.Enchantments.KNOCKBACK), 2);
+        held.enchant(bow ? net.minecraft.world.item.enchantment.Enchantments.PUNCH_ARROWS
+                : net.minecraft.world.item.enchantment.Enchantments.KNOCKBACK, 2);
         mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.MAINHAND, 0f);
     }
 
@@ -809,11 +804,11 @@ public final class ObjectiveRooms {
                     && com.sablednah.crawlspace.api.CrawlSpaceApi.perception().map(p -> p.recovers(player, t.level())).orElse(false);
             player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
             player.resetFallDistance();
-            player.teleportTo(level, foot.getX() + 0.5, foot.getY(), foot.getZ() + 0.5, java.util.Set.of(), player.getYRot(), player.getXRot(), false);
+            player.teleportTo(level, foot.getX() + 0.5, foot.getY(), foot.getZ() + 0.5, player.getYRot(), player.getXRot());
             if (caught) {
                 Triggers.tell(player, "You catch the edge as you fall, and haul yourself back up.");
             } else {
-                player.hurtServer(level, level.damageSources().lava(), 6f);
+                player.hurt(level.damageSources().lava(), 6f);
                 player.setRemainingFireTicks(80);
                 level.playSound(null, foot, SoundEvents.LAVA_EXTINGUISH, SoundSource.PLAYERS, 1f, 0.8f);
                 Triggers.tell(player, "You plunge into the fire, and drag yourself out burning. The bridge will mend in a moment.");
@@ -830,7 +825,7 @@ public final class ObjectiveRooms {
         int z = o.getZ() - com.sablednah.crawlspace.build.Towers.REACH - 3;
         int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
         level.sendParticles(ParticleTypes.REVERSE_PORTAL, player.getX(), player.getY() + 1, player.getZ(), 40, 0.3, 0.8, 0.3, 0.1);
-        player.teleportTo(level, x + 0.5, y, z + 0.5, java.util.Set.of(), 0f, 0f, false);
+        player.teleportTo(level, x + 0.5, y, z + 0.5, 0f, 0f);
         level.playSound(null, player.blockPosition(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 1f, 0.8f);
         Triggers.tell(player, "Out, into the open air, by the dungeon's entrance.");
     }

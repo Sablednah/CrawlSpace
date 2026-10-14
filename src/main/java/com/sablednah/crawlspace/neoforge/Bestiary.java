@@ -10,12 +10,12 @@ import com.sablednah.crawlspace.build.Trigger;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
@@ -62,7 +62,7 @@ public final class Bestiary {
     }
 
     private static final java.util.Set<EntityType<?>> HUMANOIDS = java.util.Set.of(EntityType.ZOMBIE, EntityType.SKELETON,
-            EntityType.DROWNED, EntityType.STRAY, EntityType.BOGGED, EntityType.WITHER_SKELETON, EntityType.HUSK);
+            EntityType.DROWNED, EntityType.STRAY, EntityType.STRAY, EntityType.WITHER_SKELETON, EntityType.HUSK);
 
     private static final Map<String, List<Pick>> COMMON = new HashMap<>();
     /** Each theme's bosses: a lair gets one of them, from its own dice. */
@@ -74,11 +74,11 @@ public final class Bestiary {
     static {
         COMMON.put("Crypt", List.of(new Pick(EntityType.ZOMBIE, 4), new Pick(EntityType.SKELETON, 4), new Pick(EntityType.SPIDER, 1)));
         COMMON.put("Sunken Halls", List.of(new Pick(EntityType.DROWNED, 4), new Pick(EntityType.ZOMBIE, 2),
-                new Pick(EntityType.SKELETON, 2), new Pick(EntityType.BOGGED, 2)));
+                new Pick(EntityType.SKELETON, 2), new Pick(EntityType.STRAY, 2)));
         COMMON.put("Old Mines", List.of(new Pick(EntityType.ZOMBIE, 3), new Pick(EntityType.SKELETON, 2),
                 new Pick(EntityType.CAVE_SPIDER, 3), new Pick(EntityType.SPIDER, 2), new Pick(EntityType.CREEPER, 1)));
         COMMON.put("Caverns", List.of(new Pick(EntityType.SPIDER, 3), new Pick(EntityType.CAVE_SPIDER, 3),
-                new Pick(EntityType.BOGGED, 2), new Pick(EntityType.CREEPER, 1), new Pick(EntityType.WITCH, 1)));
+                new Pick(EntityType.STRAY, 2), new Pick(EntityType.CREEPER, 1), new Pick(EntityType.WITCH, 1)));
         COMMON.put("Deep Halls", List.of(new Pick(EntityType.VINDICATOR, 3), new Pick(EntityType.PILLAGER, 2),
                 new Pick(EntityType.STRAY, 2), new Pick(EntityType.WITHER_SKELETON, 2), new Pick(EntityType.WITCH, 1)));
 
@@ -136,7 +136,7 @@ public final class Bestiary {
                 Item weapon = old.weapon();
                 if (o.has("weapon")) {
                     weapon = net.minecraft.core.registries.BuiltInRegistries.ITEM
-                            .getOptional(Identifier.tryParse(o.get("weapon").getAsString())).orElse(weapon);
+                            .getOptional(ResourceLocation.tryParse(o.get("weapon").getAsString())).orElse(weapon);
                 }
                 BossEvent.BossBarColor bar = old.colour();
                 if (o.has("bar")) {
@@ -158,7 +158,7 @@ public final class Bestiary {
     }
 
     private static EntityType<?> entity(String id, String theme) {
-        EntityType<?> type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.tryParse(id)).orElse(null);
+        EntityType<?> type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.tryParse(id)).orElse(null);
         if (type == null) {
             ThemeData.LOG.warn("CrawlSpace theme '{}': no entity called '{}'", theme, id);
         }
@@ -203,16 +203,16 @@ public final class Bestiary {
      * was dead seconds after it woke, before anyone reached the lair. Damage
      * between two of them is cancelled, so is turning on one another.
      */
-    public static void onHurt(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) {
+    public static void onHurt(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
         if (e.getEntity().getTags().contains(KIN) && e.getSource().getEntity() instanceof Mob attacker
                 && attacker.getTags().contains(KIN)) {
             e.setCanceled(true);
         }
     }
 
-    public static void onTarget(net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent e) {
-        if (e.getEntity().getTags().contains(KIN) && e.getNewAboutToBeSetTarget() != null
-                && e.getNewAboutToBeSetTarget().getTags().contains(KIN)) {
+    public static void onTarget(net.minecraftforge.event.entity.living.LivingChangeTargetEvent e) {
+        if (e.getEntity().getTags().contains(KIN) && e.getNewTarget() != null
+                && e.getNewTarget().getTags().contains(KIN)) {
             e.setCanceled(true);
         }
     }
@@ -266,20 +266,20 @@ public final class Bestiary {
                 continue; // a strange boss's own pack stays small: three Wardlings are a fight, six are a wipe
             }
             EntityType<?> type = boss ? spec.type() : follower ? spec.follower() : common(theme, random);
-            Entity e = type.create(level, EntitySpawnReason.STRUCTURE);
+            Entity e = type.create(level);
             if (!(e instanceof Mob mob)) {
                 continue;
             }
-            mob.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+            mob.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, random.nextFloat() * 360f, 0f);
             if (boss || follower) {
                 // Ours alone: the direct call fires no spawn event, and the tag tells a mod that hooks it anyway.
                 mob.addTag(Powers.NOROLL);
-                mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.STRUCTURE, null);
+                mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), MobSpawnType.STRUCTURE, null, null);
             } else {
                 // A room's ordinary monsters go through NeoForge's spawn event, so another mod may make them its
                 // own (ZombieMod rolls a zombie type). One that comes back named is not made an elite on top.
-                net.neoforged.neoforge.event.EventHooks.finalizeMobSpawn(mob, level, level.getCurrentDifficultyAt(pos),
-                        EntitySpawnReason.STRUCTURE, null);
+                net.minecraftforge.event.ForgeEventFactory.onFinalizeSpawn(mob, level, level.getCurrentDifficultyAt(pos),
+                        MobSpawnType.STRUCTURE, null, null);
             }
             arm(mob, depth + (boss ? 2 : 0), random);
             if (boss) {
@@ -359,12 +359,12 @@ public final class Bestiary {
     static String summon(ServerLevel level, BlockPos pos, String theme, int index, int depth) {
         RandomSource random = level.getRandom();
         if (theme == null) {
-            Entity e = common("Crypt", random).create(level, EntitySpawnReason.COMMAND);
+            Entity e = common("Crypt", random).create(level);
             if (!(e instanceof Mob mob)) {
                 return null;
             }
-            mob.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0, 0);
-            mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.COMMAND, null);
+            mob.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, 0, 0);
+            mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), MobSpawnType.COMMAND, null, null);
             arm(mob, depth, random);
             Powers.elite(mob, depth, random);
             mob.addTag(KIN);
@@ -378,13 +378,13 @@ public final class Bestiary {
         }
         BossSpec spec = choices.get(index);
         for (int k = 0; k < (spec.follower() != null ? 4 : 1); k++) {
-            Entity e = (k == 0 ? spec.type() : spec.follower()).create(level, EntitySpawnReason.COMMAND);
+            Entity e = (k == 0 ? spec.type() : spec.follower()).create(level);
             if (!(e instanceof Mob mob)) {
                 continue;
             }
-            mob.snapTo(pos.getX() + 0.5 + (k == 0 ? 0 : random.nextInt(5) - 2), pos.getY(), pos.getZ() + 0.5 + (k == 0 ? 0 : random.nextInt(5) - 2), 0, 0);
+            mob.moveTo(pos.getX() + 0.5 + (k == 0 ? 0 : random.nextInt(5) - 2), pos.getY(), pos.getZ() + 0.5 + (k == 0 ? 0 : random.nextInt(5) - 2), 0, 0);
             mob.addTag(Powers.NOROLL);
-            mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.COMMAND, null);
+            mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), MobSpawnType.COMMAND, null, null);
             if (k == 0) {
                 crown(mob, spec, depth);
                 Bosses.track(level, mob, spec.colour());
@@ -454,17 +454,17 @@ public final class Bestiary {
         if (pos == null) {
             return;
         }
-        Entity e = common(theme, random).create(level, EntitySpawnReason.EVENT);
+        Entity e = common(theme, random).create(level);
         if (!(e instanceof Mob mob)) {
             return;
         }
-        mob.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+        mob.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, random.nextFloat() * 360f, 0f);
         mob.addTag(Powers.NOROLL);
-        mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), EntitySpawnReason.EVENT, null);
+        mob.finalizeSpawn(level, level.getCurrentDifficultyAt(pos), MobSpawnType.EVENT, null, null);
         arm(mob, li + 2, random);
         Powers.elite(mob, Math.max(li, 3), random, 2);
-        modify(mob, Attributes.SCALE, "hunter_scale", 0.35, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-        modify(mob, Attributes.MAX_HEALTH, "hunter_health", 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        // 1.20.1 has no scale attribute (1.20.5): modify(mob, Attributes.SCALE, "hunter_scale", 0.35, AttributeModifier.Operation.MULTIPLY_BASE);
+        modify(mob, Attributes.MAX_HEALTH, "hunter_health", 1.0, AttributeModifier.Operation.MULTIPLY_BASE);
         AttributeInstance range = mob.getAttribute(Attributes.FOLLOW_RANGE);
         if (range != null) {
             range.setBaseValue(96);
@@ -500,12 +500,12 @@ public final class Bestiary {
             if (!level.getBlockState(p).isAir() || !level.getBlockState(p.above()).isAir() || level.getBlockState(p.below()).isAir()) {
                 continue;
             }
-            Entity e = common(theme, random).create(level, EntitySpawnReason.EVENT);
+            Entity e = common(theme, random).create(level);
             if (!(e instanceof Mob mob)) {
                 continue;
             }
-            mob.snapTo(p.getX() + 0.5, p.getY(), p.getZ() + 0.5, random.nextFloat() * 360f, 0f);
-            net.neoforged.neoforge.event.EventHooks.finalizeMobSpawn(mob, level, level.getCurrentDifficultyAt(p), EntitySpawnReason.EVENT, null);
+            mob.moveTo(p.getX() + 0.5, p.getY(), p.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+            net.minecraftforge.event.ForgeEventFactory.onFinalizeSpawn(mob, level, level.getCurrentDifficultyAt(p), MobSpawnType.EVENT, null, null);
             arm(mob, li, random);
             mob.addTag(KIN);
             level.addFreshEntityWithPassengers(mob);
@@ -535,12 +535,12 @@ public final class Bestiary {
             if (!level.getBlockState(p).isAir() || !level.getBlockState(p.above()).isAir() || level.getBlockState(p.below()).isAir()) {
                 p = at;
             }
-            Entity e = common(theme, random).create(level, EntitySpawnReason.EVENT);
+            Entity e = common(theme, random).create(level);
             if (!(e instanceof Mob mob)) {
                 continue;
             }
-            mob.snapTo(p.getX() + 0.5, p.getY(), p.getZ() + 0.5, random.nextFloat() * 360f, 0f);
-            net.neoforged.neoforge.event.EventHooks.finalizeMobSpawn(mob, level, level.getCurrentDifficultyAt(p), EntitySpawnReason.EVENT, null);
+            mob.moveTo(p.getX() + 0.5, p.getY(), p.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+            net.minecraftforge.event.ForgeEventFactory.onFinalizeSpawn(mob, level, level.getCurrentDifficultyAt(p), MobSpawnType.EVENT, null, null);
             arm(mob, li, random);
             if (random.nextDouble() < Powers.eliteChance(li) && Powers.elite(mob, li, random)) {
                 Powers.track(level, mob);
@@ -569,13 +569,13 @@ public final class Bestiary {
             if (!level.getBlockState(at).isAir() || level.getBlockState(at.below()).isAir()) {
                 continue;
             }
-            Entity e = type.create(level, EntitySpawnReason.EVENT);
+            Entity e = type.create(level);
             if (!(e instanceof Mob mob)) {
                 continue;
             }
-            mob.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+            mob.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, random.nextFloat() * 360f, 0f);
             mob.addTag(Powers.NOROLL);
-            mob.finalizeSpawn(level, level.getCurrentDifficultyAt(at), EntitySpawnReason.EVENT, null);
+            mob.finalizeSpawn(level, level.getCurrentDifficultyAt(at), MobSpawnType.EVENT, null, null);
             mob.addTag(KIN);
             mob.addTag(Powers.SPAWN);
             level.addFreshEntity(mob);
@@ -595,12 +595,12 @@ public final class Bestiary {
             if (!level.getBlockState(at).isAir() || !level.getBlockState(at.above()).isAir() || level.getBlockState(at.below()).isAir()) {
                 continue;
             }
-            net.minecraft.world.entity.npc.wanderingtrader.WanderingTrader t = EntityType.WANDERING_TRADER.create(level, EntitySpawnReason.EVENT);
+            net.minecraft.world.entity.npc.WanderingTrader t = EntityType.WANDERING_TRADER.create(level);
             if (t == null) {
                 return false;
             }
-            t.snapTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, random.nextFloat() * 360f, 0f);
-            t.finalizeSpawn(level, level.getCurrentDifficultyAt(at), EntitySpawnReason.EVENT, null);
+            t.moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, random.nextFloat() * 360f, 0f);
+            t.finalizeSpawn(level, level.getCurrentDifficultyAt(at), MobSpawnType.EVENT, null, null);
             t.setDespawnDelay(3 * 60 * 20);
             t.setCustomName(Component.literal("the Stranger").withStyle(ChatFormatting.DARK_AQUA));
             t.addTag(KIN);
@@ -613,8 +613,7 @@ public final class Bestiary {
 
     /** A glint for the dungeon clock: one thing from the level's supplies, dropped at a player's feet. */
     static void glint(ServerLevel level, net.minecraft.server.level.ServerPlayer p, int li) {
-        var table = level.getServer().reloadableRegistries().getLootTable(net.minecraft.resources.ResourceKey.create(
-                net.minecraft.core.registries.Registries.LOOT_TABLE, Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + Math.min(5, 1 + li / 2))));
+        var table = level.getServer().getLootData().getLootTable(new ResourceLocation(CrawlSpace.MODID, "chests/tier" + Math.min(5, 1 + li / 2)));
         var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
                 .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, p.position())
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
@@ -665,7 +664,7 @@ public final class Bestiary {
                 mob.setDropChance(EquipmentSlot.MAINHAND, 0.05f);
             }
         }
-        modify(mob, Attributes.MAX_HEALTH, "depth_health", 2.0 * depth, AttributeModifier.Operation.ADD_VALUE);
+        modify(mob, Attributes.MAX_HEALTH, "depth_health", 2.0 * depth, AttributeModifier.Operation.ADDITION);
         mob.setHealth(mob.getMaxHealth());
     }
 
@@ -678,15 +677,15 @@ public final class Bestiary {
         if (spec.health() > 0) {
             base(mob, Attributes.MAX_HEALTH, spec.health() + 8.0 * depth);
         } else {
-            modify(mob, Attributes.MAX_HEALTH, "boss_health", 30 + 12.0 * depth, AttributeModifier.Operation.ADD_VALUE);
+            modify(mob, Attributes.MAX_HEALTH, "boss_health", 30 + 12.0 * depth, AttributeModifier.Operation.ADDITION);
         }
         if (spec.damage() > 0) {
             base(mob, Attributes.ATTACK_DAMAGE, spec.damage() + depth / 2.0);
         } else {
-            modify(mob, Attributes.ATTACK_DAMAGE, "boss_damage", 1 + depth, AttributeModifier.Operation.ADD_VALUE);
+            modify(mob, Attributes.ATTACK_DAMAGE, "boss_damage", 1 + depth, AttributeModifier.Operation.ADDITION);
         }
-        modify(mob, Attributes.SCALE, "boss_scale", spec.scale() - 1, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-        modify(mob, Attributes.MOVEMENT_SPEED, "boss_speed", spec.speed() - 1, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        // 1.20.1 has no scale attribute (1.20.5): modify(mob, Attributes.SCALE, "boss_scale", spec.scale() - 1, AttributeModifier.Operation.MULTIPLY_BASE);
+        modify(mob, Attributes.MOVEMENT_SPEED, "boss_speed", spec.speed() - 1, AttributeModifier.Operation.MULTIPLY_BASE);
         // A boss notices anyone in its lair: an endermite's own 16 left the Gnawing Mite blind to a player across a big room.
         reach(mob);
         if (spec.scale() != 1) {
@@ -715,7 +714,7 @@ public final class Bestiary {
     /** One of a strange boss's own pack (a Wardling): its size, health and bite. */
     private static void follow(Mob mob, BossSpec spec) {
         reach(mob);
-        modify(mob, Attributes.SCALE, "follower_scale", spec.followerScale() - 1, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        // 1.20.1 has no scale attribute (1.20.5): modify(mob, Attributes.SCALE, "follower_scale", spec.followerScale() - 1, AttributeModifier.Operation.MULTIPLY_BASE);
         if (spec.followerHealth() > 0) {
             base(mob, Attributes.MAX_HEALTH, spec.followerHealth());
         }
@@ -728,18 +727,19 @@ public final class Bestiary {
         mob.setHealth(mob.getMaxHealth());
     }
 
-    private static void base(Mob mob, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr, double value) {
+    private static void base(Mob mob, net.minecraft.world.entity.ai.attributes.Attribute attr, double value) {
         AttributeInstance inst = mob.getAttribute(attr);
         if (inst != null) {
             inst.setBaseValue(value);
         }
     }
 
-    private static void modify(Mob mob, net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attr,
+    private static void modify(Mob mob, net.minecraft.world.entity.ai.attributes.Attribute attr,
             String id, double amount, AttributeModifier.Operation op) {
         AttributeInstance inst = mob.getAttribute(attr);
         if (inst != null && amount != 0) {
-            inst.addPermanentModifier(new AttributeModifier(Identifier.fromNamespaceAndPath(CrawlSpace.MODID, id), amount, op));
+            inst.removeModifier(Powers.uuid(id));
+            inst.addPermanentModifier(new AttributeModifier(Powers.uuid(id), "crawlspace:" + id, amount, op));
         }
     }
 

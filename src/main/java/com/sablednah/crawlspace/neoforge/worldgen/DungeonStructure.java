@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import com.sablednah.crawlspace.CrawlSpace;
 import com.sablednah.crawlspace.neoforge.CrawlConfig;
 import com.sablednah.crawlspace.neoforge.EntranceStyle;
@@ -28,7 +28,7 @@ import net.minecraft.world.level.levelgen.structure.StructureType;
  */
 public final class DungeonStructure extends Structure {
 
-    public static final MapCodec<DungeonStructure> CODEC = simpleCodec(DungeonStructure::new);
+    public static final Codec<DungeonStructure> CODEC = simpleCodec(DungeonStructure::new);
     /** Ground samples are this far apart; each cell uses the lowest of the four round it. */
     private static final int SAMPLE = 8;
 
@@ -45,7 +45,7 @@ public final class DungeonStructure extends Structure {
         int x = cp.getMiddleBlockX();
         int z = cp.getMiddleBlockZ();
         int ground = ctx.chunkGenerator().getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, ctx.heightAccessor(), ctx.randomState());
-        int minY = ctx.heightAccessor().getMinY();
+        int minY = ctx.heightAccessor().getMinBuildHeight();
         int minLevels = CrawlConfig.minLevels();
         // A cheap first refusal before any planning: not even the shallowest dungeon fits.
         if (ground - DungeonPlan.MIN_TOP - (minLevels - 1) * Planner.LEVEL_SPACING - 4 < minY + 6) {

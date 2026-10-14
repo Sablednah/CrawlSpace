@@ -414,8 +414,8 @@ final class SetPieces {
             }
         }
         // One lamp, hanging over the pit.
-        bp.statue(cx, f + 6, cz, "minecraft:iron_chain", 0, i);
-        bp.statue(cx, f + 5, cz, "minecraft:iron_chain", 0, i);
+        bp.statue(cx, f + 6, cz, "minecraft:chain", 0, i);
+        bp.statue(cx, f + 5, cz, "minecraft:chain", 0, i);
         bp.statue(cx, f + 4, cz, "minecraft:lantern[hanging=true]", 0, i);
         b.anchor = new int[] {cx, f - 3, cz};
         return b;

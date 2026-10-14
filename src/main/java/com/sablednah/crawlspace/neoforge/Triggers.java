@@ -19,16 +19,16 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.AreaEffectCloud;
-import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
-import net.minecraft.world.entity.projectile.arrow.Arrow;
+import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.LeverBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.event.tick.PlayerTickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.TickEvent;
 
 /**
  * Watches the dungeon's triggers: ordinary blocks and floor tiles, so a lever
@@ -389,14 +389,14 @@ public final class Triggers {
             case ROCKFALL -> rockfall(level, player);
             case FROST -> {
                 player.setTicksFrozen(player.getTicksRequiredToFreeze() + 160);
-                player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 100, 1));
+                player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 100, 1));
                 level.sendParticles(net.minecraft.core.particles.ParticleTypes.SNOWFLAKE, player.getX(), player.getY() + 1, player.getZ(),
                         60, 1.2, 0.8, 1.2, 0.02);
                 level.playSound(null, player.blockPosition(), SoundEvents.POWDER_SNOW_STEP, SoundSource.BLOCKS, 1.5f, 0.6f);
                 tell(player, "A freezing mist rolls over you! Keep moving.");
             }
             case FIRE -> {
-                player.igniteForSeconds(4);
+                player.setSecondsOnFire(4);
                 BlockPos feet = player.blockPosition();
                 for (Direction d : Direction.Plane.HORIZONTAL) {
                     BlockPos p = feet.relative(d);
@@ -472,7 +472,7 @@ public final class Triggers {
                 }
             }
         }
-        player.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 100, 1));
+        player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 100, 1));
         level.playSound(null, feet, SoundEvents.SPIDER_AMBIENT, SoundSource.BLOCKS, 1.2f, 0.6f);
         tell(player, "Sticky webs burst from the walls! Cut your way out.");
     }
@@ -518,7 +518,7 @@ public final class Triggers {
      * free way round it; breaking a decoy says so. Creative players break
      * things as usual.
      */
-    public static void onBreak(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent e) {
+    public static void onBreak(net.minecraftforge.event.level.BlockEvent.BreakEvent e) {
         if (!(e.getLevel() instanceof ServerLevel level) || !(e.getPlayer() instanceof ServerPlayer player)
                 || player.isCreative() || !isTrapBlock(e.getState())) {
             return;
@@ -544,8 +544,8 @@ public final class Triggers {
         attempt(level, player, t, pos);
     }
 
-    public static void onTick(PlayerTickEvent.Post e) {
-        if (!(e.getEntity() instanceof ServerPlayer player) || player.isSpectator() || player.tickCount % 2 != 0) {
+    public static void onTick(TickEvent.PlayerTickEvent e) {
+        if (e.phase != TickEvent.Phase.END || !(e.player instanceof ServerPlayer player) || player.isSpectator() || player.tickCount % 2 != 0) {
             return;
         }
         ServerLevel level = (ServerLevel) player.level();
@@ -674,8 +674,8 @@ public final class Triggers {
         }
     }
 
-    private static final DustParticleOptions RED = new DustParticleOptions(0xD8322A, 0.9f);
-    private static final DustParticleOptions GREEN = new DustParticleOptions(0x3FD24A, 0.9f);
+    private static final DustParticleOptions RED = new DustParticleOptions(new org.joml.Vector3f(0xD8 / 255f, 0x32 / 255f, 0x2A / 255f), 0.9f);
+    private static final DustParticleOptions GREEN = new DustParticleOptions(new org.joml.Vector3f(0x3F / 255f, 0xD2 / 255f, 0x4A / 255f), 0.9f);
     /** How near a hint has to be before it shows, in blocks. */
     private static final int HINT_RANGE = 9;
 
@@ -773,16 +773,16 @@ public final class Triggers {
             switch (t.kind()) {
                 case DARTS, GAS, PORTCULLIS_TRAP, ALARM, WEBS, ROCKFALL, FROST, FIRE, SUMMON -> {
                     if (!state.hasFired(p)) {
-                        level.sendParticles(player, RED, false, false, p.getX() + 0.5, p.getY() + 0.1, p.getZ() + 0.5, 3, 0.3, 0.02, 0.3, 0);
+                        level.sendParticles(player, RED, false, p.getX() + 0.5, p.getY() + 0.1, p.getZ() + 0.5, 3, 0.3, 0.02, 0.3, 0);
                     }
                 }
                 case SECRET -> {
                     // One puff per doorway, from its lower block, spilling out of the wall's faces.
                     if (t.targets().length > 0 && t.targets()[0][1] == t.y() && !state.hasFired(p)) {
-                        level.sendParticles(player, GREEN, false, false, p.getX() + 0.5, p.getY() + 1.0, p.getZ() + 0.5, 4, 0.6, 0.6, 0.6, 0);
+                        level.sendParticles(player, GREEN, false, p.getX() + 0.5, p.getY() + 1.0, p.getZ() + 0.5, 4, 0.6, 0.6, 0.6, 0);
                     }
                 }
-                case TREASURE -> level.sendParticles(player, GREEN, false, false, p.getX() + 0.5, p.getY() + 0.6, p.getZ() + 0.5, 3, 0.4, 0.3, 0.4, 0);
+                case TREASURE -> level.sendParticles(player, GREEN, false, p.getX() + 0.5, p.getY() + 0.6, p.getZ() + 0.5, 3, 0.4, 0.3, 0.4, 0);
                 default -> {
                 }
             }
@@ -796,15 +796,15 @@ public final class Triggers {
      * death before anyone arrived). Generated dungeons get the same through
      * their structure's spawn_overrides. Spawners are untouched.
      */
-    public static void onSpawnCheck(net.neoforged.neoforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck e) {
-        if (e.getSpawnType() != net.minecraft.world.entity.EntitySpawnReason.NATURAL
+    public static void onSpawnCheck(net.minecraftforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck e) {
+        if (e.getSpawnType() != net.minecraft.world.entity.MobSpawnType.NATURAL
                 || e.getEntityType().getCategory() != net.minecraft.world.entity.MobCategory.MONSTER) {
             return;
         }
         ServerLevel level = e.getLevel().getLevel();
         for (Site s : CrawlState.of(level).built()) {
             if (s.contains(e.getPos())) {
-                e.setResult(net.neoforged.neoforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck.Result.FAIL);
+                e.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
                 return;
             }
         }
@@ -865,7 +865,7 @@ public final class Triggers {
         BlockPos to = caught ? safe : o.offset(centre.x(), centre.y(), centre.z());
         player.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
         player.resetFallDistance();
-        player.teleportTo(level, to.getX() + 0.5, to.getY(), to.getZ() + 0.5, java.util.Set.of(), player.getYRot(), player.getXRot(), false);
+        player.teleportTo(level, to.getX() + 0.5, to.getY(), to.getZ() + 0.5, player.getYRot(), player.getXRot());
         level.sendParticles(net.minecraft.core.particles.ParticleTypes.PORTAL, to.getX() + 0.5, to.getY() + 1, to.getZ() + 0.5, 30, 0.3, 0.6, 0.3, 0.2);
         level.playSound(null, to, SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8f, caught ? 1.4f : 0.8f);
         tell(player, caught ? "You catch yourself at the edge of the void."
@@ -908,7 +908,7 @@ public final class Triggers {
      * fall through to the End. Players never get this far; the tick above
      * moves them first.
      */
-    public static void onTravel(net.neoforged.neoforge.event.entity.EntityTravelToDimensionEvent e) {
+    public static void onTravel(net.minecraftforge.event.entity.EntityTravelToDimensionEvent e) {
         if (e.getDimension() != net.minecraft.world.level.Level.END || !(e.getEntity().level() instanceof ServerLevel level)) {
             return;
         }
@@ -970,7 +970,7 @@ public final class Triggers {
             sz += from.getStepZ() * (best - 0.55);
         }
         for (int i = 0; i < 3; i++) {
-            Arrow arrow = new Arrow(level, sx, sy, sz, new ItemStack(Items.ARROW), null);
+            Arrow arrow = new Arrow(level, sx, sy, sz);
             arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
             arrow.shoot(player.getX() - sx, player.getY() + 1.1 - sy, player.getZ() - sz, 1.5f, 4f);
             level.addFreshEntity(arrow);
@@ -1019,7 +1019,7 @@ public final class Triggers {
                 boolean clear = safe != null && safe.closerThan(f, 4)
                         && com.sablednah.crawlspace.api.CrawlSpaceApi.perception().map(q -> q.recovers(p, t.level())).orElse(false);
                 if (clear) {
-                    p.teleportTo(level, safe.getX() + 0.5, safe.getY(), safe.getZ() + 0.5, java.util.Set.of(), p.getYRot(), p.getXRot(), false);
+                    p.teleportTo(level, safe.getX() + 0.5, safe.getY(), safe.getZ() + 0.5, p.getYRot(), p.getXRot());
                     tell(p, "You leap clear as the floor falls away!");
                 } else {
                     tell(p, "The floor gives way!");

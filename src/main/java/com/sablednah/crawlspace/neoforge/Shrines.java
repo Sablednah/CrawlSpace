@@ -83,11 +83,11 @@ public final class Shrines {
                 player.addEffect(new MobEffectInstance(MobEffects.ABSORPTION, 120 * 20, 1));
             }
             case SWIFTNESS -> {
-                player.addEffect(new MobEffectInstance(MobEffects.SPEED, 180 * 20, 1));
-                player.addEffect(new MobEffectInstance(MobEffects.HASTE, 180 * 20, 0));
+                player.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, 180 * 20, 1));
+                player.addEffect(new MobEffectInstance(MobEffects.DIG_SPEED, 180 * 20, 0));
             }
             case WARDING -> {
-                player.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 180 * 20, 0));
+                player.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 180 * 20, 0));
                 player.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 180 * 20, 0));
             }
             case FORTUNE -> {
@@ -95,14 +95,14 @@ public final class Shrines {
                 Bestiary.glint(level, player, li);
             }
             case CURSED -> {
-                player.addEffect(new MobEffectInstance(MobEffects.NAUSEA, 10 * 20, 0));
+                player.addEffect(new MobEffectInstance(MobEffects.CONFUSION, 10 * 20, 0));
                 Bestiary.ambush(level, site, li, player);
             }
         }
         boolean bad = kind == Kind.CURSED;
         level.sendParticles(bad ? ParticleTypes.SOUL : ParticleTypes.ENCHANT, pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5,
                 30, 0.4, 0.6, 0.4, 0.2);
-        level.playSound(null, pos, bad ? SoundEvents.SOUL_ESCAPE.value() : SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 1f, bad ? 0.6f : 1.4f);
+        level.playSound(null, pos, bad ? SoundEvents.SOUL_ESCAPE : SoundEvents.BEACON_ACTIVATE, SoundSource.BLOCKS, 1f, bad ? 0.6f : 1.4f);
         player.displayClientMessage(Component.literal(kind.name + ": " + kind.gift + ".")
                 .withStyle(bad ? ChatFormatting.DARK_RED : ChatFormatting.AQUA), true);
         return true;

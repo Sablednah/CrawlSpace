@@ -60,7 +60,7 @@ public final class Sleepers {
     }
 
     /** A sleeper loaded back in after a restart: NoAI and the tag were saved with it. */
-    public static void onJoin(net.neoforged.neoforge.event.entity.EntityJoinLevelEvent e) {
+    public static void onJoin(net.minecraftforge.event.entity.EntityJoinLevelEvent e) {
         if (e.getLevel() instanceof ServerLevel level && e.getEntity() instanceof Mob mob && mob.getTags().contains(TAG)) {
             ASLEEP.put(mob.getUUID(), new Sleeper(level, mob.getUUID()));
         }
@@ -93,7 +93,7 @@ public final class Sleepers {
     }
 
     /** Hitting a sleeper wakes it, and its pack. */
-    public static void onHurt(net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) {
+    public static void onHurt(net.minecraftforge.event.entity.living.LivingAttackEvent e) {
         if (e.getEntity() instanceof Mob mob && mob.getTags().contains(TAG) && mob.level() instanceof ServerLevel level) {
             ServerPlayer p = e.getSource().getEntity() instanceof ServerPlayer sp ? sp : null;
             wake(level, mob, p, "is struck awake");

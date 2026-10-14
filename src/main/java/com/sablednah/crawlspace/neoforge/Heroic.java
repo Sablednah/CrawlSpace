@@ -6,7 +6,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -53,7 +53,7 @@ public final class Heroic {
     }
 
     /** Using an item: a replay tablet, read inside a dungeon. */
-    public static void onUseItem(net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickItem e) {
+    public static void onUseItem(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickItem e) {
         if (!(e.getLevel() instanceof ServerLevel level) || !(e.getEntity() instanceof ServerPlayer player)) {
             return;
         }
@@ -101,22 +101,24 @@ public final class Heroic {
         if (t.endsWith(":" + Tablets.Bane.TOUGH.name())) {
             var a = mob.getAttribute(Attributes.MAX_HEALTH);
             if (a != null) {
-                a.addOrReplacePermanentModifier(new AttributeModifier(Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "heroic_tough"), 0.5,
-                        AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+                a.removeModifier(Powers.uuid("heroic_tough"));
+                a.addPermanentModifier(new AttributeModifier(Powers.uuid("heroic_tough"), "crawlspace:heroic_tough", 0.5,
+                        AttributeModifier.Operation.MULTIPLY_TOTAL));
                 mob.setHealth(mob.getMaxHealth());
             }
         }
         if (t.endsWith(":" + Tablets.Bane.FIERCE.name())) {
             var a = mob.getAttribute(Attributes.ATTACK_DAMAGE);
             if (a != null) {
-                a.addOrReplacePermanentModifier(new AttributeModifier(Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "heroic_fierce"), 0.5,
-                        AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+                a.removeModifier(Powers.uuid("heroic_fierce"));
+                a.addPermanentModifier(new AttributeModifier(Powers.uuid("heroic_fierce"), "crawlspace:heroic_fierce", 0.5,
+                        AttributeModifier.Operation.MULTIPLY_TOTAL));
             }
         }
     }
 
     /** Twice the experience from a dungeon monster, with the XP boon. */
-    public static void onExperience(net.neoforged.neoforge.event.entity.living.LivingExperienceDropEvent e) {
+    public static void onExperience(net.minecraftforge.event.entity.living.LivingExperienceDropEvent e) {
         if (e.getEntity().getTags().contains(Powers.NOXP)) {
             e.setDroppedExperience(0); // a numbered monster killed out of order
             return;
@@ -162,9 +164,9 @@ public final class Heroic {
     static void died(ServerLevel level, Mob mob) {
         finale(level, mob);
         if (mob.getTags().contains(Bestiary.KIN) && has(level, mob.blockPosition(), Tablets.Boon.GOLD)) {
-            mob.spawnAtLocation(level, new ItemStack(Items.GOLD_NUGGET, 2 + level.getRandom().nextInt(5)));
+            mob.spawnAtLocation(new ItemStack(Items.GOLD_NUGGET, 2 + level.getRandom().nextInt(5)));
             if (level.getRandom().nextFloat() < 0.2f) {
-                mob.spawnAtLocation(level, new ItemStack(Items.GOLD_INGOT));
+                mob.spawnAtLocation(new ItemStack(Items.GOLD_INGOT));
             }
         }
     }

@@ -11,14 +11,17 @@ import com.sablednah.crawlspace.neoforge.Triggers;
 import com.sablednah.crawlspace.neoforge.worldgen.CrawlWorldgen;
 import com.sablednah.crawlspace.neoforge.CrawlCommands;
 
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.fml.ModContainer;
-import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.config.ModConfig;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.event.server.ServerStoppingEvent;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.ModContainer;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.server.ServerLifecycleHooks;
 
 /**
  * CrawlSpace: procedural roguelike dungeons.
@@ -33,26 +36,31 @@ public final class CrawlSpace {
     public static final String MODID = "crawlspace";
     public static final Logger LOGGER = LogUtils.getLogger();
 
-    public CrawlSpace(IEventBus modBus, ModContainer container) {
+    public CrawlSpace() {
+        IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         CrawlWorldgen.register(modBus);
-        container.registerConfig(ModConfig.Type.SERVER, CrawlConfig.SPEC);
-        NeoForge.EVENT_BUS.addListener((RegisterCommandsEvent e) -> CrawlCommands.register(e.getDispatcher()));
-        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.AddServerReloadListenersEvent e) ->
-                e.addListener(com.sablednah.crawlspace.neoforge.ThemeData.ID, com.sablednah.crawlspace.neoforge.ThemeData.INSTANCE));
-        NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post e) -> {
+        ModLoadingContext.get().registerConfig(ModConfig.Type.SERVER, CrawlConfig.SPEC);
+        MinecraftForge.EVENT_BUS.addListener((RegisterCommandsEvent e) -> CrawlCommands.register(e.getDispatcher()));
+        MinecraftForge.EVENT_BUS.addListener((net.minecraftforge.event.AddReloadListenerEvent e) ->
+                e.addListener(com.sablednah.crawlspace.neoforge.ThemeData.INSTANCE));
+        MinecraftForge.EVENT_BUS.addListener((TickEvent.ServerTickEvent e) -> {
+            if (e.phase != TickEvent.Phase.END) {
+                return;
+            }
+            net.minecraft.server.MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
             Builds.tick();
             com.sablednah.crawlspace.neoforge.Crumbles.tick();
-            com.sablednah.crawlspace.neoforge.Restamp.tick(e.getServer());
-            com.sablednah.crawlspace.neoforge.Clock.tick(e.getServer());
-            Bosses.tick(e.getServer().overworld().getGameTime());
-            com.sablednah.crawlspace.neoforge.Powers.tick(e.getServer().overworld().getGameTime());
-            com.sablednah.crawlspace.neoforge.Sentries.tick(e.getServer().overworld().getGameTime());
-            com.sablednah.crawlspace.neoforge.SurvivalRooms.tick(e.getServer().overworld().getGameTime());
-            com.sablednah.crawlspace.neoforge.Sleepers.tick(e.getServer().overworld().getGameTime());
-            com.sablednah.crawlspace.neoforge.Forbidden.tick(e.getServer().overworld().getGameTime());
-            com.sablednah.crawlspace.neoforge.Cubes.tick(e.getServer().overworld().getGameTime());
+            com.sablednah.crawlspace.neoforge.Restamp.tick(server);
+            com.sablednah.crawlspace.neoforge.Clock.tick(server);
+            Bosses.tick(server.overworld().getGameTime());
+            com.sablednah.crawlspace.neoforge.Powers.tick(server.overworld().getGameTime());
+            com.sablednah.crawlspace.neoforge.Sentries.tick(server.overworld().getGameTime());
+            com.sablednah.crawlspace.neoforge.SurvivalRooms.tick(server.overworld().getGameTime());
+            com.sablednah.crawlspace.neoforge.Sleepers.tick(server.overworld().getGameTime());
+            com.sablednah.crawlspace.neoforge.Forbidden.tick(server.overworld().getGameTime());
+            com.sablednah.crawlspace.neoforge.Cubes.tick(server.overworld().getGameTime());
         });
-        NeoForge.EVENT_BUS.addListener((ServerStoppingEvent e) -> {
+        MinecraftForge.EVENT_BUS.addListener((ServerStoppingEvent e) -> {
             com.sablednah.crawlspace.neoforge.Crumbles.clear();
             com.sablednah.crawlspace.neoforge.Restamp.clear();
             com.sablednah.crawlspace.neoforge.Clock.clear();
@@ -71,41 +79,41 @@ public final class CrawlSpace {
             com.sablednah.crawlspace.neoforge.Seals.clear();
             com.sablednah.crawlspace.neoforge.ObjectiveRooms.clear();
         });
-        NeoForge.EVENT_BUS.addListener(Bosses::onJoin);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onJoin);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onHurt);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onDeath);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onDrops);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onGrief);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onSpawnerSpawn);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onSpawnPlacement);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onSpawnPosition);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Clock::onHurt);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onHurt);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Sleepers::onHurt);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Sleepers::onJoin);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Prisoners::onInteract);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Prisoners::onHurt);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Cubes::onHurt);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Cubes::onSplit);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Cubes::onJoin);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.ObjectiveRooms::onBreak);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.ObjectiveRooms::onHurt);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Heroic::onUseItem);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Heroic::onExperience);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onTarget);
-        NeoForge.EVENT_BUS.addListener(Triggers::onUse);
-        NeoForge.EVENT_BUS.addListener(Triggers::onBreak);
-        NeoForge.EVENT_BUS.addListener(Triggers::onTravel);
-        NeoForge.EVENT_BUS.addListener(Triggers::onTick);
-        NeoForge.EVENT_BUS.addListener(Triggers::onLogout);
-        NeoForge.EVENT_BUS.addListener(Triggers::onSpawnCheck);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onLeftClick);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onBreak);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onPlace);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onExplode);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onPiston);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onLogout);
-        NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Restamp::onLoad);
+        MinecraftForge.EVENT_BUS.addListener(Bosses::onJoin);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onJoin);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onHurt);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onHurtAmount);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onDeath);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onDrops);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onGrief);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onSpawnerSpawn);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onSpawnPlacement);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onSpawnPosition);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Clock::onHurt);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onHurt);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Sleepers::onHurt);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Sleepers::onJoin);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Prisoners::onInteract);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Prisoners::onHurt);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Cubes::onHurt);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Cubes::onJoin);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.ObjectiveRooms::onBreak);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.ObjectiveRooms::onHurt);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Heroic::onUseItem);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Heroic::onExperience);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onTarget);
+        MinecraftForge.EVENT_BUS.addListener(Triggers::onUse);
+        MinecraftForge.EVENT_BUS.addListener(Triggers::onBreak);
+        MinecraftForge.EVENT_BUS.addListener(Triggers::onTravel);
+        MinecraftForge.EVENT_BUS.addListener(Triggers::onTick);
+        MinecraftForge.EVENT_BUS.addListener(Triggers::onLogout);
+        MinecraftForge.EVENT_BUS.addListener(Triggers::onSpawnCheck);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onLeftClick);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onBreak);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onPlace);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onExplode);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onPiston);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Protection::onLogout);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Restamp::onLoad);
     }
 }

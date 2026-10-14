@@ -101,7 +101,7 @@ public final class Sentries {
                     w.hornAt = now + WARNING_TICKS;
                     w.target = seen.getUUID();
                     mob.setTarget(seen);
-                    w.level.playSound(null, mob.blockPosition(), SoundEvents.ARMOR_EQUIP_GENERIC.value(), SoundSource.HOSTILE, 1f, 0.6f);
+                    w.level.playSound(null, mob.blockPosition(), SoundEvents.ARMOR_EQUIP_GENERIC, SoundSource.HOSTILE, 1f, 0.6f);
                     seen.displayClientMessage(Component.literal("The sentry raises its horn! Kill it before it sounds the alarm.")
                             .withStyle(ChatFormatting.RED), true);
                 }

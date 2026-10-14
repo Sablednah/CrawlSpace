@@ -32,9 +32,9 @@ public final class Decoys {
     static void pretend(Mob mob) {
         var health = mob.getAttribute(Attributes.MAX_HEALTH);
         if (health != null) {
-            health.addOrReplacePermanentModifier(new AttributeModifier(
-                    net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "decoy_health"), -0.6,
-                    AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+            health.removeModifier(Powers.uuid("decoy_health"));
+            health.addPermanentModifier(new AttributeModifier(Powers.uuid("decoy_health"), "crawlspace:decoy_health", -0.6,
+                    AttributeModifier.Operation.MULTIPLY_TOTAL));
             mob.setHealth(mob.getMaxHealth());
         }
         mob.addTag(TAG);

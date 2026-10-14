@@ -11,12 +11,9 @@ import com.sablednah.crawlspace.plan.Feeling;
 import com.sablednah.crawlspace.plan.LevelPlan;
 import com.sablednah.crawlspace.plan.Role;
 
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.network.Filterable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.WrittenBookContent;
 
 /**
  * The rumour book on the first level's lectern (the Keep on the Borderlands'
@@ -93,22 +90,26 @@ public final class Rumours {
     }
 
     private static ItemStack write(List<String> rumours) {
-        List<Filterable<Component>> pages = new ArrayList<>();
+        // 1.20.1: a written book's pages are JSON text in its NBT.
+        net.minecraft.nbt.ListTag pages = new net.minecraft.nbt.ListTag();
         StringBuilder page = new StringBuilder("What they say of this place, and not all of it is true:\n\n");
         for (String r : rumours) {
             String line = "- " + Character.toUpperCase(r.charAt(0)) + r.substring(1) + "\n\n";
             if (page.length() + line.length() > 230) {
-                pages.add(Filterable.passThrough(Component.literal(page.toString().trim())));
+                pages.add(net.minecraft.nbt.StringTag.valueOf(Component.Serializer.toJson(Component.literal(page.toString().trim()))));
                 page = new StringBuilder();
             }
             page.append(line);
         }
         if (!page.isEmpty()) {
-            pages.add(Filterable.passThrough(Component.literal(page.toString().trim())));
+            pages.add(net.minecraft.nbt.StringTag.valueOf(Component.Serializer.toJson(Component.literal(page.toString().trim()))));
         }
         ItemStack book = new ItemStack(Items.WRITTEN_BOOK);
-        book.set(DataComponents.WRITTEN_BOOK_CONTENT, new WrittenBookContent(Filterable.passThrough("Rumours of the Deep"),
-                "a frightened delver", 0, pages, true));
+        net.minecraft.nbt.CompoundTag tag = book.getOrCreateTag();
+        tag.putString("title", "Rumours of the Deep");
+        tag.putString("author", "a frightened delver");
+        tag.put("pages", pages);
+        tag.putBoolean("resolved", true);
         return book;
     }
 }

@@ -9,7 +9,7 @@ import com.sablednah.crawlspace.neoforge.worldgen.DungeonPiece;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -19,7 +19,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
-import net.neoforged.neoforge.event.level.ChunkEvent;
+import net.minecraftforge.event.level.ChunkEvent;
 
 /**
  * Ours is the cutter, never the cut (Sable). The dungeon places in the last
@@ -39,7 +39,7 @@ import net.neoforged.neoforge.event.level.ChunkEvent;
 public final class Restamp {
 
     private static final ResourceKey<Structure> DUNGEON = ResourceKey.create(Registries.STRUCTURE,
-            Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "dungeon"));
+            new ResourceLocation(CrawlSpace.MODID, "dungeon"));
 
     private record Pending(ResourceKey<Level> dimension, ChunkPos chunk) {
     }
@@ -82,7 +82,7 @@ public final class Restamp {
     }
 
     private static void stamp(ServerLevel level, ChunkPos chunk) {
-        Structure structure = level.registryAccess().lookupOrThrow(Registries.STRUCTURE).getValue(DUNGEON);
+        Structure structure = level.registryAccess().registryOrThrow(Registries.STRUCTURE).get(DUNGEON);
         if (structure == null) {
             return;
         }

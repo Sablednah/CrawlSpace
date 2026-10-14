@@ -29,7 +29,7 @@ final class StatueBlocks {
     static BlockState state(String text, int turns) {
         BlockState b = PARSED.computeIfAbsent(text, t -> {
             try {
-                return BlockStateParser.parseForBlock(BuiltInRegistries.BLOCK, t, false).blockState();
+                return BlockStateParser.parseForBlock(BuiltInRegistries.BLOCK.asLookup(), t, false).blockState();
             } catch (CommandSyntaxException e) {
                 CrawlSpace.LOGGER.warn("CrawlSpace: statue block '{}' does not parse: {}", t, e.getMessage());
                 return Blocks.STONE_BRICKS.defaultBlockState();

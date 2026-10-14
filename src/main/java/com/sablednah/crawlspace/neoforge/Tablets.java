@@ -3,15 +3,12 @@ package com.sablednah.crawlspace.neoforge;
 import java.util.List;
 
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Rarity;
-import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.item.component.ItemLore;
 
 /**
  * Replay tablets (Sable's ruling, 2026-10-12): dropped, one to three, by an
@@ -57,28 +54,28 @@ public final class Tablets {
     static ItemStack make(RandomSource random) {
         Boon boon = Boon.values()[random.nextInt(Boon.values().length)];
         Bane bane = Bane.values()[random.nextInt(Bane.values().length)];
-        ItemStack t = new ItemStack(Items.FLOW_POTTERY_SHERD);
-        t.set(DataComponents.CUSTOM_NAME, Component.literal("Replay Tablet").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.AQUA)));
-        t.set(DataComponents.LORE, new ItemLore(List.of(
+        ItemStack t = new ItemStack(Items.ARCHER_POTTERY_SHERD);
+        ItemNbt.name(t, Component.literal("Replay Tablet").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.AQUA)));
+        ItemNbt.lore(t, List.of(
                 Component.literal("+ " + boon.text).withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GREEN)),
                 Component.literal("- " + bane.text).withStyle(s -> s.withItalic(false).withColor(ChatFormatting.RED)),
                 Component.literal("Use it in a dungeon: it wakes again, harder, for everyone in it.")
-                        .withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GRAY)))));
+                        .withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GRAY))));
         CompoundTag tag = new CompoundTag();
         tag.putString(TAG, boon.name() + ":" + bane.name());
-        t.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
-        t.set(DataComponents.RARITY, Rarity.RARE);
-        t.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        ItemNbt.data(t, tag);
+        // (no per-item rarity in 1.20.1: the name carries the colour)
+        ItemNbt.glint(t);
         return t;
     }
 
     /** "BOON:BANE", or null if the stack is no tablet. */
     static String traitsOf(ItemStack stack) {
-        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        net.minecraft.nbt.CompoundTag data = ItemNbt.data(stack);
         if (data == null) {
             return null;
         }
-        String s = data.copyTag().getStringOr(TAG, "");
+        String s = data.getString(TAG);
         return s.isEmpty() ? null : s;
     }
 }

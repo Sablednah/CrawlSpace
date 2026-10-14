@@ -12,7 +12,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
-import net.minecraft.world.level.saveddata.SavedDataType;
 
 /**
  * What CrawlSpace remembers about one world: which triggers have fired (so a
@@ -35,7 +34,17 @@ public final class CrawlState extends SavedData {
         return s;
     }));
 
-    private static final SavedDataType<CrawlState> TYPE = new SavedDataType<>("crawlspace", CrawlState::new, CODEC);
+    /** 1.20.1: saved data is NBT in and out; the codec above does both, so the file is the same as later lines'. */
+    private static CrawlState load(CompoundTag tag) {
+        return CODEC.parse(net.minecraft.nbt.NbtOps.INSTANCE, tag).result().orElseGet(CrawlState::new);
+    }
+
+    @Override
+    public CompoundTag save(CompoundTag tag) {
+        CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, this).result()
+                .ifPresent(t -> tag.merge((CompoundTag) t));
+        return tag;
+    }
 
     private final Set<Long> fired = new HashSet<>();
     private final List<Site> built = new ArrayList<>();
@@ -43,7 +52,7 @@ public final class CrawlState extends SavedData {
     private final java.util.Map<String, String> values = new java.util.HashMap<>();
 
     public static CrawlState of(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(TYPE);
+        return level.getDataStorage().computeIfAbsent(CrawlState::load, CrawlState::new, "crawlspace");
     }
 
     public boolean hasFired(BlockPos pos) {

@@ -12,7 +12,7 @@ import net.minecraft.world.BossEvent;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 
 /**
  * Boss bars for lair bosses: vanilla's own, so every client shows them. A bar

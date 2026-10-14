@@ -2,7 +2,7 @@ package com.sablednah.crawlspace.neoforge.worldgen;
 
 import java.util.Optional;
 
-import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.sablednah.crawlspace.neoforge.CrawlConfig;
 
@@ -27,7 +27,7 @@ import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement
  */
 public final class ConfiguredSpread extends RandomSpreadStructurePlacement {
 
-    public static final MapCodec<ConfiguredSpread> CODEC = RecordCodecBuilder.mapCodec(
+    public static final Codec<ConfiguredSpread> CODEC = RecordCodecBuilder.create(
             i -> placementCodec(i).apply(i, ConfiguredSpread::new));
 
     private ConfiguredSpread(Vec3i locateOffset, StructurePlacement.FrequencyReductionMethod method, float frequency,

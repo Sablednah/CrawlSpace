@@ -102,7 +102,7 @@ public final class Palettes {
                 Mix.of(Blocks.COBBLED_DEEPSLATE, 70, Blocks.DEEPSLATE, 30),
                 Mix.of(Blocks.DEEPSLATE, 60, Blocks.TUFF, 25, Blocks.DRIPSTONE_BLOCK, 15),
                 Mix.of(Blocks.DRIPSTONE_BLOCK, 1),
-                Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.POLISHED_DEEPSLATE, Blocks.CHISELED_TUFF,
+                Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.POLISHED_DEEPSLATE, Blocks.CHISELED_STONE_BRICKS,
                 Blocks.SOUL_LANTERN, Blocks.SPRUCE_DOOR);
         theme("Deep Halls",
                 Mix.of(Blocks.DEEPSLATE_BRICKS, 60, Blocks.CRACKED_DEEPSLATE_BRICKS, 20, Blocks.DEEPSLATE_TILES, 20),
@@ -153,10 +153,10 @@ public final class Palettes {
                 Blocks.COBBLESTONE, Blocks.CAMPFIRE, Blocks.OAK_FENCE, Blocks.OAK_FENCE, Blocks.OAK_LOG,
                 Blocks.COBBLESTONE, Blocks.OAK_STAIRS, Blocks.WALL_TORCH, Blocks.CANDLE,
                 Blocks.OAK_PLANKS, Blocks.OAK_PLANKS, Blocks.STRIPPED_OAK_LOG));
-        FITTINGS.put("Caverns", new Fittings(Blocks.MOSS_CARPET, Blocks.GRAY_WALL_BANNER, Blocks.POLISHED_TUFF,
+        FITTINGS.put("Caverns", new Fittings(Blocks.MOSS_CARPET, Blocks.GRAY_WALL_BANNER, Blocks.POLISHED_ANDESITE,
                 Blocks.POLISHED_DEEPSLATE, Blocks.SOUL_CAMPFIRE, Blocks.COBBLED_DEEPSLATE_WALL, Blocks.SPRUCE_FENCE,
-                Blocks.SPRUCE_LOG, Blocks.POLISHED_TUFF, Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.SOUL_WALL_TORCH, Blocks.CANDLE,
-                Blocks.POLISHED_TUFF, Blocks.CHISELED_TUFF, Blocks.POLISHED_TUFF));
+                Blocks.SPRUCE_LOG, Blocks.POLISHED_ANDESITE, Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.SOUL_WALL_TORCH, Blocks.CANDLE,
+                Blocks.POLISHED_ANDESITE, Blocks.CHISELED_STONE_BRICKS, Blocks.POLISHED_ANDESITE));
         FITTINGS.put("Deep Halls", new Fittings(Blocks.BLACK_CARPET, Blocks.PURPLE_WALL_BANNER,
                 Blocks.CHISELED_POLISHED_BLACKSTONE, Blocks.POLISHED_BLACKSTONE, Blocks.SOUL_CAMPFIRE,
                 Blocks.DEEPSLATE_BRICK_WALL, Blocks.DARK_OAK_FENCE, Blocks.DARK_OAK_LOG, Blocks.POLISHED_DEEPSLATE,
@@ -177,7 +177,7 @@ public final class Palettes {
                 Blocks.SPRUCE_FENCE, Blocks.SPRUCE_STAIRS, Blocks.CYAN_CARPET, Blocks.SPRUCE_PRESSURE_PLATE));
         FINISHES.put("Old Mines", new Finish(Blocks.OAK_STAIRS, Blocks.OAK_PLANKS, Blocks.STRIPPED_OAK_LOG,
                 Blocks.OAK_FENCE, Blocks.OAK_STAIRS, Blocks.BROWN_CARPET, Blocks.OAK_PRESSURE_PLATE));
-        FINISHES.put("Caverns", new Finish(Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.POLISHED_TUFF, Blocks.TUFF_BRICKS,
+        FINISHES.put("Caverns", new Finish(Blocks.COBBLED_DEEPSLATE_STAIRS, Blocks.POLISHED_ANDESITE, Blocks.STONE_BRICKS,
                 Blocks.SPRUCE_FENCE, Blocks.SPRUCE_STAIRS, Blocks.MOSS_CARPET, Blocks.SPRUCE_PRESSURE_PLATE));
         FINISHES.put("Deep Halls", new Finish(Blocks.DEEPSLATE_BRICK_STAIRS, Blocks.DARK_OAK_PLANKS, Blocks.POLISHED_BLACKSTONE_BRICKS,
                 Blocks.DARK_OAK_FENCE, Blocks.DARK_OAK_STAIRS, Blocks.PURPLE_CARPET, Blocks.DARK_OAK_PRESSURE_PLATE));
@@ -264,9 +264,9 @@ public final class Palettes {
                 Mix.of(Blocks.CHERRY_PLANKS, 1), Blocks.CHERRY_PLANKS, Blocks.CHERRY_DOOR,
                 Blocks.CALCITE, Blocks.CHERRY_STAIRS, Blocks.IRON_BARS, Blocks.CALCITE, Blocks.CHERRY_PLANKS));
         STYLES.put("pale", new Style(
-                Mix.of(Blocks.STONE_BRICKS, 50, Blocks.PALE_OAK_PLANKS, 25, Blocks.CRACKED_STONE_BRICKS, 25),
-                Mix.of(Blocks.PALE_OAK_PLANKS, 1), Blocks.PALE_MOSS_BLOCK, Blocks.PALE_OAK_DOOR,
-                Blocks.PALE_OAK_PLANKS, Blocks.STONE_BRICK_STAIRS, Blocks.IRON_BARS, Blocks.PALE_OAK_LOG, Blocks.PALE_OAK_PLANKS));
+                Mix.of(Blocks.STONE_BRICKS, 50, Blocks.BIRCH_PLANKS, 25, Blocks.CRACKED_STONE_BRICKS, 25),
+                Mix.of(Blocks.BIRCH_PLANKS, 1), Blocks.MOSS_BLOCK, Blocks.BIRCH_DOOR,
+                Blocks.BIRCH_PLANKS, Blocks.STONE_BRICK_STAIRS, Blocks.IRON_BARS, Blocks.BIRCH_LOG, Blocks.BIRCH_PLANKS));
     }
 
     static java.util.Set<String> styles() {
@@ -387,7 +387,7 @@ public final class Palettes {
             String id = item.isJsonObject() ? item.getAsJsonObject().get("block").getAsString() : item.getAsString();
             int weight = item.isJsonObject() && item.getAsJsonObject().has("weight") ? item.getAsJsonObject().get("weight").getAsInt() : 1;
             java.util.Optional<Block> block = net.minecraft.core.registries.BuiltInRegistries.BLOCK
-                    .getOptional(net.minecraft.resources.Identifier.tryParse(id));
+                    .getOptional(net.minecraft.resources.ResourceLocation.tryParse(id));
             if (block.isEmpty()) {
                 ThemeData.LOG.warn("CrawlSpace {}: no block called '{}', so this role keeps its old blocks", where, id);
                 return null;
@@ -480,7 +480,7 @@ public final class Palettes {
                             net.minecraft.world.level.block.state.properties.DripstoneThickness.TIP);
             case BANNER -> with(b.apply("banner"), net.minecraft.world.level.block.WallBannerBlock.FACING, dir);
             case WALL_TORCH -> with(b.apply("torch"), net.minecraft.world.level.block.WallTorchBlock.FACING, dir);
-            case CHAIN -> Blocks.IRON_CHAIN.defaultBlockState();
+            case CHAIN -> Blocks.CHAIN.defaultBlockState();
             case BEAM -> with(b.apply("beam"), net.minecraft.world.level.block.RotatedPillarBlock.AXIS,
                     facing == 0 ? Direction.Axis.X : Direction.Axis.Z);
             case SUPPORT -> b.apply("support");
@@ -534,7 +534,7 @@ public final class Palettes {
             case PREVIEW_TREASURE -> Blocks.GILDED_BLACKSTONE.defaultBlockState();
             case PREVIEW_SHRINE -> Blocks.AMETHYST_BLOCK.defaultBlockState();
             case PREVIEW_PUZZLE -> Blocks.CHISELED_BOOKSHELF.defaultBlockState()
-                    .setValue(net.minecraft.world.level.block.ChiseledBookShelfBlock.FACING, dir);
+                    .setValue(net.minecraft.world.level.block.HorizontalDirectionalBlock.FACING, dir);
             case PREVIEW_GUARD -> Blocks.IRON_BLOCK.defaultBlockState();
             case PREVIEW_LAIR -> Blocks.POLISHED_BLACKSTONE.defaultBlockState();
             case PREVIEW_SKULL -> Blocks.WITHER_SKELETON_WALL_SKULL.defaultBlockState()
@@ -551,7 +551,7 @@ public final class Palettes {
                     .setValue(net.minecraft.world.level.block.LecternBlock.HAS_BOOK, true);
             case MUSHROOM -> (Math.floorMod(hash, 2L) == 0 ? Blocks.RED_MUSHROOM : Blocks.BROWN_MUSHROOM).defaultBlockState();
             case VINE -> Blocks.VINE.defaultBlockState().setValue(net.minecraft.world.level.block.VineBlock.getPropertyForFace(dir), true);
-            case PLANT -> (facing == 0 ? Blocks.FERN : Blocks.SHORT_GRASS).defaultBlockState();
+            case PLANT -> (facing == 0 ? Blocks.FERN : Blocks.GRASS).defaultBlockState();
             case MOSS_FLOOR -> Blocks.MOSS_BLOCK.defaultBlockState();
             case LEAVES -> (facing == 0 ? Blocks.AZALEA_LEAVES : Blocks.FLOWERING_AZALEA_LEAVES).defaultBlockState()
                     .setValue(net.minecraft.world.level.block.LeavesBlock.PERSISTENT, true);

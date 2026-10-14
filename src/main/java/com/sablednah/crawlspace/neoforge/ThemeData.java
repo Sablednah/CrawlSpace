@@ -14,7 +14,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.logging.LogUtils;
 
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
@@ -45,7 +45,7 @@ public final class ThemeData implements ResourceManagerReloadListener {
 
     static final Logger LOG = LogUtils.getLogger();
     public static final ThemeData INSTANCE = new ThemeData();
-    public static final Identifier ID = Identifier.fromNamespaceAndPath("crawlspace", "themes");
+    public static final ResourceLocation ID = new ResourceLocation("crawlspace", "themes");
 
     private static final String[] DESIGNS = {"keep", "round", "pyramid", "temple"};
 
@@ -88,7 +88,7 @@ public final class ThemeData implements ResourceManagerReloadListener {
      */
     private static Map<String, JsonObject> read(ResourceManager rm, String dir, String nameKey, Set<String> known) {
         Map<String, JsonObject> out = new TreeMap<>();
-        Map<Identifier, Resource> files = new TreeMap<>(rm.listResources(dir, id -> id.getPath().endsWith(".json")));
+        Map<ResourceLocation, Resource> files = new TreeMap<>(rm.listResources(dir, id -> id.getPath().endsWith(".json")));
         files.forEach((id, res) -> {
             JsonObject json;
             try (Reader r = res.openAsReader()) {

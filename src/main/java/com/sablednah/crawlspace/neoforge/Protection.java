@@ -11,26 +11,26 @@ import com.sablednah.crawlspace.build.Part;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.common.util.FakePlayer;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
-import net.neoforged.neoforge.event.level.BlockEvent;
-import net.neoforged.neoforge.event.level.ExplosionEvent;
-import net.neoforged.neoforge.event.level.PistonEvent;
+import net.minecraftforge.common.util.FakePlayer;
+import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.level.BlockEvent;
+import net.minecraftforge.event.level.ExplosionEvent;
+import net.minecraftforge.event.level.PistonEvent;
 
 /**
  * Keeps a dungeon's shell whole ({@link Part#shell()}), so the way down is
  * through it, not round it. Optional: {@code protection.enabled} in the config.
  *
  * <p><b>The client is stopped from mining at all, not corrected afterwards.</b>
- * Inside a dungeon a survival player's {@code block_break_speed} is held at 0,
+ * Inside a dungeon a survival player's mining is held near 0 (1.20.1: a hidden Mining Fatigue V),
  * and a vanilla client then never cracks or breaks anything: measured on the
  * Vivo rig on 2026-10-09 (dirt by hand, stone with iron and Efficiency V
  * picks, held four seconds, intact; at 1 all three broke). Cancelling breaks
@@ -50,10 +50,16 @@ import net.neoforged.neoforge.event.level.PistonEvent;
  */
 public final class Protection {
 
-    private static final Identifier ID = Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "dungeon_protection");
-    /** Multiplies the total by (1 - 1): no mining progress at all, so the client never predicts a break. */
-    private static final AttributeModifier NO_MINING = new AttributeModifier(ID, -1.0,
-            AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+    /**
+     * 1.20.1 has no block_break_speed attribute (1.20.5): the hold is a hidden Mining Fatigue V instead,
+     * which leaves a player 0.00081 of their mining speed, so the client predicts no break worth seeing.
+     */
+    private static final java.util.Set<java.util.UUID> HELD = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    private static net.minecraft.world.effect.MobEffectInstance noMining() {
+        return new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN,
+                20 * 60 * 60, 4, false, false, false);
+    }
 
     /** How long hitting a protected block from outside keeps the hold on, in ticks: you are digging at the dungeon. */
     private static final int HOLD = 60;
@@ -148,14 +154,15 @@ public final class Protection {
     }
 
     private static void hold(ServerPlayer player, boolean on) {
-        AttributeInstance speed = player.getAttribute(Attributes.BLOCK_BREAK_SPEED);
-        if (speed == null || speed.hasModifier(ID) == on) {
+        if (HELD.contains(player.getUUID()) == on) {
             return;
         }
         if (on) {
-            speed.addTransientModifier(NO_MINING);
+            HELD.add(player.getUUID());
+            player.addEffect(noMining());
         } else {
-            speed.removeModifier(ID);
+            HELD.remove(player.getUUID());
+            player.removeEffect(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN);
             stopDig(player);
         }
     }
@@ -182,8 +189,7 @@ public final class Protection {
                     tellHolds(level, player);
                     return;
                 }
-                AttributeInstance speed = player.getAttribute(Attributes.BLOCK_BREAK_SPEED);
-                if (speed != null && speed.hasModifier(ID)) {
+                if (HELD.contains(player.getUUID())) {
                     startDig(level, player, pos);
                 }
             }
@@ -198,10 +204,9 @@ public final class Protection {
         if (state.isAir()) {
             return;
         }
-        AttributeInstance speed = player.getAttribute(Attributes.BLOCK_BREAK_SPEED);
-        speed.removeModifier(ID);
+        player.removeEffect(net.minecraft.world.effect.MobEffects.DIG_SLOWDOWN);
         float perTick = state.getDestroyProgress(player, level, pos);
-        speed.addTransientModifier(NO_MINING);
+        player.addEffect(noMining());
         if (Float.isNaN(perTick) || perTick <= 0f) {
             return; // unbreakable to this player: bedrock, or a block their tool cannot touch at all
         }
@@ -229,7 +234,7 @@ public final class Protection {
     }
 
     private static boolean inReach(ServerPlayer player, BlockPos pos) {
-        double reach = player.blockInteractionRange() + 1.0;
+        double reach = player.getBlockReach() + 1.0;
         return player.getEyePosition().distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(pos)) <= reach * reach;
     }
 

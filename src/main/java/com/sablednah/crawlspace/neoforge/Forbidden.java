@@ -94,9 +94,7 @@ public final class Forbidden {
         state.fire(pos);
         int li = Blueprint.level(code);
         // It pays, at once.
-        var loot = level.getServer().reloadableRegistries().getLootTable(net.minecraft.resources.ResourceKey.create(
-                net.minecraft.core.registries.Registries.LOOT_TABLE,
-                net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + Math.min(5, 3 + li / 2))));
+        var loot = level.getServer().getLootData().getLootTable(new net.minecraft.resources.ResourceLocation(CrawlSpace.MODID, "chests/tier" + Math.min(5, 3 + li / 2)));
         var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
                 .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, net.minecraft.world.phys.Vec3.atCenterOf(pos.above()))
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
@@ -189,15 +187,13 @@ public final class Forbidden {
         if (!mob.getTags().contains(RESTLESS) || level.getRandom().nextFloat() > 0.3f) {
             return;
         }
-        var loot = level.getServer().reloadableRegistries().getLootTable(net.minecraft.resources.ResourceKey.create(
-                net.minecraft.core.registries.Registries.LOOT_TABLE,
-                net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier3")));
+        var loot = level.getServer().getLootData().getLootTable(new net.minecraft.resources.ResourceLocation(CrawlSpace.MODID, "chests/tier3"));
         var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
                 .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, mob.position())
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
         List<ItemStack> items = loot.getRandomItems(params);
         if (!items.isEmpty()) {
-            mob.spawnAtLocation(level, items.get(0));
+            mob.spawnAtLocation(items.get(0));
         }
     }
 

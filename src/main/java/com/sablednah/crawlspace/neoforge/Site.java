@@ -163,9 +163,8 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
             String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();
             chest.setItem(13, Keys.make(this, li, theme));
         } else if (table != null) {
-            net.minecraft.world.RandomizableContainer.setBlockEntityLootTable(level, random, pos,
-                    net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,
-                            net.minecraft.resources.Identifier.fromNamespaceAndPath("crawlspace", table)));
+            net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity.setLootTable(level, random, pos,
+                    new net.minecraft.resources.ResourceLocation("crawlspace", table));
         } else if (part == Part.SPAWNER
                 && level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner) {
             String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();
@@ -213,8 +212,8 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
     }
 
     public static Site load(CompoundTag t) {
-        return new Site(t.getLongOr("seed", 0L), t.getIntOr("levels", 1), t.getIntOr("top", DungeonPlan.MIN_TOP),
-                t.getStringOr("style", "stone"),
-                new BlockPos(t.getIntOr("x", 0), t.getIntOr("y", 0), t.getIntOr("z", 0)), t.getIntOr("planner", 0));
+        return new Site(t.getLong("seed"), (t.contains("levels") ? t.getInt("levels") : 1), (t.contains("top") ? t.getInt("top") : DungeonPlan.MIN_TOP),
+                (t.contains("style") ? t.getString("style") : "stone"),
+                new BlockPos(t.getInt("x"), t.getInt("y"), t.getInt("z")), t.getInt("planner"));
     }
 }

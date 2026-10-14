@@ -13,7 +13,7 @@ public final class EntranceStyle {
     }
 
     /** A datapack style and the biomes (ids, or #tags) it claims. Checked before the built-in rules. */
-    private record Claim(String style, java.util.Set<net.minecraft.resources.Identifier> biomes,
+    private record Claim(String style, java.util.Set<net.minecraft.resources.ResourceLocation> biomes,
             java.util.List<net.minecraft.tags.TagKey<Biome>> tags) {
     }
 
@@ -26,15 +26,15 @@ public final class EntranceStyle {
             if (!json.has("biomes")) {
                 return;
             }
-            java.util.Set<net.minecraft.resources.Identifier> ids = new java.util.HashSet<>();
+            java.util.Set<net.minecraft.resources.ResourceLocation> ids = new java.util.HashSet<>();
             java.util.List<net.minecraft.tags.TagKey<Biome>> tags = new java.util.ArrayList<>();
             for (com.google.gson.JsonElement e : json.getAsJsonArray("biomes")) {
                 String s = e.getAsString();
                 if (s.startsWith("#")) {
                     tags.add(net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.BIOME,
-                            net.minecraft.resources.Identifier.parse(s.substring(1))));
+                            net.minecraft.resources.ResourceLocation.parse(s.substring(1))));
                 } else {
-                    ids.add(net.minecraft.resources.Identifier.parse(s));
+                    ids.add(net.minecraft.resources.ResourceLocation.parse(s));
                 }
             }
             out.add(new Claim(style, ids, tags));
@@ -44,12 +44,12 @@ public final class EntranceStyle {
 
     public static String of(Holder<Biome> biome) {
         for (Claim c : claims) {
-            if (biome.unwrapKey().map(k -> c.biomes().contains(k.identifier())).orElse(false)
+            if (biome.unwrapKey().map(k -> c.biomes().contains(k.location())).orElse(false)
                     || c.tags().stream().anyMatch(biome::is)) {
                 return c.style();
             }
         }
-        String path = biome.unwrapKey().map(k -> k.identifier().getPath()).orElse("").toLowerCase(Locale.ROOT);
+        String path = biome.unwrapKey().map(k -> k.location().getPath()).orElse("").toLowerCase(Locale.ROOT);
         if (biome.is(BiomeTags.IS_BADLANDS)) {
             return "terracotta";
         }

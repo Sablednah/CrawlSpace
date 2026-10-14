@@ -10,13 +10,13 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Display;
-import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -66,11 +66,11 @@ public final class Vaults {
             List<ItemStack> items = roll(level, t.level(), lead);
             for (int k = 0; k < t.targets().length; k++) {
                 BlockPos p = o.offset(t.targets()[k][0], t.targets()[k][1], t.targets()[k][2]);
-                Display.ItemDisplay d = EntityType.ITEM_DISPLAY.create(level, EntitySpawnReason.TRIGGERED);
+                Display.ItemDisplay d = EntityType.ITEM_DISPLAY.create(level);
                 if (d == null) {
                     continue;
                 }
-                d.snapTo(p.getX() + 0.5, p.getY() + 1.4, p.getZ() + 0.5, 0, 0);
+                d.moveTo(p.getX() + 0.5, p.getY() + 1.4, p.getZ() + 0.5, 0, 0);
                 d.getSlot(0).set(items.get(k));
                 d.addTag(TAG);
                 level.addFreshEntity(d);
@@ -84,8 +84,7 @@ public final class Vaults {
     /** Three different things from the loot a tier above the level's, made up with gems where the table runs short. */
     private static List<ItemStack> roll(ServerLevel level, int li, BlockPos at) {
         int tier = Math.min(5, 2 + li / 2);
-        var table = level.getServer().reloadableRegistries().getLootTable(net.minecraft.resources.ResourceKey.create(
-                net.minecraft.core.registries.Registries.LOOT_TABLE, Identifier.fromNamespaceAndPath(CrawlSpace.MODID, "chests/tier" + tier)));
+        var table = level.getServer().getLootData().getLootTable(new ResourceLocation(CrawlSpace.MODID, "chests/tier" + tier));
         var params = new net.minecraft.world.level.storage.loot.LootParams.Builder(level)
                 .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, net.minecraft.world.phys.Vec3.atCenterOf(at))
                 .create(net.minecraft.world.level.storage.loot.parameters.LootContextParamSets.CHEST);
@@ -151,7 +150,7 @@ public final class Vaults {
      * join and stands as one thin post (Sable); a grate is a whole cage.
      * Waxed, so it never turns green.
      */
-    static final net.minecraft.world.level.block.Block CAGE = Blocks.WAXED_COPPER_GRATE;
+    static final net.minecraft.world.level.block.Block CAGE = Blocks.GLASS;
 
     private static Display.ItemDisplay display(ServerLevel level, BlockPos pedestal) {
         List<Display.ItemDisplay> found = level.getEntitiesOfClass(Display.ItemDisplay.class, new AABB(pedestal.above()).inflate(0.5),

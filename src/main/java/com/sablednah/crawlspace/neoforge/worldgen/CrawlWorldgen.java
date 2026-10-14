@@ -6,9 +6,9 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType;
-import net.neoforged.bus.api.IEventBus;
-import net.neoforged.neoforge.registries.DeferredHolder;
-import net.neoforged.neoforge.registries.DeferredRegister;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.registries.RegistryObject;
+import net.minecraftforge.registries.DeferredRegister;
 
 /**
  * The three registry entries worldgen needs. The structure, its set and its
@@ -23,11 +23,11 @@ public final class CrawlWorldgen {
     private static final DeferredRegister<StructurePlacementType<?>> PLACEMENTS =
             DeferredRegister.create(Registries.STRUCTURE_PLACEMENT, CrawlSpace.MODID);
 
-    public static final DeferredHolder<StructureType<?>, StructureType<DungeonStructure>> DUNGEON =
+    public static final RegistryObject<StructureType<DungeonStructure>> DUNGEON =
             TYPES.register("dungeon", () -> () -> DungeonStructure.CODEC);
-    public static final DeferredHolder<StructurePieceType, StructurePieceType> DUNGEON_PIECE =
+    public static final RegistryObject<StructurePieceType> DUNGEON_PIECE =
             PIECES.register("dungeon", () -> (StructurePieceType.ContextlessType) DungeonPiece::new);
-    public static final DeferredHolder<StructurePlacementType<?>, StructurePlacementType<ConfiguredSpread>> CONFIGURED_SPREAD =
+    public static final RegistryObject<StructurePlacementType<ConfiguredSpread>> CONFIGURED_SPREAD =
             PLACEMENTS.register("configured_spread", () -> () -> ConfiguredSpread.CODEC);
 
     private CrawlWorldgen() {

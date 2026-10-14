@@ -22,7 +22,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingAttackEvent;
 
 /**
  * The dungeon clock (Warhammer Quest's power phase: "the Wizard rolls a 1").
@@ -54,7 +54,7 @@ public final class Clock {
     }
 
     /** Fighting is noise: a player hurting or being hurt inside a dungeon makes that level noisy for a while. */
-    public static void onHurt(LivingIncomingDamageEvent e) {
+    public static void onHurt(LivingAttackEvent e) {
         ServerPlayer p = e.getEntity() instanceof ServerPlayer v ? v
                 : e.getSource().getEntity() instanceof ServerPlayer a ? a : null;
         if (p == null || !(p.level() instanceof ServerLevel level)) {
@@ -209,13 +209,13 @@ public final class Clock {
             }
             case CURSE -> {
                 who.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 60 * 20, 0));
-                who.addEffect(new MobEffectInstance(MobEffects.MINING_FATIGUE, 60 * 20, 0));
+                who.addEffect(new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 60 * 20, 0));
                 level.sendParticles(ParticleTypes.SOUL, who.getX(), who.getY() + 1, who.getZ(), 20, 0.4, 0.6, 0.4, 0.02);
-                level.playSound(null, who.blockPosition(), SoundEvents.SOUL_ESCAPE.value(), SoundSource.AMBIENT, 1.5f, 0.6f);
+                level.playSound(null, who.blockPosition(), SoundEvents.SOUL_ESCAPE, SoundSource.AMBIENT, 1.5f, 0.6f);
                 Triggers.tell(who, "A voice in the stone: \"Trespasser.\" A curse settles on you.");
             }
             case KNIGHT -> {
-                who.addEffect(new MobEffectInstance(MobEffects.STRENGTH, 90 * 20, 0));
+                who.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, 90 * 20, 0));
                 level.sendParticles(ParticleTypes.END_ROD, who.getX(), who.getY() + 1, who.getZ(), 16, 0.5, 0.8, 0.5, 0.01);
                 Triggers.tell(who, "A ghostly knight nods to you: \"Monsters near. Be ready.\"");
             }
