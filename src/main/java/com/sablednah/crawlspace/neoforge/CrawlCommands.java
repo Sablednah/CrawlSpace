@@ -56,6 +56,9 @@ public final class CrawlCommands {
                                 .then(Commands.argument("seed", LongArgumentType.longArg(0, 0xFFFFFFFFL))
                                         .executes(ctx -> build(ctx, IntegerArgumentType.getInteger(ctx, "levels"),
                                                 com.sablednah.crawlspace.plan.Showcase.seed(LongArgumentType.getLong(ctx, "seed")))))))
+                // Every objective room and job in a row off one hall, to test them without hunting (Sable, 2026-10-14).
+                .then(Commands.literal("devshowcase")
+                        .executes(ctx -> build(ctx, 1, com.sablednah.crawlspace.plan.Gallery.seed(1))))
                 .then(Commands.literal("goto")
                         .then(Commands.argument("level", IntegerArgumentType.integer(0, MAX_LEVELS))
                                 .executes(ctx -> go(ctx, IntegerArgumentType.getInteger(ctx, "level")))
@@ -177,6 +180,7 @@ public final class CrawlCommands {
                 + "    what: a corridor style (straight, angled, winding, curved) or a room (lair, hall, exit...)\n"
                 + "/crawlspace info  - your last build's seed and where it is\n"
                 + "/crawlspace gotodoor <level> <what>  - outside a door of that room, facing in, out of its wake range\n"
+                + "/crawlspace devshowcase  - every objective room and job, in a row off one hall\n"
                 + "/crawlspace info full  - everything on every level of the dungeon you are in, each a link to go there\n"
                 + "/crawlspace undo  - put back what your last build replaced\n"
                 + "/crawlspace cancel  - stop builds in progress\n"

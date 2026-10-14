@@ -24,6 +24,9 @@ public final class Planner {
         if (levels < 1) {
             throw new IllegalArgumentException("a dungeon needs at least one level");
         }
+        if (Gallery.on(seed)) {
+            return Gallery.plan(seed);
+        }
         List<LevelPlan> out = new ArrayList<>();
         int[] arrival = {0, 0};
         for (int i = 0; i < levels; i++) {

@@ -1713,6 +1713,14 @@ Drive it over RCON:
   `Crumbles.PLANKS` from Triggers' per-tick step check; a fall is caught in
   `ObjectiveRooms.chasm` (perception `recovers`, LQ's DEX) or burns and puts
   the player at the near foot (the trigger's target 3).
+- **`/crawlspace devshowcase` builds the objective gallery** (`plan/Gallery`,
+  a seed tag like the showcase's). `Planner.plan` hands a gallery seed to
+  `Gallery.plan`, which skips the level planner: one level, an `ENTRY` hall
+  through (0, 0) where the tower stair lands, and an open 15x15 `OBJECTIVE`
+  room per job off it on straight 3-wide corridors, alternating north and
+  south. `Blueprinter.objective` sees `LevelPlan.gallery` and gives the k-th
+  room `Gallery.job(k)`. **A new job means adding to `Gallery.JOBS`**, which
+  `galleryHasEveryJob` checks against the blueprint.
 - `/crawlspace info full` lists everything on every level of the dungeon you
   stand in (or your last build), from its plan and blueprint, so it answers
   for a dungeon nobody has walked. Each entry runs `goto` when clicked; the
