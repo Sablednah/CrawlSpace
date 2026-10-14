@@ -24,7 +24,8 @@ import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
  * trapped chests are armed again; and each chest refills the next time it is
  * opened, from the same table it was first filled from. A Lootr chest is
  * Lootr's to refill. What is done once stays done: vaults, puzzles, seals,
- * the tomb, and the altar's count.</p>
+ * the tomb, and the altar's count. Broken chests and barrels come back, and
+ * doors are shut again, as a player comes near ({@link #mend}).</p>
  */
 public final class Restocks {
 
@@ -98,6 +99,78 @@ public final class Restocks {
         });
         CrawlSpace.LOGGER.info("CrawlSpace: the dungeon at {} restocked (epoch {}): {} room(s) will wake again", o, epoch(state, site), rooms);
         return rooms;
+    }
+
+    /** Per blueprint: where its chests, barrels and doors are, {x, y, z, code}, relative to the origin. */
+    private static final java.util.Map<Site.Built, java.util.List<int[]>> FIXTURES =
+            java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
+
+    private static java.util.List<int[]> fixtures(Site.Built built) {
+        return FIXTURES.computeIfAbsent(built, b -> {
+            java.util.List<int[]> out = new java.util.ArrayList<>();
+            b.blueprint().forEachColumn(col -> {
+                for (int k = 0; k < col.codes().length; k++) {
+                    int code = col.codes()[k];
+                    if (code == 0) {
+                        continue;
+                    }
+                    Part part = Blueprint.part(code);
+                    if (part == Part.CHEST || part == Part.HOARD_CHEST || part == Part.BARREL || part == Part.DOOR_LOWER) {
+                        out.add(new int[] {col.x(), col.y0() + k, col.z(), code});
+                    }
+                }
+            });
+            return out;
+        });
+    }
+
+    /**
+     * After a restock, a dungeon is put back as it was found (Sable, 2026-10-14:
+     * a puzzle's chest he broke was still gone): a chest or barrel that was
+     * broken comes back, and every wooden door is shut. Lazy, as the rest of a
+     * restock is: each one is mended as a player comes within 24 blocks, once
+     * per restock, so unloaded chunks are never touched. Only air is filled, so
+     * a block a player put in the gap is left alone.
+     */
+    static void mend(ServerLevel level, ServerPlayer player, Site site) {
+        CrawlState state = CrawlState.of(level);
+        int epoch = epoch(state, site);
+        if (epoch == 0) {
+            return;
+        }
+        BlockPos o = site.origin();
+        for (int[] f : fixtures(site.built())) {
+            BlockPos p = o.offset(f[0], f[1], f[2]);
+            if (Math.abs(p.getX() - player.getBlockX()) > 24 || Math.abs(p.getZ() - player.getBlockZ()) > 24
+                    || Math.abs(p.getY() - player.getBlockY()) > 12) {
+                continue;
+            }
+            String key = "mend:" + p.asLong();
+            String done = state.get(key);
+            if (done != null && Integer.parseInt(done) >= epoch) {
+                continue;
+            }
+            state.put(key, Integer.toString(epoch));
+            int code = f[3];
+            net.minecraft.world.level.block.state.BlockState now = level.getBlockState(p);
+            if (Blueprint.part(code) == Part.DOOR_LOWER) {
+                if (now.getBlock() instanceof net.minecraft.world.level.block.DoorBlock door) {
+                    door.setOpen(null, level, now, p, false);
+                } else if (now.isAir() && level.getBlockState(p.above()).isAir()) {
+                    int upper = site.built().blueprint().get(f[0], f[1] + 1, f[2]);
+                    level.setBlock(p, site.state(site.built(), code, p), 2);
+                    if (upper != 0) {
+                        level.setBlock(p.above(), site.state(site.built(), upper, p.above()), 2);
+                    }
+                }
+            } else if (now.isAir()) {
+                level.setBlock(p, site.state(site.built(), code, p), 3);
+                site.afterPlace(site.built(), level, p, code, level.getRandom());
+                state.put("chest:" + p.asLong(), Integer.toString(epoch)); // freshly filled: no refill on top
+                level.sendParticles(net.minecraft.core.particles.ParticleTypes.POOF, p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5,
+                        6, 0.3, 0.3, 0.3, 0.01);
+            }
+        }
     }
 
     /** Opening a dungeon chest: if the dungeon has restocked since it was last filled, it fills again first. */
