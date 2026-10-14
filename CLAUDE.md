@@ -1698,6 +1698,33 @@ Drive it over RCON:
   role, facing along or across it, which is how screenshots get aimed.
 - `/crawlspace info` also reports the level you stand on: rooms awake,
   traps sprung, and the nearest sleeping room.
+- **Forge 1.20.1 (branch `forge1.20.1`, 2026-10-15, unreleased; a request
+  from a commenter).** Built with ModDevGradle's `legacyforge` plugin,
+  Forge 47.4.10, Java 17. `plan` and `build` are unchanged and all tests
+  pass. The runtime is ported from 1.21.11:
+  - Mechanical renames are `scripts/port26/fix1201.py` (idempotent).
+    `port1201.sh` ports a main commit the way `port.sh` does for 26.x, but
+    expect hand fixes: main writes 1.21 APIs.
+  - Item data is NBT (`ItemNbt`: name, lore, our keys, a glint from a hidden
+    dummy enchantment); there is no per-item rarity.
+  - Saved data goes through the same codec via `NbtOps`, so the file matches.
+  - Loot tables are `loot_tables/`; regenerate with `make-loot.py 1.20.1`
+    (books take `enchantments`, trims are NBT, no flow or bolt trims).
+  - Attribute modifiers are UUIDs from their names (`Powers.uuid`).
+  - **Lost on 1.20.1:** the scale attribute (bosses, elites, Wardlings and
+    split copies are all normal size; a Wardling's sonic boom is cut by a
+    fixed 0.36 in `LivingHurtEvent`), display teleport smoothing (the cube's
+    glass body steps rather than glides), and tuff bricks, pale oak, copper
+    grates and bogged (stone bricks, birch, glass and stray stand in).
+  - Protection's mining hold is a hidden Mining Fatigue V: there is no
+    block_break_speed attribute.
+  - No slime split event: a dying cube is shrunk to size 1 first.
+  - **Seen on a local 1.20.1 server:** it boots, worldgen places dungeons
+    (3756 stone bricks, chests, a spawner in the core of one found by
+    `/locate`), every loot table rolls, and with a temporary console patch the
+    showcase (6 levels, 179666 blocks) and the objective gallery built with no
+    exceptions or statue-parse warnings. **Nothing a player does has been seen
+    on 1.20.1:** Vivo was unreachable that night.
 - **Objective set pieces (planner 25) are templates in `build/SetPieces`**:
   layers bottom up, rows from the back wall to the front, written facing
   south and turned to face the room. Letters are block states as /setblock

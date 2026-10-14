@@ -10,9 +10,13 @@ templates (rarer patterns deeper), the netherite upgrade from tier 4, and trimme
 armour. Its empty entry sets how often a roll pays at all; the script prints the odds per tier
 when it runs (about half the chests at tier 1, every chest from tier 5).
 """
-import json, os
+import json, os, sys
 
-OUT = os.path.join(os.path.dirname(__file__), '..', 'src/main/resources/data/crawlspace/loot_table/chests')
+# `make-loot.py 1.20.1` writes the Forge 1.20.1 branch's tables: its folder is loot_tables, books take
+# "enchantments", trims are NBT, and the flow and bolt trims do not exist yet.
+LEGACY = len(sys.argv) > 1 and sys.argv[1] == "1.20.1"
+OUT = os.path.join(os.path.dirname(__file__), '..', 'src/main/resources/data/crawlspace',
+                   'loot_tables/chests' if LEGACY else 'loot_table/chests')
 
 def item(name, weight, lo=1, hi=1, enchant=None):
     e = {"type": "minecraft:item", "name": "minecraft:" + name, "weight": weight}
@@ -39,20 +43,22 @@ def book(weight, options):
     """A book that becomes an enchanted book with one of these enchantments, at a random level."""
     return {"type": "minecraft:item", "name": "minecraft:book", "weight": weight,
             "functions": [{"function": "minecraft:enchant_randomly",
-                           "options": ["minecraft:" + o for o in options]}]}
+                           ("enchantments" if LEGACY else "options"): ["minecraft:" + o for o in options]}]}
 
 def trimmed(name, weight, pattern, material, levels):
     """A piece of armour already trimmed, and enchanted."""
     return {"type": "minecraft:item", "name": "minecraft:" + name, "weight": weight, "functions": [
-        {"function": "minecraft:set_components", "components": {
-            "minecraft:trim": {"material": "minecraft:" + material, "pattern": "minecraft:" + pattern}}},
+        ({"function": "minecraft:set_nbt", "tag": json.dumps({"Trim": {"material": "minecraft:" + material, "pattern": "minecraft:" + pattern}})}
+         if LEGACY else
+         {"function": "minecraft:set_components", "components": {
+            "minecraft:trim": {"material": "minecraft:" + material, "pattern": "minecraft:" + pattern}}}),
         {"function": "minecraft:enchant_with_levels", "levels": {"type": "minecraft:uniform", "min": levels[0], "max": levels[1]}}]}
 
 RARE_BOOKS = ["unbreaking", "silk_touch", "fortune", "looting", "frost_walker", "soul_speed", "infinity",
               "feather_falling", "protection", "sharpness", "efficiency", "power", "respiration",
               "depth_strider", "thorns", "swift_sneak", "multishot", "piercing"]
 TRIMS_COMMON = ["sentry", "dune", "coast", "wild", "tide"]
-TRIMS_MID = ["snout", "rib", "spire", "wayfinder", "raiser", "shaper", "host", "flow", "bolt"]
+TRIMS_MID = ["snout", "rib", "spire", "wayfinder", "raiser", "shaper", "host"] + ([] if LEGACY else ["flow", "bolt"])
 TRIMS_RARE = ["ward", "vex", "eye", "silence"]
 MATERIALS = ["gold", "emerald", "amethyst", "redstone", "lapis", "quartz", "copper", "diamond"]
 
