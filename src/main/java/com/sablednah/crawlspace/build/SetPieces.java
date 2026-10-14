@@ -52,7 +52,7 @@ final class SetPieces {
             "P", "minecraft:polished_blackstone_bricks",
             "B", "minecraft:blackstone",
             "G", "minecraft:gilded_blackstone",
-            "M", "minecraft:magma_block",
+            "M", "minecraft:shroomlight",
             "s", "minecraft:polished_blackstone_brick_stairs[facing=north]",
             "F", "minecraft:campfire[lit=true,facing=south]",
             "w", "minecraft:blackstone_slab[type=top]"),
@@ -260,7 +260,8 @@ final class SetPieces {
                 int x = w[0] + ix * d + jx * a;
                 int z = w[1] + iz * d + jz * a;
                 if (floor(level, r, x, z)) {
-                    bp.statue(x, f - 1, z, dice.chance(0.3) ? "minecraft:magma_block" : "minecraft:cracked_polished_blackstone_bricks", 0, i);
+                    // Not magma: a monster standing on it burned itself (Sable, 2026-10-14).
+                    bp.statue(x, f - 1, z, dice.chance(0.3) ? "minecraft:blackstone" : "minecraft:cracked_polished_blackstone_bricks", 0, i);
                 }
             }
         }
@@ -438,6 +439,7 @@ final class SetPieces {
         int cx = r.centerX();
         int cz = r.centerZ();
         Built b = new Built();
+        List<int[]> rims = new ArrayList<>();
         for (int dx = -3; dx <= 3; dx++) {
             for (int dz = -3; dz <= 3; dz++) {
                 int ax = Math.abs(dx);
@@ -452,6 +454,7 @@ final class SetPieces {
                     boolean glow = ax == 2 && az == 2;
                     boolean mid = ax == 0 || az == 0;
                     bp.set(x, f, z, glow ? Part.OBJ_GLOW : mid && job == 0 ? Part.OBJ_CORRUPT : Part.OBJ_RIM, 0, i);
+                    rims.add(new int[] {x, f, z});
                     if (glow) {
                         bp.statue(x, f + 1, z, "minecraft:end_rod[facing=up]", 0, i);
                     }
@@ -482,7 +485,12 @@ final class SetPieces {
         bp.disguise(ex, f, ez, "minecraft:chiseled_quartz_block");
         b.exit = new int[] {ex, f, ez};
         if (job == 1) {
-            bp.set(cx + ix * 3 - jx, f, cz + iz * 3 - jz, Part.OBJ_BASIN, 0, i);
+            int bx = cx + ix * 3 - jx;
+            int bz = cz + iz * 3 - jz;
+            bp.set(bx, f, bz, Part.OBJ_BASIN, 0, i);
+            // Only one stone of the rim gives the vial, and it has to be found (Sable, 2026-10-14).
+            rims.removeIf(q -> q[0] == ex && q[2] == ez || q[0] == bx && q[2] == bz);
+            b.places.add(rims.get(dice.nextInt(rims.size())));
         }
         // The card's floor: cracked, with jars about and a corner gone green.
         for (int n = 0; n < 14; n++) {

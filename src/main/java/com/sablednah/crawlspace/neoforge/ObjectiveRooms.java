@@ -71,6 +71,8 @@ public final class ObjectiveRooms {
             "at the head of the tomb's plinth", "in the idol's dais"};
     /** Marker: the room's guards, from the level below, have come. */
     private static final int GUARDED = 1203;
+    /** Marker: the Eye-Thief is dead. He does not come back; a lost eye turns up again instead. */
+    private static final int THIEF_DEAD = 1204;
     /** Each room's jobs, by type then job: the easiest first. */
     private static final String[][] JOBS = {
             {"Drop into the pit, and its champion rises to meet you.",
@@ -78,7 +80,7 @@ public final class ObjectiveRooms {
             {"Take the relic from its pedestal and throw it into the fire.",
                     "The Eye-Thief has the dragon's eye. Take it from him, and set it in the dragon's head."},
             {"Break the four corrupted stones in its rim. Each will cost you.",
-                    "Collect a vial from the fountain, and pour it into the dry basin by the wall."},
+                    "One stone of the fountain's rim holds its light. Find it, collect a vial, and pour it into the dry basin by the wall."},
             {"Lift the lid, and lay what rises to rest.",
                     "Break the tomb: twenty blows. While it stands, the dead keep coming."},
             {"Its shaman wakes! Kill the shaman.",
@@ -174,7 +176,15 @@ public final class ObjectiveRooms {
             int job = t.targets()[0][1];
             boolean foeJob = type == Blueprinter.PIT || type == Blueprinter.IDOL || type == Blueprinter.TOMB && job == 0
                     || type == Blueprinter.FIRECHASM && job == 1;
-            if (started && foeJob && level.getEntitiesOfClass(Mob.class, new net.minecraft.world.phys.AABB(k).inflate(128),
+            boolean thiefDead = type == Blueprinter.FIRECHASM && state.hasFired(k.above(THIEF_DEAD));
+            if (thiefDead && !eyeAbout(level, k)) {
+                // The eye was lost (into the lava, say): it turns up again where the thief stood, never a new thief.
+                BlockPos at = standAt(level, anchor.above());
+                level.addFreshEntity(new ItemEntity(level, at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5,
+                        special(Items.HEART_OF_THE_SEA, "The Dragon's Eye", EYE)));
+                Triggers.tell(player, "The dragon's eye glints on the far side, where the thief fell.");
+            }
+            if (started && foeJob && !thiefDead && level.getEntitiesOfClass(Mob.class, new net.minecraft.world.phys.AABB(k).inflate(128),
                     m -> m.isAlive() && m.getTags().contains(OF + k.asLong())).isEmpty()
                     && !(type == Blueprinter.FIRECHASM && eyeAbout(level, k))) {
                 state.unfire(k.above(STARTED));
@@ -223,6 +233,19 @@ public final class ObjectiveRooms {
                 if (flag(p.getInventory().getItem(i), EYE)) {
                     return true;
                 }
+            }
+        }
+        return false;
+    }
+
+    /** Whether a vial of light is about: dropped near the room, or carried by anyone. */
+    private static boolean vialAbout(ServerLevel level, BlockPos k) {
+        if (!level.getEntitiesOfClass(ItemEntity.class, new net.minecraft.world.phys.AABB(k).inflate(32), e -> flag(e.getItem(), VIAL)).isEmpty()) {
+            return true;
+        }
+        for (ServerPlayer p : level.players()) {
+            if (carries(p, VIAL)) {
+                return true;
             }
         }
         return false;
@@ -308,12 +331,15 @@ public final class ObjectiveRooms {
                 }
             }
             case Blueprinter.FOUNTAIN -> {
-                // Light rising off the water until someone carries a vial of it: the basin is the thing to use.
+                // Light rising off the water until someone carries a vial of it: the fountain is the thing to use.
                 if (!carries(player, VIAL)) {
                     level.sendParticles(ParticleTypes.END_ROD, anchor.getX() + 0.5, anchor.getY() + 0.9, anchor.getZ() + 0.5,
                             4, 0.8, 0.1, 0.8, 0.03);
-                    level.sendParticles(ParticleTypes.GLOW, anchor.getX() + 0.5, anchor.getY() + 1.0, anchor.getZ() + 0.5,
-                            3, 1.0, 0.2, 1.0, 0.0);
+                    // And now and then a glint on the one stone that gives it: there to be found, not shown.
+                    if (t.targets().length > 3 && level.getRandom().nextInt(3) == 0) {
+                        BlockPos src = at(site, t.targets()[3]);
+                        level.sendParticles(ParticleTypes.GLOW, src.getX() + 0.5, src.getY() + 1.05, src.getZ() + 0.5, 1, 0.2, 0, 0.2, 0);
+                    }
                 }
             }
             case Blueprinter.IDOL -> {
@@ -475,6 +501,22 @@ public final class ObjectiveRooms {
                     Triggers.tell(player, "You already carry a Vial of Light. Pour it into the dry basin by the wall.");
                     return true;
                 }
+                if (vialAbout(level, k)) {
+                    Triggers.tell(player, "The fountain has given its light: someone carries the vial, or it lies nearby.");
+                    return true;
+                }
+                // Only one stone of the rim gives it (Sable, 2026-10-14). Every other wakes a guardian.
+                if (t.targets().length > 3 && !pos.equals(at(site, t.targets()[3]))) {
+                    Long last = STRUCK.get(k.asLong());
+                    if (last == null || level.getGameTime() - last >= 20) {
+                        STRUCK.put(k.asLong(), level.getGameTime());
+                        int below = Math.min(t.level() + 1, site.built().plan().levels().size() - 1);
+                        Bestiary.band(level, site, below, standAt(level, pos.above()), 1, player, ObjectiveRooms::shove);
+                        level.playSound(null, pos, SoundEvents.WATER_AMBIENT, SoundSource.BLOCKS, 1f, 0.6f);
+                    }
+                    Triggers.tell(player, "Only cold stone, and something rises from the water! The light is in another stone of the rim.");
+                    return true;
+                }
                 ItemStack vial = special(Items.DRAGON_BREATH, "Vial of Light", VIAL);
                 if (!player.getInventory().add(vial)) {
                     level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY() + 0.5, player.getZ(), vial));
@@ -501,6 +543,13 @@ public final class ObjectiveRooms {
                 level.playSound(null, pos, SoundEvents.STONE_BREAK, SoundSource.BLOCKS, 1.2f, 0.6f + blows * 0.02f);
                 level.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, level.getBlockState(pos)),
                         pos.getX() + 0.5, pos.getY() + 1, pos.getZ() + 0.5, 12, 0.3, 0.2, 0.3, 0.1);
+                // Each blow calls one to three of the dead, up to twelve about the tomb (Sable, 2026-10-14).
+                int about = level.getEntitiesOfClass(Mob.class, new net.minecraft.world.phys.AABB(pos).inflate(16),
+                        m -> m.isAlive() && m.getTags().contains(Bestiary.KIN)).size();
+                int more = Math.min(1 + level.getRandom().nextInt(3), 12 - about);
+                if (more > 0 && blows < TOMB_BLOWS) {
+                    Bestiary.band(level, site, t.level(), standAt(level, pos.above().offset(2, 0, 0)), more, player, ObjectiveRooms::shove);
+                }
                 if (blows >= TOMB_BLOWS) {
                     // The sarcophagus and what lies on it.
                     for (int n = 3; n < t.targets().length; n++) {
@@ -540,6 +589,11 @@ public final class ObjectiveRooms {
     /** A foe of an objective falls: its room's job is done. The Eye-Thief drops the dragon's eye instead. */
     static void died(ServerLevel level, Mob mob) {
         if (mob.getTags().contains(THIEF)) {
+            for (String tag : mob.getTags()) {
+                if (tag.startsWith(OF)) {
+                    CrawlState.of(level).fire(BlockPos.of(Long.parseLong(tag.substring(OF.length()))).above(THIEF_DEAD));
+                }
+            }
             mob.spawnAtLocation(level, special(Items.HEART_OF_THE_SEA, "The Dragon's Eye", EYE));
             for (ServerPlayer p : level.players()) {
                 if (p.distanceToSqr(mob) < 24 * 24) {
