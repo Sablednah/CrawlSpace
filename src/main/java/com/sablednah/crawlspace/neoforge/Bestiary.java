@@ -62,7 +62,7 @@ public final class Bestiary {
     }
 
     private static final java.util.Set<EntityType<?>> HUMANOIDS = java.util.Set.of(EntityType.ZOMBIE, EntityType.SKELETON,
-            EntityType.DROWNED, EntityType.STRAY, EntityType.STRAY, EntityType.WITHER_SKELETON, EntityType.HUSK);
+            EntityType.DROWNED, EntityType.STRAY, EntityType.WITHER_SKELETON, EntityType.HUSK);
 
     private static final Map<String, List<Pick>> COMMON = new HashMap<>();
     /** Each theme's bosses: a lair gets one of them, from its own dice. */
