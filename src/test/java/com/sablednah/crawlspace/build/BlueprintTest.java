@@ -1470,4 +1470,27 @@ class BlueprintTest {
         }
         assertEquals(java.util.EnumSet.allOf(Towers.Design.class), seen, "every design came up");
     }
+
+    /** The objective gallery: one room per job of every type, in order, each with its set piece and way out. */
+    @Test
+    void galleryHasEveryJob() {
+        DungeonPlan plan = Planner.plan(com.sablednah.crawlspace.plan.Gallery.seed(1), 3);
+        assertEquals(1, plan.levels().size(), "the gallery is one level");
+        Blueprint bp = Blueprinter.blueprint(plan);
+        List<String> jobs = new ArrayList<>();
+        for (Trigger t : bp.triggers()) {
+            if (t.kind() == Trigger.Kind.OBJECTIVE) {
+                jobs.add(t.targets()[0][0] + "/" + t.targets()[0][1]);
+                assertTrue(t.targets()[1] != null && t.targets()[2] != null, "a way out and an anchor");
+            }
+        }
+        List<String> want = new ArrayList<>();
+        for (int k = 0; k < com.sablednah.crawlspace.plan.Gallery.rooms(); k++) {
+            int[] tj = com.sablednah.crawlspace.plan.Gallery.job(k);
+            want.add(tj[0] + "/" + tj[1]);
+        }
+        java.util.Collections.sort(jobs);
+        java.util.Collections.sort(want);
+        assertEquals(want, jobs, "every job of every type, once");
+    }
 }
