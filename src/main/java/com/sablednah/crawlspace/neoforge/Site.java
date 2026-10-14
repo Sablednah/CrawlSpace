@@ -32,7 +32,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public record Site(long seed, int levels, int top, String style, BlockPos origin, int planner) {
 
     /** Bump whenever a planner or blueprint change would alter an existing seed's dungeon. */
-    public static final int PLANNER_VERSION = 25; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
+    public static final int PLANNER_VERSION = 26; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
                                                  // 6: portcullises and the layout push; 7: feelings;
                                                  // 8: more kinds of trap; 9: vaults; 10: ice boards;
                                                  // 11: ordered kills; 12: shrine altars, the rumour lectern;
@@ -42,6 +42,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
                                                  // 19: the gelatinous cube; 20: token vaults;
                                                  // 21: objective rooms; 22: their second jobs; 23: a planned room for them; 24: slab steps, a shallower fountain, a hidden way out, a basin
                                                  // 25: objective set pieces (statues, the firechasm bridge), taller objective rooms
+                                                 // 26: puzzle rooms on nearly every level, any shape but caves, sometimes two
 
     /**
      * A plan and its blueprint, built once and shared by every chunk that asks.
