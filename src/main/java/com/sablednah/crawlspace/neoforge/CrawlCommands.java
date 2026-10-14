@@ -653,8 +653,9 @@ public final class CrawlCommands {
                 if (t.kind() == com.sablednah.crawlspace.build.Trigger.Kind.BOSS) {
                     boolean altar = Altars.sleeps(last.site(), t);
                     boolean prisoner = Prisoners.keeps(last.site(), t);
-                    items.add(entry(n, altar ? "bossaltar" : "lair", "boss" + (altar ? " (sleeps at an altar)" : "")
-                            + (prisoner ? " + prisoner" : ""), null));
+                    boolean asleep = Sleepers.sleeps(last.site(), t);
+                    items.add(entry(n, altar ? "bossaltar" : "lair", "boss" + (altar ? " (waits at an altar)" : "")
+                            + (asleep ? " (asleep: sneak past it)" : "") + (prisoner ? " + prisoner" : ""), null));
                     continue;
                 }
                 if (t.kind().isTrap()) {
