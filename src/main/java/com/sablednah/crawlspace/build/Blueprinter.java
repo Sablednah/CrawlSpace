@@ -1712,48 +1712,139 @@ public final class Blueprinter {
     static final double ICE_CHANCE = 0.3;
 
     /**
-     * An ice board (Hypixel's Ice Fill): a rectangle of ice in the middle of the
-     * room, two cells in from every edge, at most 5 by 4 and always an even
-     * number of tiles, so it can be crossed once each from any tile
-     * (BlueprintTest proves it for every size used). The hoard appears beyond
-     * it when it is solved. Returns false, changing nothing, where it does not fit.
+     * An ice board (Hypixel's Ice Fill): a square of ice in the middle of the
+     * room, 7 across (5 in a room too small), two cells in from every edge,
+     * with stone pillars standing in it: three on a 7, one on a 5. It is
+     * crossed in one go: each step to a tile beside the last, every tile once,
+     * never stepping off (IceBoards cracks it back otherwise). The pillars are
+     * chosen so that can be done: they keep the tile colours balanced, and a
+     * search finds a crossing from an edge tile before the board is built
+     * (Sable, 2026-10-15: a 5x4 walked in rows was too easy). The hoard
+     * appears beyond it when it is solved. Returns false, changing nothing,
+     * where it does not fit.
      */
     private static boolean iceBoard(Blueprint bp, DungeonPlan plan, int i, Room r) {
         LevelPlan level = plan.levels().get(i);
-        int bw = Math.min(r.w - 4, 5);
-        int bh = Math.min(r.h - 4, 4);
-        if (bw * bh % 2 == 1) {
-            bw--;
+        int n = Math.min(7, Math.min(r.w, r.h) - 4);
+        if (n % 2 == 0) {
+            n--;
         }
-        if (bw < 3 || bh < 3) {
+        if (n < 5) {
             return false;
         }
-        int x0 = r.centerX() - bw / 2;
-        int z0 = r.centerZ() - bh / 2;
+        int x0 = r.centerX() - n / 2;
+        int z0 = r.centerZ() - n / 2;
         int f = floorAt(plan, i, r.centerX(), r.centerZ());
-        for (int x = x0; x < x0 + bw; x++) {
-            for (int z = z0; z < z0 + bh; z++) {
+        for (int x = x0; x < x0 + n; x++) {
+            for (int z = z0; z < z0 + n; z++) {
                 if (!r.contains(x, z) || level.cell(x, z) != Cell.FLOOR || floorAt(plan, i, x, z) != f) {
                     return false;
                 }
             }
         }
         int rx = r.centerX();
-        int rz = z0 + bh + 1;
+        int rz = z0 + n + 1;
         if (!r.contains(rx, rz) || level.cell(rx, rz) != Cell.FLOOR) {
             return false;
         }
-        int[][] targets = new int[bw * bh + 1][];
-        targets[0] = new int[] {rx, f, rz};
-        int k = 1;
-        for (int x = x0; x < x0 + bw; x++) {
-            for (int z = z0; z < z0 + bh; z++) {
-                bp.set(x, f - 1, z, Part.ICE_TILE, 0, i);
-                targets[k++] = new int[] {x, f - 1, z};
+        boolean[][] pillar = icePillars(n, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), i, r.id, 0x1CE5L));
+        java.util.List<int[]> targets = new java.util.ArrayList<>();
+        targets.add(new int[] {rx, f, rz});
+        for (int x = x0; x < x0 + n; x++) {
+            for (int z = z0; z < z0 + n; z++) {
+                if (pillar[x - x0][z - z0]) {
+                    bp.set(x, f, z, Part.PILLAR, 0, i);
+                    bp.set(x, f + 1, z, Part.PILLAR, 0, i);
+                } else {
+                    bp.set(x, f - 1, z, Part.ICE_TILE, 0, i);
+                    targets.add(new int[] {x, f - 1, z});
+                }
             }
         }
-        bp.addTrigger(new Trigger(Trigger.Kind.ICE_BOARD, r.centerX(), f + 2, r.centerZ(), i, targets));
+        bp.addTrigger(new Trigger(Trigger.Kind.ICE_BOARD, r.centerX(), f + 2, r.centerZ(), i, targets.toArray(new int[0][])));
         return true;
+    }
+
+    /**
+     * Pillars for an n-square board, from its dice: inside the edge, leaving as
+     * many tiles of one colour as the other (or one more), and only a set that a
+     * search can cross. None, if no set of them can be found.
+     */
+    static boolean[][] icePillars(int n, com.sablednah.crawlspace.plan.Dice dice) {
+        int want = n >= 7 ? 3 : 1;
+        for (int tries = 0; tries < 60; tries++) {
+            boolean[][] p = new boolean[n][n];
+            int dark = 0;
+            int placed = 0;
+            while (placed < want) {
+                int x = 1 + dice.nextInt(n - 2);
+                int z = 1 + dice.nextInt(n - 2);
+                if (!p[x][z]) {
+                    p[x][z] = true;
+                    placed++;
+                    dark += (x + z) % 2 == 0 ? 1 : 0;
+                }
+            }
+            int darkLeft = (n * n + 1) / 2 - dark;
+            int lightLeft = n * n / 2 - (want - dark);
+            if (Math.abs(darkLeft - lightLeft) <= 1 && iceCrossable(p, n)) {
+                return p;
+            }
+        }
+        return new boolean[n][n];
+    }
+
+    /** Whether an n-square board with these pillars can be crossed in one go from some edge tile. */
+    public static boolean iceCrossable(boolean[][] pillar, int n) {
+        int tiles = 0;
+        for (int x = 0; x < n; x++) {
+            for (int z = 0; z < n; z++) {
+                tiles += pillar[x][z] ? 0 : 1;
+            }
+        }
+        int[] budget = {400_000};
+        for (int x = 0; x < n; x++) {
+            for (int z = 0; z < n; z++) {
+                boolean edge = x == 0 || z == 0 || x == n - 1 || z == n - 1;
+                if (edge && !pillar[x][z] && crossFrom(pillar, n, x, z, new boolean[n][n], 1, tiles, budget)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Depth first, the next tile with the fewest ways on first (Warnsdorff), within a budget of steps. */
+    private static boolean crossFrom(boolean[][] pillar, int n, int x, int z, boolean[][] seen, int count, int tiles, int[] budget) {
+        if (--budget[0] < 0) {
+            return false;
+        }
+        seen[x][z] = true;
+        if (count == tiles) {
+            return true;
+        }
+        java.util.List<int[]> next = new java.util.ArrayList<>();
+        for (int[] d : DIRS4) {
+            int nx = x + d[0];
+            int nz = z + d[1];
+            if (nx >= 0 && nz >= 0 && nx < n && nz < n && !pillar[nx][nz] && !seen[nx][nz]) {
+                int ways = 0;
+                for (int[] e : DIRS4) {
+                    int ax = nx + e[0];
+                    int az = nz + e[1];
+                    ways += ax >= 0 && az >= 0 && ax < n && az < n && !pillar[ax][az] && !seen[ax][az] ? 1 : 0;
+                }
+                next.add(new int[] {nx, nz, ways});
+            }
+        }
+        next.sort(java.util.Comparator.comparingInt(a -> a[2]));
+        for (int[] c : next) {
+            if (crossFrom(pillar, n, c[0], c[1], seen, count + 1, tiles, budget)) {
+                return true;
+            }
+        }
+        seen[x][z] = false;
+        return false;
     }
 
     /** How often a puzzle room from level 2 down that is not ice is a teleport maze instead of a walking one. */

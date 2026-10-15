@@ -870,14 +870,14 @@ class BlueprintTest {
     }
 
     /**
-     * Every ice board can be crossed, each tile once, from whichever tile you
-     * step on first: checked by search for every board size the builder makes.
-     * And boards turn up.
+     * Every ice board can be crossed in one go, each tile once, from some tile
+     * on its edge, round its pillars: checked by search on every board built.
+     * And boards turn up, most of them 7 across with pillars in.
      */
     @Test
     void iceBoardsCanBeSolved() {
-        java.util.Set<String> sizes = new java.util.TreeSet<>();
         int boards = 0;
+        int sevens = 0;
         for (long seed = 0; seed < 40; seed++) {
             Blueprint bp = Blueprinter.blueprint(Planner.plan(seed, 6));
             for (Trigger t : bp.triggers()) {
@@ -892,42 +892,24 @@ class BlueprintTest {
                     minZ = Math.min(minZ, t.targets()[k][2]);
                     maxZ = Math.max(maxZ, t.targets()[k][2]);
                 }
-                int w = maxX - minX + 1;
-                int h = maxZ - minZ + 1;
-                assertEquals(w * h, t.targets().length - 1, "seed " + seed + ": a board that is not a full rectangle");
-                sizes.add(w + "x" + h);
-            }
-        }
-        for (String size : sizes) {
-            int w = Integer.parseInt(size.split("x")[0]);
-            int h = Integer.parseInt(size.split("x")[1]);
-            for (int sx = 0; sx < w; sx++) {
-                for (int sz = 0; sz < h; sz++) {
-                    assertTrue(tour(w, h, sx, sz, new boolean[w][h], 1), "a " + size + " board cannot be crossed from " + sx + "," + sz);
+                int n = maxX - minX + 1;
+                assertEquals(n, maxZ - minZ + 1, "seed " + seed + ": a board that is not square");
+                boolean[][] pillar = new boolean[n][n];
+                for (boolean[] col : pillar) {
+                    java.util.Arrays.fill(col, true);
                 }
+                for (int k = 1; k < t.targets().length; k++) {
+                    pillar[t.targets()[k][0] - minX][t.targets()[k][2] - minZ] = false;
+                }
+                int pillars = n * n - (t.targets().length - 1);
+                assertEquals(n >= 7 ? 3 : 1, pillars, "seed " + seed + ": pillars on a " + n);
+                assertTrue(Blueprinter.iceCrossable(pillar, n), "seed " + seed + ": a " + n + " board that cannot be crossed");
+                sevens += n == 7 ? 1 : 0;
             }
         }
-        System.out.println("ice boards: " + boards + " in 40 dungeons, sizes " + sizes);
+        System.out.println("ice boards: " + boards + " in 40 dungeons, " + sevens + " of them 7 across");
         assertTrue(boards >= 5, "only " + boards + " ice boards");
-    }
-
-    /** Whether every cell can be visited once, from (x, z), with {@code n} visited so far. */
-    private static boolean tour(int w, int h, int x, int z, boolean[][] seen, int n) {
-        seen[x][z] = true;
-        if (n == w * h) {
-            seen[x][z] = false;
-            return true;
-        }
-        for (int[] d : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
-            int nx = x + d[0];
-            int nz = z + d[1];
-            if (nx >= 0 && nz >= 0 && nx < w && nz < h && !seen[nx][nz] && tour(w, h, nx, nz, seen, n + 1)) {
-                seen[x][z] = false;
-                return true;
-            }
-        }
-        seen[x][z] = false;
-        return false;
+        assertTrue(sevens * 2 >= boards, "most boards should be 7 across: " + sevens + " of " + boards);
     }
 
     /** Somewhere to stand: two clear blocks over something solid. */

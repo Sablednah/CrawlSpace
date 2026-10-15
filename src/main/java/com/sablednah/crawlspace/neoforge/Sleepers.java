@@ -39,6 +39,24 @@ public final class Sleepers {
     }
 
     private static final Map<UUID, Sleeper> ASLEEP = new HashMap<>();
+    /**
+     * Per player: when they were last seen sneaking. Holding an item, a player
+     * cannot open a door or a chest while sneaking, so a moment on their feet to
+     * do it is still quiet (Sable, 2026-10-15: standing up to open a door woke
+     * the lair).
+     */
+    private static final Map<UUID, Long> SNEAKED = new HashMap<>();
+    /** How long after sneaking a player still counts as quiet, in ticks. */
+    private static final int GRACE = 30;
+
+    private static boolean quiet(ServerPlayer p, long now) {
+        if (p.isShiftKeyDown()) {
+            SNEAKED.put(p.getUUID(), now);
+            return true;
+        }
+        Long last = SNEAKED.get(p.getUUID());
+        return last != null && now - last <= GRACE;
+    }
 
     private Sleepers() {
     }
@@ -78,7 +96,7 @@ public final class Sleepers {
                 continue;
             }
             for (ServerPlayer p : s.level().players()) {
-                if (p.isCreative() || p.isSpectator() || p.isShiftKeyDown() || p.distanceToSqr(mob) > HEARS * HEARS
+                if (p.isCreative() || p.isSpectator() || quiet(p, gameTime) || p.distanceToSqr(mob) > HEARS * HEARS
                         || Math.abs(p.getY() - mob.getY()) > 6) {
                     continue;
                 }
@@ -113,7 +131,7 @@ public final class Sleepers {
             if (s.level() != level || !(level.getEntity(s.id()) instanceof Mob mob) || mob.distanceToSqr(pos.getCenter()) > CHEST_HEARS * CHEST_HEARS) {
                 continue;
             }
-            if (player.isShiftKeyDown()) {
+            if (quiet(player, level.getGameTime())) {
                 player.sendOverlayMessage(Component.literal("You ease the lid open. It does not stir.").withStyle(ChatFormatting.GRAY));
             } else {
                 wake(level, mob, player, "hears the lid creak");
@@ -145,6 +163,7 @@ public final class Sleepers {
     }
 
     public static void clear() {
+        SNEAKED.clear();
         ASLEEP.clear();
     }
 }
