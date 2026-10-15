@@ -712,8 +712,8 @@ targets are all three, the first being the group's.
 A puzzle room from level 2 is an ice board instead of a maze at `ICE_CHANCE`
 (0.3), on its own dice (`Dice(seed, level, room, 0x1CE)`), so the rooms that
 stay mazes are unchanged.
-- **The board** (`Blueprinter.iceBoard`) is a rectangle of `ICE_TILE` at f-1,
-  two in from every edge, at most 5x4, always an even number of tiles. The
+- **The board** (`Blueprinter.iceBoard`) is a square of `ICE_TILE` at f-1,
+  two in from every edge (see "Harder since" below). The
   room is otherwise plain floor.
 - **The trigger,** `Trigger.Kind.ICE_BOARD` at the centre, f+2: its first
   target is where the hoard appears, the rest are the tiles.
@@ -728,6 +728,16 @@ stay mazes are unchanged.
 - **Test:** `iceBoardsCanBeSolved` searches every size used (all 5x4 in 40
   dungeons) and proves it can be crossed once from every tile.
   `puzzleRoomsAreSolvable` skips ice rooms.
+- **Harder since 2026-10-15** (Sable: "too easy", walked in rows): the board
+  is 7 square (5 in a small room) with 3 pillars (1 on a 5) inside the edge,
+  from `Dice(seed, level, room, 0x1CE5)`. A pillar set is kept only if it
+  leaves the two tile colours within one of each other and
+  `Blueprinter.iceCrossable` (depth first, Warnsdorff, a step budget) finds a
+  crossing from an edge tile; otherwise no pillars. `IceBoards` now cracks the
+  board back on a step not beside the last tile, and on stepping off it. While
+  anyone is on an unsolved board a theme monster with knockback comes every
+  140-260 ticks, at most 3 about. The test now checks every board built
+  against `iceCrossable`, and that most are 7 across.
 - **Seen on the rig** (seed 4, level 2): two tiles packed; the repeat reset
   the board, leaving 1 (your start); a snake packed all 20; the chest
   appeared; Speed was given.

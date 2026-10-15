@@ -11,7 +11,7 @@
 - **Two jobs for each objective room:** the Pit's waiting guardian, the Firechasm's stolen dragon's eye, the Fountain's vial of light, the Tomb that must be broken while the dead keep coming, and the Idol's summoning, which turns the shaman into a boss if you are too slow.
 - **An objective room's way out appears only when its job is done**, beside the reward chest's moment, and ignores clicks for two seconds, so nobody is thrown out before seeing their reward. The Fountain's vial is poured into a dry basin by the wall instead of the frame.
 - **A restock puts the dungeon back:** broken chests and barrels come back (filled), and every wooden door is shut again, as you come near after a restock.
-- **Puzzle rooms on nearly every level:** about nine levels in ten have one now (it was under half), and a quarter have two. Any room shape the maze can walk takes one, not only rectangles (caves aside). Planner 26: dungeons found before this are left as ordinary blocks.
+- **Puzzle rooms on nearly every level:** about nine levels in ten have one now (it was under half), and a quarter have two. Any room shape the maze can walk takes one, not only rectangles (caves aside). Planner 26 (27 since the new ice boards): dungeons found before this are left as ordinary blocks.
 - **Objective rooms are set pieces now**, after Warhammer Quest's room cards, in rooms a storey taller:
   - **The Firechasm:** a chasm four or five wide with lava three blocks down, crossed by a plank bridge that gives way behind you and mends after ten seconds. Some planks are rotten and snap at once, unless you are quick enough (LegendQuest: a DEX check). Fall in and you are burned and put back at the near end, not killed. A blackstone dragon sits on the far side, wings spread up the wall.
   - **The Fountain of Light:** a round basin with glowstone under the water and a raised bowl on a pillar in the middle, spilling light. Cracked floor, jars about, a corner gone green.
@@ -21,6 +21,9 @@
 - **Objective rooms are dressed to match:** the theme's floor border and medallion, pilasters, coving all round, panelling with a dado rail, a colonnade two in from the walls, lamps hanging on chains and banners between the pilasters.
 - **An objective's foe ends its own room's job wherever it falls.** The Idol's ascended shaman could chase you out of reach, die uncounted, and rise again as a new shaman, over and over.
 - **The Firechasm's bridge stays up.** It was oak, and the lava below set it alight before anyone arrived; it is crimson now, which does not burn. No magma on the lip either: a monster standing on it burned itself.
+- **The Tomb's lid stays broken** with the tomb, so its chest can be opened.
+- **Sleeping guardians let you open doors and chests:** holding an item you cannot open one while sneaking, so a moment on your feet (a second and a half after sneaking) is still quiet.
+- **Ice boards are a real puzzle now:** 7 across (5 in a small room) with stone pillars standing in them, crossed in one go: each step to a tile beside the last, every tile once, and stepping off or skipping a tile cracks the board back. The pillars are always placed so it can be done. While you are out on it, a monster comes every ten seconds or so, with knockback.
 - **The Idol's summoning bar goes when the shaman dies.** It stayed on screen after the job was done.
 - **The Firechasm's pedestal gives one relic**, not one a click: another only if it is lost.
 - **The Eye-Thief stays dead.** If the dragon's eye is lost (into the lava, say), it turns up again on the far side, where he fell.
