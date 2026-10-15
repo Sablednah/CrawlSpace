@@ -712,6 +712,13 @@ public final class ObjectiveRooms {
             return;
         }
         state.fire(k.above(DONE));
+        // The summoning's bar is taken down by the summoning's own tick, which stops once the job is done: so here
+        // (Sable, 2026-10-15: it stayed up after the shaman died).
+        var bar = BARS.remove(k.asLong());
+        if (bar != null) {
+            bar.removeAllPlayers();
+        }
+        SINCE.remove(k.asLong());
         BlockPos frame = at(site, t.targets()[1]);
         BlockPos anchor = at(site, t.targets()[2]);
         // The way out appears now, lit, facing away from the room as a placed frame would.
