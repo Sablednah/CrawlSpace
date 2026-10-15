@@ -21,6 +21,7 @@
 - **Objective rooms are dressed to match:** the theme's floor border and medallion, pilasters, coving all round, panelling with a dado rail, a colonnade two in from the walls, lamps hanging on chains and banners between the pilasters.
 - **An objective's foe ends its own room's job wherever it falls.** The Idol's ascended shaman could chase you out of reach, die uncounted, and rise again as a new shaman, over and over.
 - **The Firechasm's bridge stays up.** It was oak, and the lava below set it alight before anyone arrived; it is crimson now, which does not burn. No magma on the lip either: a monster standing on it burned itself.
+- **The Tomb's reward chest opens.** It stands where the tomb was, and clicks on it were taken as clicks on the tomb.
 - **The Tomb's lid stays broken** with the tomb, so its chest can be opened.
 - **Sleeping guardians let you open doors and chests:** holding an item you cannot open one while sneaking, so a moment on your feet (a second and a half after sneaking) is still quiet.
 - **Ice boards are a real puzzle now:** 7 across (5 in a small room) with stone pillars standing in them, crossed in one go: each step to a tile beside the last, every tile once, and stepping off or skipping a tile cracks the board back. The pillars are always placed so it can be done. While you are out on it, a monster comes every ten seconds or so, with knockback.
