@@ -25,6 +25,29 @@ CrawlSpace never imports either.
 **Server-side, vanilla first.** Everything is ordinary blocks and vanilla
 entities, so an unmodded client can play: `displayTest="IGNORE_ALL_VERSION"`.
 
+## Released: 1.0.0 (2026-10-15)
+
+**1.0.0 is out on five lines:** 1.21.11 (`main`), 26.1.2, 26.2, 26.3 and,
+for the first time, **Forge 1.20.1** (`forge1.20.1`). Tag `v1.0.0` on main
+0ffca9c; CurseForge files 9195399 (1.20.1) and 9195400-9195403. LegendQuest
+is declared an optional dependency. Sable chose 1.0.0 over 0.3.0 because a
+lot had changed. New jobs and the planner rework (cycle types) are to come as
+content updates.
+
+Releasing, as done for 1.0.0:
+- `CHANGELOG.md`, `CURSEFORGE.md` (the workflow fails if it did not change
+  since the last tag) and `mod_version` on all five branches.
+- Build every jar from a clean tree, so its stamp is the tagged commit.
+- An annotated tag on main, then `gh release create --target <full SHA>`
+  with all five jars attached. Publishing it runs the CurseForge workflow.
+- `scripts/curseforge-upload.sh` tags 1.20.x files Forge and Java 17, and
+  everything else NeoForge and Java 21/25. Confirm the file ids from the run
+  log; a 200 is acceptance, not approval.
+- Afterwards, `scripts/port26/install-cs.sh <jar> <instance>` puts the
+  released jar into each test instance. It waits until that game is closed.
+
+The sections below are the build history, dated, and stay as written.
+
 ## Where it stands (2026-10-06, afternoon)
 
 **Dungeons generate with the world, and their levers, secret walls and traps
@@ -1708,8 +1731,8 @@ Drive it over RCON:
   role, facing along or across it, which is how screenshots get aimed.
 - `/crawlspace info` also reports the level you stand on: rooms awake,
   traps sprung, and the nearest sleeping room.
-- **Forge 1.20.1 (branch `forge1.20.1`, 2026-10-15, unreleased; a request
-  from a commenter).** Built with ModDevGradle's `legacyforge` plugin,
+- **Forge 1.20.1 (branch `forge1.20.1`, 2026-10-15, released in 1.0.0;
+  a request from a commenter; Sable played it and found it all OK).** Built with ModDevGradle's `legacyforge` plugin,
   Forge 47.4.10, Java 17. `plan` and `build` are unchanged and all tests
   pass. The runtime is ported from 1.21.11:
   - Mechanical renames are `scripts/port26/fix1201.py` (idempotent).
