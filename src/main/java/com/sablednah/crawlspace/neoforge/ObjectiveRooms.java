@@ -236,6 +236,18 @@ public final class ObjectiveRooms {
         return false;
     }
 
+    /**
+     * 1.20.1 has no fire-resistant item component (1.20.5): the relic is made
+     * fire-proof as an item entity instead, the moment one appears, so dropped
+     * in lava it floats there long enough to be seen to go in. An ordinary item
+     * burned up within a tick, before the once-a-second check could find it.
+     */
+    public static void onItemJoin(net.minecraftforge.event.entity.EntityJoinLevelEvent e) {
+        if (e.getEntity() instanceof ItemEntity item && flag(item.getItem(), RELIC)) {
+            item.setInvulnerable(true);
+        }
+    }
+
     /** Whether the relic is about: dropped near the room (not yet in the fire), or carried by anyone. */
     private static boolean relicAbout(ServerLevel level, BlockPos k) {
         if (!level.getEntitiesOfClass(ItemEntity.class, new net.minecraft.world.phys.AABB(k).inflate(32), e -> flag(e.getItem(), RELIC)).isEmpty()) {
@@ -590,7 +602,7 @@ public final class ObjectiveRooms {
                 ItemNbt.data(relic, tag);
                 // Fire-proof, like netherite: dropped in lava it floats there long enough to be seen to go in. An
                 // ordinary item burned up within a tick, before the once-a-second check could find it.
-                // (fire-proofing is on the item entity in 1.20.1: ObjectiveRooms.onItemJoin)
+                // (fire-proof as an item entity in 1.20.1: onItemJoin)
                 if (!player.getInventory().add(relic)) {
                     level.addFreshEntity(new ItemEntity(level, player.getX(), player.getY() + 0.5, player.getZ(), relic));
                 }

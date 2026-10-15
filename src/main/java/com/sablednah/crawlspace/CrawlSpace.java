@@ -99,6 +99,7 @@ public final class CrawlSpace {
         MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Cubes::onJoin);
         MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.ObjectiveRooms::onBreak);
         MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.ObjectiveRooms::onHurt);
+        MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.ObjectiveRooms::onItemJoin);
         MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Heroic::onUseItem);
         MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Heroic::onExperience);
         MinecraftForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Bestiary::onTarget);
