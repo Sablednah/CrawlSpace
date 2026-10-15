@@ -32,7 +32,7 @@ import net.minecraft.world.level.block.state.BlockState;
 public record Site(long seed, int levels, int top, String style, BlockPos origin, int planner) {
 
     /** Bump whenever a planner or blueprint change would alter an existing seed's dungeon. */
-    public static final int PLANNER_VERSION = 26; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
+    public static final int PLANNER_VERSION = 27; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
                                                  // 6: portcullises and the layout push; 7: feelings;
                                                  // 8: more kinds of trap; 9: vaults; 10: ice boards;
                                                  // 11: ordered kills; 12: shrine altars, the rumour lectern;
@@ -43,6 +43,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
                                                  // 21: objective rooms; 22: their second jobs; 23: a planned room for them; 24: slab steps, a shallower fountain, a hidden way out, a basin
                                                  // 25: objective set pieces (statues, the firechasm bridge), taller objective rooms
                                                  // 26: puzzle rooms on nearly every level, any shape but caves, sometimes two
+                                                 // 27: 7-square ice boards with pillars; the tomb lid its own part
 
     /**
      * A plan and its blueprint, built once and shared by every chunk that asks.
@@ -129,10 +130,10 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
     /** The block a blueprint code stands for at a world position. */
     public BlockState state(Built built, int code, BlockPos pos) {
         Part part = Blueprint.part(code);
-        if (part == Part.OBJ_STATUE || part == Part.EXIT_FRAME) {
+        if (part == Part.OBJ_STATUE || part == Part.OBJ_LID || part == Part.EXIT_FRAME) {
             String s = built.blueprint().statueAt(pos.getX() - origin.getX(), pos.getY() - origin.getY(), pos.getZ() - origin.getZ());
             if (s != null) {
-                return StatueBlocks.state(s, part == Part.OBJ_STATUE ? Blueprint.facing(code) : 0);
+                return StatueBlocks.state(s, part != Part.EXIT_FRAME ? Blueprint.facing(code) : 0);
             }
         }
         int li = Math.max(0, Blueprint.level(code));

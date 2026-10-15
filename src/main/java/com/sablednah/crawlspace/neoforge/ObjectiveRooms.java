@@ -777,7 +777,7 @@ public final class ObjectiveRooms {
     }
 
     /** A tomb's dead: knockback on whatever they hold (punch on a bow), and a sword with it if they hold nothing. */
-    private static void shove(Mob mob) {
+    static void shove(Mob mob) {
         if (!(mob.level() instanceof ServerLevel level)) {
             return;
         }
