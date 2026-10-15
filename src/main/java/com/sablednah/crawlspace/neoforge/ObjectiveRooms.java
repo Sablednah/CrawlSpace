@@ -491,6 +491,11 @@ public final class ObjectiveRooms {
                 && part != Part.OBJ_RIM && part != Part.OBJ_GLOW) {
             return false;
         }
+        // A chest is a chest, whatever the blueprint once had there: the reward chest stands where the broken tomb
+        // was, and its clicks were taken as clicks on the tomb and swallowed (Sable, 2026-10-15: "ghost blocks").
+        if (level.getBlockEntity(pos) instanceof net.minecraft.world.Container) {
+            return false;
+        }
         for (Trigger t : site.built().blueprint().triggers()) {
             if (t.kind() != Trigger.Kind.OBJECTIVE || !inRoom(site, t, pos)) {
                 continue;
@@ -500,6 +505,9 @@ public final class ObjectiveRooms {
             boolean done = state.hasFired(k.above(DONE));
             int type = t.targets()[0][0];
             int job = t.targets()[0][1];
+            if (done && part != Part.EXIT_FRAME) {
+                return false; // the job is done: only the way out still answers
+            }
             if (part == Part.EXIT_FRAME) {
                 // Only there once the job is done; a click carried over from handing it in is not a request to leave.
                 Long opened = OPENED.get(k.asLong());
