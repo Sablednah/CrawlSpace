@@ -319,6 +319,8 @@ final class SetPieces {
         List<int[]> tomb = sp.get('T');
         for (int[] t : tomb) {
             bp.set(t[0], t[1], t[2], Part.OBJ_TOMB, 0, i);
+            // The lid and skull on it keep their statue block, as a part the repair may leave missing.
+            bp.set(t[0], t[1] + 1, t[2], Part.OBJ_LID, turns(ix, iz), i);
             b.places.add(t);
         }
         b.anchor = tomb.get(1);

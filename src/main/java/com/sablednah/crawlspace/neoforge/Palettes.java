@@ -515,7 +515,7 @@ public final class Palettes {
             case EXIT_FRAME -> Blocks.AIR.defaultBlockState();
             case OBJ_BASIN -> Blocks.CAULDRON.defaultBlockState();
             // Statues come from the blueprint's own table (Site.state); this is only for one missing from it.
-            case OBJ_STATUE -> Blocks.STONE_BRICKS.defaultBlockState();
+            case OBJ_STATUE, OBJ_LID -> Blocks.STONE_BRICKS.defaultBlockState();
             case OBJ_CHASM -> Blocks.AIR.defaultBlockState();
             // Crimson: nether wood does not burn. Oak three above lava caught fire and the bridge was gone (Sable).
             case OBJ_PLANK, OBJ_ROTTEN -> Blocks.CRIMSON_PLANKS.defaultBlockState();

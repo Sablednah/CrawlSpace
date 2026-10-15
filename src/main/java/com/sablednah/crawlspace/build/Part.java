@@ -246,7 +246,13 @@ public enum Part {
     /** The firechasm's bridge: a plank that gives way a moment after it is stepped on, and comes back. */
     OBJ_PLANK,
     /** A rotten plank in the bridge: gives way at once, unless the player is quick enough (a perception mod's DEX). */
-    OBJ_ROTTEN;
+    OBJ_ROTTEN,
+    /**
+     * What lies on the tomb (its lid, the skull): a statue block that goes with
+     * the tomb when its job breaks it, so the repair must not put it back over
+     * the chest (Sable, 2026-10-15).
+     */
+    OBJ_LID;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).
@@ -267,7 +273,7 @@ public enum Part {
                     PORTCULLIS, PORTCULLIS_SILL, WINCH, ONEWAY_LOWER, ONEWAY_UPPER, WINDOW_BARS, PEDESTAL, ICE_TILE,
                     PREVIEW_TREASURE, PREVIEW_SHRINE, PREVIEW_PUZZLE, PREVIEW_GUARD, PREVIEW_LAIR, BOSS_ALTAR, TP_PAD, FORBIDDEN,
                     EXIT_FRAME, OBJ_BRIDGE, OBJ_RELIC, OBJ_DRAGON, OBJ_RIM, OBJ_GLOW, OBJ_TOMB, OBJ_IDOL, OBJ_IDOL_HEAD, OBJ_BASIN,
-                    OBJ_STATUE, OBJ_PLANK, OBJ_ROTTEN -> true;
+                    OBJ_STATUE, OBJ_PLANK, OBJ_ROTTEN, OBJ_LID -> true;
             default -> false;
         };
     }
@@ -282,7 +288,7 @@ public enum Part {
         return switch (this) {
             // The quick exit is not built until its job is done: nothing to put back before then.
             case CRUMBLE, DRIPLEAF, PIT_TILE, LOCKED_LOWER, LOCKED_UPPER, PORTCULLIS, ONEWAY_LOWER, ONEWAY_UPPER, EXIT_FRAME,
-                    OBJ_PLANK, OBJ_ROTTEN, OBJ_TOMB -> true; // the tomb, once its job breaks it
+                    OBJ_PLANK, OBJ_ROTTEN, OBJ_TOMB, OBJ_LID -> true; // the tomb and its lid, once its job breaks it
             default -> false;
         };
     }

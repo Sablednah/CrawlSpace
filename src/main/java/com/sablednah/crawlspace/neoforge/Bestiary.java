@@ -347,7 +347,7 @@ public final class Bestiary {
                     + (t.level() >= STRICT_FROM ? " One wrong kill, and every one you have killed rises again." : "");
         }
         if (asleep && bossName != null) {
-            return capitalise(bossName) + " sleeps in its lair. Go quietly: sneak, and it may not wake.";
+            return capitalise(bossName) + " sleeps in its lair. Go quietly: sneak, and it may not wake. A moment on your feet to open a door or a chest is quiet enough.";
         }
         return bossName != null ? capitalise(bossName) + " rises from its lair!" : "Something stirs in the dark.";
     }
