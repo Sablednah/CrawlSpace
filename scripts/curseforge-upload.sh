@@ -80,10 +80,11 @@ if not isinstance(versions, list):
 mc = os.environ["MC"]
 def find(name):
     return next((v["id"] for v in versions if v.get("name") == name), None)
-out = {"mc": find(mc), "loader": find("NeoForge"),
+# The 1.20.1 line is Forge on Java 17 (branch forge1.20.1); 1.21 is NeoForge on 21; newer lines NeoForge on 25.
+legacy = mc.startswith("1.20")
+out = {"mc": find(mc), "loader": find("Forge" if legacy else "NeoForge"),
        "client": find("Client"), "server": find("Server"),
-       # The 1.21 line ships the Java 21 runtime. Newer Minecraft lines ship 25.
-       "java": find("Java 21" if mc.startswith("1.") else "Java 25")}
+       "java": find("Java 17" if legacy else "Java 21" if mc.startswith("1.") else "Java 25")}
 if out["mc"] is None:
     near = sorted({v["name"] for v in versions if v.get("name", "").startswith(mc.split(".")[0])})
     print("NO_MC:" + ", ".join(near[-12:]))
@@ -121,7 +122,7 @@ print(*( "" if d[k] is None else d[k] for k in ("mc","loader","client","server",
 # genre packs work in single-player as well as on a server.
 [ -n "$CLIENT_ID" ] && [ -n "$SERVER_ID" ] || {
     echo "!! Could not find the Client/Server environment tags CurseForge requires." >&2; exit 1; }
-[ -n "$LOADER_ID" ] || echo "!! Warning: no 'NeoForge' modloader tag found; uploading without it." >&2
+[ -n "$LOADER_ID" ] || echo "!! Warning: no modloader tag found; uploading without it." >&2
 # Optional, unlike the environment: a Java version CurseForge has not added yet must not block a
 # release, so warn and carry on.
 [ -n "$JAVA_ID" ]   || echo "!! Warning: no matching Java tag found; uploading without one." >&2
@@ -137,7 +138,7 @@ if [ -n "${CURSEFORGE_MINIMAL:-}" ]; then
     CHANGELOG_FILE="$(mktemp)"; printf 'Initial release.' > "$CHANGELOG_FILE"
     echo "   (minimal mode: one-line changelog, no Java tag)"
 fi
-echo "   Minecraft $MC_VERSION = $MC_ID${LOADER_ID:+, NeoForge = $LOADER_ID}, Client = $CLIENT_ID, Server = $SERVER_ID${JAVA_ID:+, Java = $JAVA_ID}"
+echo "   Minecraft $MC_VERSION = $MC_ID${LOADER_ID:+, loader = $LOADER_ID}, Client = $CLIENT_ID, Server = $SERVER_ID${JAVA_ID:+, Java = $JAVA_ID}"
 
 # A readable name in the files list. Derived from the filename so it cannot disagree with what is
 # being uploaded. The packs carry no version of their own, so they take the release's.

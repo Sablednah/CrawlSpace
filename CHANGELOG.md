@@ -1,6 +1,9 @@
 # Changelog
 
-## 0.3.0 — unreleased
+## 1.0.0 — 2026-10-15
+
+The first full release, and the first for **Forge 1.20.1** as well as NeoForge 1.21.11, 26.1.2, 26.2 and 26.3. On 1.20.1, which has no mob scaling, bosses, elites and their packs are normal size, and the gelatinous cube steps rather than glides.
+
 
 - **Dungeons can no longer be dug round.** In survival, the dungeon's walls, floors, ceilings, stairs, tower, locked doors and puzzle rooms will not break: the way down is through it. Hitting them says so: "The dungeon's stonework holds. Find another way." Chests, spawners, pots, cobwebs, furniture, wooden doors, trap plates and anything you placed yourself still break as usual. Creative is unaffected.
 - Explosions still hurt and still break the dressing, but not the walls. Pistons cannot move them, and blocks that mining machines remove without the usual break event are put back after a few seconds.
