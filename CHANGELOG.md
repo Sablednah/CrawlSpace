@@ -21,6 +21,7 @@
 - **Objective rooms are dressed to match:** the theme's floor border and medallion, pilasters, coving all round, panelling with a dado rail, a colonnade two in from the walls, lamps hanging on chains and banners between the pilasters.
 - **An objective's foe ends its own room's job wherever it falls.** The Idol's ascended shaman could chase you out of reach, die uncounted, and rise again as a new shaman, over and over.
 - **The Firechasm's bridge stays up.** It was oak, and the lava below set it alight before anyone arrived; it is crimson now, which does not burn. No magma on the lip either: a monster standing on it burned itself.
+- **The Firechasm's pedestal gives one relic**, not one a click: another only if it is lost.
 - **The Eye-Thief stays dead.** If the dragon's eye is lost (into the lava, say), it turns up again on the far side, where he fell.
 - **The Fountain's vial has to be found:** only one stone of the rim gives it, with a faint glint now and then; every wrong stone wakes a guardian, with knockback. One vial at a time, and none while one lies about, so no more endless vials.
 - **The Tomb fights back harder:** every blow calls one to three of the dead (up to twelve about it), and once broken it stays broken, so its chest can be opened.
