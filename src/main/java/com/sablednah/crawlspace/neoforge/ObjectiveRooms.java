@@ -238,6 +238,19 @@ public final class ObjectiveRooms {
         return false;
     }
 
+    /** Whether the relic is about: dropped near the room (not yet in the fire), or carried by anyone. */
+    private static boolean relicAbout(ServerLevel level, BlockPos k) {
+        if (!level.getEntitiesOfClass(ItemEntity.class, new net.minecraft.world.phys.AABB(k).inflate(32), e -> flag(e.getItem(), RELIC)).isEmpty()) {
+            return true;
+        }
+        for (ServerPlayer p : level.players()) {
+            if (carries(p, RELIC)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** Whether a vial of light is about: dropped near the room, or carried by anyone. */
     private static boolean vialAbout(ServerLevel level, BlockPos k) {
         if (!level.getEntitiesOfClass(ItemEntity.class, new net.minecraft.world.phys.AABB(k).inflate(32), e -> flag(e.getItem(), VIAL)).isEmpty()) {
@@ -563,6 +576,15 @@ public final class ObjectiveRooms {
                             .withStyle(ChatFormatting.GRAY));
                 }
             } else if (part == Part.OBJ_RELIC && job == 0 && !done) {
+                // One relic: it gave one a click (Sable, 2026-10-15). Again only if it is lost (burned up, say).
+                if (carries(player, RELIC)) {
+                    Triggers.tell(player, "You already carry the relic. Throw it into the fire (drop it into the lava).");
+                    return true;
+                }
+                if (relicAbout(level, k)) {
+                    Triggers.tell(player, "The pedestal is empty: someone carries the relic, or it lies nearby.");
+                    return true;
+                }
                 ItemStack relic = new ItemStack(Items.HEART_OF_THE_SEA);
                 relic.set(DataComponents.CUSTOM_NAME, Component.literal("The Relic").withStyle(s -> s.withItalic(false).withColor(ChatFormatting.GOLD)));
                 CompoundTag tag = new CompoundTag();
