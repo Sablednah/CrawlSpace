@@ -7,6 +7,7 @@ import java.util.Optional;
 import com.mojang.serialization.MapCodec;
 import com.sablednah.crawlspace.CrawlSpace;
 import com.sablednah.crawlspace.neoforge.CrawlConfig;
+import com.sablednah.crawlspace.neoforge.DungeonTypes;
 import com.sablednah.crawlspace.neoforge.EntranceStyle;
 import com.sablednah.crawlspace.neoforge.Site;
 import com.sablednah.crawlspace.plan.Dice;
@@ -52,10 +53,20 @@ public final class DungeonStructure extends Structure {
             return Optional.empty();
         }
         BlockPos origin = new BlockPos(x, ground, z);
+        long seed = Dice.mix(ctx.seed() ^ Dice.mix(cp.pack()));
+        var biome = ctx.biomeSource().getNoiseBiome(
+                QuartPos.fromBlock(x), QuartPos.fromBlock(ground), QuartPos.fromBlock(z), ctx.randomState().sampler());
+        DungeonTypes.Type type = DungeonTypes.pick(seed, biome);
+        if (type == null) {
+            return Optional.empty(); // every type is off here
+        }
+        int maxLevels = type.maxLevels() > 0 ? Math.max(minLevels, Math.min(CrawlConfig.maxLevels(), type.maxLevels())) : CrawlConfig.maxLevels();
+        String style = type.entrance() != null ? type.entrance() : EntranceStyle.of(biome);
         return Optional.of(new GenerationStub(origin, builder -> {
-            long seed = Dice.mix(ctx.seed() ^ Dice.mix(cp.pack()));
             Map<Long, Integer> samples = new HashMap<>();
-            Site site = Site.fit(seed, CrawlConfig.maxLevels(), minLevels, origin, (dx, dz) -> {
+            Site site;
+            try {
+                site = Site.fit(seed, maxLevels, minLevels, origin, (dx, dz) -> {
                 int lo = Integer.MAX_VALUE;
                 int gx = Math.floorDiv(dx, SAMPLE) * SAMPLE;
                 int gz = Math.floorDiv(dz, SAMPLE) * SAMPLE;
@@ -69,12 +80,16 @@ public final class DungeonStructure extends Structure {
                     }
                 }
                 return lo - ground;
-            }, minY, EntranceStyle.of(ctx.biomeSource().getNoiseBiome(
-                    QuartPos.fromBlock(x), QuartPos.fromBlock(ground), QuartPos.fromBlock(z), ctx.randomState().sampler())));
+            }, minY, style, type.id(), DungeonTypes.themesOf(type));
+            } catch (IllegalStateException e) {
+                // A datapack theme whose numbers no level can be planned with: no dungeon here, rather than a crashed chunk.
+                CrawlSpace.LOGGER.warn("CrawlSpace: no {} dungeon at {}: {}", type.id(), origin, e.getMessage());
+                return;
+            }
             if (site == null) {
                 return; // no pieces: the start is invalid and nothing is placed
             }
-            CrawlSpace.LOGGER.debug("CrawlSpace dungeon at {}: {} levels, first {} down, {}", origin, site.levels(), site.top(), site.style());
+            CrawlSpace.LOGGER.debug("CrawlSpace {} dungeon at {}: {} levels, first {} down, {}", site.type(), origin, site.levels(), site.top(), site.style());
             builder.addPiece(new DungeonPiece(site, DungeonPiece.Part.TOWER));
             builder.addPiece(new DungeonPiece(site, DungeonPiece.Part.BURIED));
         }));
