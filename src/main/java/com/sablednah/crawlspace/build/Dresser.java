@@ -46,8 +46,8 @@ final class Dresser {
         Dice dice = Dice.of(plan.seed(), i, 0xD2E55L);
         boolean[][] reserved = reserved(bp, level, i);
         Set<Integer> dark = new HashSet<>();
-        String theme = level.theme.name();
-        boolean built = !theme.equals("Old Mines") && !theme.equals("Caverns");
+        com.sablednah.crawlspace.plan.Dressing dr = level.theme.dressing();
+        boolean built = dr.built();
 
         for (Room r : level.rooms) {
             if (r.role == com.sablednah.crawlspace.plan.Role.PUZZLE) {
@@ -114,23 +114,23 @@ final class Dresser {
                     take(perim, 3, p -> props.add(banner(p, f)));
                 }
                 case KEY -> take(perim, 2, p -> props.add(floor(p, f, Part.CANDLES, dice.nextInt(4), true)));
-                default -> flavour(theme, level, r, f, h, perim, reserved, centreFree, centre, dice, props);
+                default -> flavour(dr.flavour(), level, r, f, h, perim, reserved, centreFree, centre, dice, props);
             }
 
             spawner = spawners(level, r, i, f, reserved, props, dice);
-            boolean columns = columns(theme, r, dice);
+            boolean columns = columns(dr, r, dice);
             if (columns) {
                 engaged(level, r, f, h, reserved, props, perim);
             }
-            clutter(theme, r, i, f, perim, dice, props);
-            if (dice.chance(overgrown(theme))) {
-                overgrowth(level, r, f, h, theme, reserved, perim, dice, props);
+            clutter(dr, r, i, f, perim, dice, props);
+            if (dice.chance(dr.overgrowth())) {
+                overgrowth(level, r, f, h, dr, reserved, perim, dice, props);
             }
 
             // Cobwebs gather in corners of the old, dry places.
-            if (theme.equals("Crypt") || theme.equals("Old Mines")) {
+            if (dr.cobwebs() > 0) {
                 for (int[] p : new ArrayList<>(perim)) {
-                    if (corner(level, p) && dice.chance(0.4)) {
+                    if (corner(level, p) && dice.chance(dr.cobwebs())) {
                         props.add(floor(p, f, Part.COBWEB, 0, true));
                         perim.remove(p);
                     }
@@ -151,17 +151,17 @@ final class Dresser {
             if (built) {
                 skirting(bp, level, r, plan, i);
             }
-            if (!theme.equals("Caverns")) {
-                finish(bp, level, r, plan, i, theme, reserved);
+            if (dr.finished()) {
+                finish(bp, level, r, plan, i, dr, reserved);
                 cove(bp, level, r, plan, i);
-                if (panelled(r.role, theme, dice)) {
+                if (panelled(r.role, dr, dice)) {
                     panel(bp, level, r, plan, i);
                 }
             }
-            if (r.role == Role.ROOM && theme.equals("Crypt") && dice.chance(0.25)) {
+            if (r.role == Role.ROOM && dr.shelves() > 0 && dice.chance(dr.shelves())) {
                 shelves(bp, level, r, plan, i, reserved);
             }
-            if (!theme.equals("Caverns")) {
+            if (dr.finished()) {
                 arches(bp, level, r, plan, i);
             }
             if (built) {
@@ -176,10 +176,10 @@ final class Dresser {
     }
 
     /** Ordinary rooms: what the theme fills them with. */
-    private static void flavour(String theme, LevelPlan level, Room r, int f, int h, List<int[]> perim,
+    private static void flavour(String flavour, LevelPlan level, Room r, int f, int h, List<int[]> perim,
             boolean[][] reserved, boolean centreFree, int[] centre, Dice dice, List<Prop> props) {
-        switch (theme) {
-            case "Crypt" -> {
+        switch (flavour) {
+            case "crypt" -> {
                 if (centreFree && Math.min(r.w, r.h) >= 9 && dice.chance(0.6)) {
                     // Two sarcophagi side by side, each two long, with a candle at the head.
                     boolean alongX = r.w >= r.h;
@@ -201,7 +201,7 @@ final class Dresser {
                 take(perim, 2, p -> props.add(floor(p, f, Part.CANDLES, dice.nextInt(3), true)));
                 take(perim, 1, p -> props.add(floor(p, f, Part.POT, 0, true)));
             }
-            case "Sunken Halls" -> {
+            case "sunken_halls" -> {
                 if (centreFree && dice.chance(0.5)) {
                     tableSet(centre, f, dice, props);
                 }
@@ -209,17 +209,17 @@ final class Dresser {
                 take(perim, 2, p -> props.add(floor(p, f, Part.CANDLES, dice.nextInt(3), true)));
                 take(perim, 2, p -> props.add(floor(p, f, Part.POT, 0, true)));
             }
-            case "Old Mines" -> {
+            case "old_mines" -> {
                 if (centreFree && dice.chance(0.6)) {
                     tableSet(centre, f, dice, props);
                 }
                 take(perim, 2 + dice.nextInt(3), p -> props.add(floor(p, f, Part.BARREL, 0, true)));
             }
-            case "Caverns" -> {
+            case "caverns" -> {
                 scatter(level, r, reserved, dice, 0.08, (x, z) -> props.add(new Prop(x, f, z, Part.STALAGMITE, 0, true)));
                 scatter(level, r, reserved, dice, 0.15, (x, z) -> props.add(new Prop(x, f, z, Part.MOSS, 0, false)));
             }
-            case "Deep Halls" -> {
+            case "deep_halls" -> {
                 if (centreFree && dice.chance(0.5)) {
                     props.add(new Prop(centre[0], f, centre[1], Part.BRAZIER, 0, true));
                 } else if (centreFree) {
@@ -303,8 +303,8 @@ final class Dresser {
     }
 
     /** Which rooms get columns standing out from their walls: the grand ones, and some others. */
-    private static boolean columns(String theme, Room r, Dice dice) {
-        if (theme.equals("Old Mines") || theme.equals("Caverns") || Math.min(r.w, r.h) < 9 || r.shape == com.sablednah.crawlspace.plan.Shape.HALL) {
+    private static boolean columns(com.sablednah.crawlspace.plan.Dressing dr, Room r, Dice dice) {
+        if (!dr.columns() || Math.min(r.w, r.h) < 9 || r.shape == com.sablednah.crawlspace.plan.Shape.HALL) {
             return false;
         }
         return switch (r.role) {
@@ -347,17 +347,14 @@ final class Dresser {
     }
 
     /** More things lying about, by theme: some of what is left of the wall-side floor. */
-    private static void clutter(String theme, Room r, int i, int f, List<int[]> perim, Dice dice, List<Prop> props) {
+    private static void clutter(com.sablednah.crawlspace.plan.Dressing dr, Room r, int i, int f, List<int[]> perim, Dice dice, List<Prop> props) {
+        if (dr.clutter().isEmpty()) {
+            return;
+        }
         int n = perim.size() / 4;
         for (int k = 0; k < n && !perim.isEmpty(); k++) {
             int[] p = perim.remove(perim.size() - 1);
-            Part part = switch (theme) {
-                case "Crypt" -> pick(dice, Part.SKULL, Part.CANDLES, Part.POT, Part.FLOOR_LANTERN, Part.BONES, Part.COBWEB);
-                case "Sunken Halls" -> pick(dice, Part.POT, Part.CANDLES, Part.CAULDRON, Part.FLOOR_LANTERN, Part.MOSS);
-                case "Old Mines" -> pick(dice, Part.BARREL, Part.BARREL, Part.FLOOR_LANTERN, Part.ANVIL, Part.GRINDSTONE, Part.CAULDRON, Part.COBWEB);
-                case "Caverns" -> pick(dice, Part.STALAGMITE, Part.MUSHROOM, Part.MUSHROOM, Part.CANDLES, Part.POT);
-                default -> pick(dice, Part.SKULL, Part.CANDLES, Part.FLOOR_LANTERN, Part.CAULDRON, Part.LECTERN, Part.POT);
-            };
+            Part part = CLUTTER.get(dr.clutter().get(dice.nextInt(dr.clutter().size())));
             boolean blocks = part != Part.MOSS && part != Part.MUSHROOM;
             int facing = part == Part.SKULL ? dice.nextInt(4) : part == Part.CANDLES ? dice.nextInt(4) : p[2];
             props.add(floor(p, f, part, facing, blocks));
@@ -367,18 +364,18 @@ final class Dresser {
         }
     }
 
+    /** Clutter names (Dressing.CLUTTER) to parts. */
+    static final java.util.Map<String, Part> CLUTTER = java.util.Map.ofEntries(
+            java.util.Map.entry("skull", Part.SKULL), java.util.Map.entry("candles", Part.CANDLES),
+            java.util.Map.entry("pot", Part.POT), java.util.Map.entry("floor_lantern", Part.FLOOR_LANTERN),
+            java.util.Map.entry("bones", Part.BONES), java.util.Map.entry("cobweb", Part.COBWEB),
+            java.util.Map.entry("cauldron", Part.CAULDRON), java.util.Map.entry("moss", Part.MOSS),
+            java.util.Map.entry("barrel", Part.BARREL), java.util.Map.entry("anvil", Part.ANVIL),
+            java.util.Map.entry("grindstone", Part.GRINDSTONE), java.util.Map.entry("stalagmite", Part.STALAGMITE),
+            java.util.Map.entry("mushroom", Part.MUSHROOM), java.util.Map.entry("lectern", Part.LECTERN));
+
     private static Part pick(Dice dice, Part... parts) {
         return parts[dice.nextInt(parts.length)];
-    }
-
-    private static double overgrown(String theme) {
-        return switch (theme) {
-            case "Sunken Halls" -> 0.6;
-            case "Caverns" -> 0.7;
-            case "Old Mines" -> 0.25;
-            case "Crypt" -> 0.2;
-            default -> 0.1;
-        };
     }
 
     /**
@@ -386,7 +383,7 @@ final class Dresser {
      * azalea bush or two in the corners, and in the caverns roots from the
      * ceiling.
      */
-    private static void overgrowth(LevelPlan level, Room r, int f, int h, String theme, boolean[][] reserved,
+    private static void overgrowth(LevelPlan level, Room r, int f, int h, com.sablednah.crawlspace.plan.Dressing dr, boolean[][] reserved,
             List<int[]> perim, Dice dice, List<Prop> props) {
         for (int x = r.minX(); x <= r.maxX(); x++) {
             for (int z = r.minZ(); z <= r.maxZ(); z++) {
@@ -416,7 +413,7 @@ final class Dresser {
                 perim.remove(p);
             }
         }
-        if (theme.equals("Caverns") || theme.equals("Sunken Halls")) {
+        if (dr.roots()) {
             scatter(level, r, reserved, dice, 0.06, (x, z) -> props.add(new Prop(x, f + h - 1, z, Part.ROOTS, 0, false)));
         }
     }
@@ -531,7 +528,7 @@ final class Dresser {
         int made = 0;
         // Crypts, lairs and shrines line their niches with statues, as a row (Sable's reference: a lair's wall of skeletons).
         boolean statues = r.role == Role.LAIR || r.role == Role.FALSE_LAIR || r.role == Role.SHRINE
-                || (level.theme.name().equals("Crypt") && dice.chance(0.5));
+                || (level.theme.dressing().nicheStatues() > 0 && dice.chance(level.theme.dressing().nicheStatues()));
         int most = statues ? 8 : 4;
         for (int x = r.minX() - 1; x <= r.maxX() + 1 && made < most; x++) {
             for (int z = r.minZ() - 1; z <= r.maxZ() + 1 && made < most; z++) {
@@ -868,8 +865,8 @@ final class Dresser {
      * pilasters every few blocks (timber posts in the mines), and ceiling
      * beams across bigger crypt and mine rooms.
      */
-    static void finish(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i, String theme, boolean[][] reserved) {
-        boolean mines = theme.equals("Old Mines");
+    static void finish(Blueprint bp, LevelPlan level, Room r, DungeonPlan plan, int i, com.sablednah.crawlspace.plan.Dressing dr, boolean[][] reserved) {
+        boolean mines = dr.timber();
         int f = Blueprinter.floorAt(plan, i, r.centerX(), r.centerZ());
         int h = Blueprinter.clearHeight(level, r.centerX(), r.centerZ());
         // Floor border: room floor cells touching a wall. Medallion: the centre 3x3 of a room 9 or more across.
@@ -927,7 +924,7 @@ final class Dresser {
             }
         }
         // Beams across the short axis, every four cells, flush with the ceiling.
-        if ((mines || theme.equals("Crypt")) && Math.min(r.w, r.h) >= 7) {
+        if (dr.beams() && Math.min(r.w, r.h) >= 7) {
             boolean alongX = r.w >= r.h; // the room is long in x, so beams run along z, spaced in x
             for (int x = r.minX(); x <= r.maxX(); x++) {
                 for (int z = r.minZ(); z <= r.maxZ(); z++) {
@@ -991,10 +988,10 @@ final class Dresser {
     }
 
     /** Which rooms are panelled: most built-theme rooms people would live or work in; mine rooms boarded. */
-    private static boolean panelled(Role role, String theme, Dice dice) {
+    private static boolean panelled(Role role, com.sablednah.crawlspace.plan.Dressing dr, Dice dice) {
         return switch (role) {
             case GUARD, SHRINE, KEY, TREASURE -> true;
-            case ROOM, HALL -> dice.chance(theme.equals("Old Mines") ? 0.6 : 0.5);
+            case ROOM, HALL -> dice.chance(dr.panels());
             default -> false;
         };
     }
@@ -1057,7 +1054,7 @@ final class Dresser {
      */
     private static void corridors(Blueprint bp, DungeonPlan plan, int i, Dice dice) {
         LevelPlan level = plan.levels().get(i);
-        boolean mines = level.theme.name().equals("Old Mines");
+        boolean mines = level.theme.dressing().timber();
         double torchChance = Math.max(0.15, 0.75 - 0.1 * i);
         for (Link l : level.links) {
             if (l.path == null || l.path.length < 6) {
