@@ -1,0 +1,56 @@
+{
+  "base": "Mansion",
+  "blocks": {
+    "wall": [
+      {
+        "block": "minecraft:bricks",
+        "weight": 3
+      },
+      {
+        "block": "minecraft:stone_bricks",
+        "weight": 2
+      },
+      {
+        "block": "minecraft:mossy_stone_bricks",
+        "weight": 1
+      }
+    ],
+    "floor": "minecraft:cobblestone",
+    "ceiling": "minecraft:bricks",
+    "pillar": "minecraft:stone_bricks",
+    "secret_wall": "minecraft:cracked_stone_bricks",
+    "cove": "minecraft:brick_stairs",
+    "dado": "minecraft:stone_bricks",
+    "step": "minecraft:stone_brick_stairs",
+    "landing": "minecraft:stone_bricks",
+    "newel": "minecraft:chiseled_stone_bricks",
+    "pilaster": "minecraft:bricks",
+    "panel": "minecraft:spruce_planks",
+    "throne": "minecraft:brick_stairs",
+    "railing": "minecraft:brick_wall"
+  },
+  "dressing": {
+    "flavour": "old_mines",
+    "clutter": [
+      "barrel",
+      "barrel",
+      "barrel",
+      "cauldron",
+      "cobweb"
+    ],
+    "shelves": 0
+  },
+  "loot": {
+    "supplies": "minecraft:chests/village/village_butcher"
+  },
+  "bosses": [
+    {
+      "type": "minecraft:zombie",
+      "name": "the Butcher",
+      "weapon": "minecraft:iron_axe",
+      "bar": "red",
+      "scale": 1.5,
+      "damage": 8
+    }
+  ]
+}

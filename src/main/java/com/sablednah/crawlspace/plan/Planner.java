@@ -21,6 +21,11 @@ public final class Planner {
     }
 
     public static DungeonPlan plan(long seed, int levels) {
+        return plan(seed, levels, Theme.BY_DEPTH);
+    }
+
+    /** As above, with each level's theme taken from {@code byDepth} (past its end, the last repeats). */
+    public static DungeonPlan plan(long seed, int levels, List<Theme> byDepth) {
         if (levels < 1) {
             throw new IllegalArgumentException("a dungeon needs at least one level");
         }
@@ -33,7 +38,7 @@ public final class Planner {
             boolean bottom = i == levels - 1;
             boolean show = Showcase.on(seed);
             Feeling feeling = show ? Showcase.feeling(i) : Feeling.roll(Dice.of(seed, i, 0xFEE1L), i);
-            LevelPlan level = LevelPlanner.plan(seed, i, arrival, show ? Showcase.theme(i) : Theme.forDepth(i), bottom, feeling);
+            LevelPlan level = LevelPlanner.plan(seed, i, arrival, show && byDepth == Theme.BY_DEPTH ? Showcase.theme(i) : Theme.at(byDepth, i), bottom, feeling);
             out.add(level);
             if (i > 0) {
                 extraRoutes(out.get(i - 1), level, Dice.of(seed, i, 0xD0D0L));

@@ -1,0 +1,9 @@
+{
+  "name": "Old Mansion",
+  "weight": 10,
+  "biomes": ["#minecraft:is_forest", "#minecraft:is_taiga", "minecraft:dark_forest"],
+  "exclusive": true,
+  "entrance": "woodland",
+  "levels": ["Mansion", "Mansion", "Cellars", "Cellars", "Catacombs"],
+  "max_levels": 5
+}

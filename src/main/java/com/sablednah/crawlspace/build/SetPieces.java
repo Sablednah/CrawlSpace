@@ -538,9 +538,8 @@ final class SetPieces {
      * of a doorway, or by the way out.
      */
     static void dress(Blueprint bp, com.sablednah.crawlspace.plan.DungeonPlan plan, LevelPlan level, Room r, int f, int i, int[] exit, Dice dice) {
-        String theme = level.theme.name();
         int h = Blueprinter.clearHeight(level, r.centerX(), r.centerZ());
-        Dresser.finish(bp, level, r, plan, i, theme, null);
+        Dresser.finish(bp, level, r, plan, i, level.theme.dressing(), null);
         Dresser.cove(bp, level, r, plan, i);
         Dresser.panel(bp, level, r, plan, i);
         // The colonnade: a column every four cells round a ring two in from the walls.

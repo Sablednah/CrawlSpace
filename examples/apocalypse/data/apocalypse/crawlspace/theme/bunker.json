@@ -1,0 +1,117 @@
+{
+  "base": "Deep Halls",
+  "blocks": {
+    "wall": [
+      {
+        "block": "minecraft:gray_concrete",
+        "weight": 5
+      },
+      {
+        "block": "minecraft:light_gray_concrete",
+        "weight": 3
+      }
+    ],
+    "floor": "minecraft:polished_andesite",
+    "corridor_floor": "minecraft:andesite",
+    "ceiling": "minecraft:smooth_stone",
+    "pillar": "minecraft:polished_andesite",
+    "light": "minecraft:lantern",
+    "door": "minecraft:spruce_door",
+    "carpet": "minecraft:green_carpet",
+    "rug": "minecraft:green_carpet",
+    "banner": "minecraft:green_wall_banner",
+    "panel": "minecraft:spruce_planks",
+    "accent": "minecraft:polished_andesite",
+    "altar": "minecraft:smooth_stone",
+    "beam": "minecraft:stripped_spruce_log",
+    "brazier": "minecraft:campfire",
+    "candle": "minecraft:candle",
+    "chair": "minecraft:spruce_stairs",
+    "cove": "minecraft:andesite_stairs",
+    "dado": "minecraft:green_terracotta",
+    "floor_accent": "minecraft:andesite",
+    "floor_inlay": "minecraft:green_concrete",
+    "landing": "minecraft:polished_andesite",
+    "newel": "minecraft:polished_andesite",
+    "pedestal": "minecraft:smooth_stone",
+    "pilaster": "minecraft:light_gray_concrete",
+    "portcullis_sill": "minecraft:andesite",
+    "railing": "minecraft:andesite_wall",
+    "sarcophagus": "minecraft:gray_concrete",
+    "secret_wall": "minecraft:cracked_stone_bricks",
+    "step": "minecraft:andesite_stairs",
+    "support": "minecraft:spruce_fence",
+    "table": "minecraft:spruce_fence",
+    "table_top": "minecraft:spruce_pressure_plate",
+    "throne": "minecraft:andesite_stairs",
+    "torch": "minecraft:wall_torch"
+  },
+  "layout": {
+    "shapes": {
+      "rect": 8,
+      "rounded": 0,
+      "circle": 0,
+      "octagon": 0,
+      "cross": 1,
+      "l": 2,
+      "cave": 0,
+      "hall": 2
+    },
+    "corridors": {
+      "straight": 10,
+      "angled": 0,
+      "winding": 0,
+      "curved": 0
+    },
+    "narrow_chance": 0.6,
+    "height_spread": 0,
+    "pool_chance": 0,
+    "room_scale": 0.9
+  },
+  "dressing": {
+    "flavour": "old_mines",
+    "columns": false,
+    "cobwebs": 0.2,
+    "shelves": 0,
+    "clutter": [
+      "barrel",
+      "barrel",
+      "barrel",
+      "anvil",
+      "grindstone",
+      "cauldron",
+      "floor_lantern"
+    ],
+    "overgrowth": 0,
+    "niche_statues": 0,
+    "beams": true,
+    "timber": false,
+    "panels": 0.4
+  },
+  "mobs": [
+    {
+      "type": "minecraft:zombie",
+      "weight": 5
+    },
+    {
+      "type": "minecraft:husk",
+      "weight": 2
+    },
+    {
+      "type": "minecraft:zombie_villager",
+      "weight": 1
+    }
+  ],
+  "bosses": [
+    {
+      "type": "minecraft:zombie",
+      "name": "the Quartermaster",
+      "weapon": "minecraft:iron_sword",
+      "bar": "green",
+      "scale": 1.4
+    }
+  ],
+  "loot": {
+    "supplies": "minecraft:chests/village/village_weaponsmith"
+  }
+}

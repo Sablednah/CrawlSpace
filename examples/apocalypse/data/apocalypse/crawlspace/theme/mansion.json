@@ -1,0 +1,124 @@
+{
+  "base": "Crypt",
+  "blocks": {
+    "wall": [
+      {
+        "block": "minecraft:dark_oak_planks",
+        "weight": 6
+      },
+      {
+        "block": "minecraft:stripped_dark_oak_log",
+        "weight": 2
+      }
+    ],
+    "floor": [
+      {
+        "block": "minecraft:spruce_planks",
+        "weight": 3
+      },
+      {
+        "block": "minecraft:dark_oak_planks",
+        "weight": 1
+      }
+    ],
+    "corridor_floor": "minecraft:dark_oak_planks",
+    "ceiling": "minecraft:spruce_planks",
+    "pillar": "minecraft:stripped_dark_oak_log",
+    "door": "minecraft:dark_oak_door",
+    "carpet": "minecraft:red_carpet",
+    "rug": "minecraft:red_carpet",
+    "banner": "minecraft:red_wall_banner",
+    "panel": "minecraft:dark_oak_planks",
+    "candle": "minecraft:red_candle",
+    "accent": "minecraft:spruce_planks",
+    "altar": "minecraft:polished_andesite",
+    "beam": "minecraft:dark_oak_log",
+    "brazier": "minecraft:campfire",
+    "chair": "minecraft:dark_oak_stairs",
+    "cove": "minecraft:dark_oak_stairs",
+    "dado": "minecraft:stripped_dark_oak_log",
+    "floor_accent": "minecraft:dark_oak_planks",
+    "floor_inlay": "minecraft:red_terracotta",
+    "landing": "minecraft:spruce_planks",
+    "newel": "minecraft:dark_oak_log",
+    "pedestal": "minecraft:polished_andesite",
+    "pilaster": "minecraft:stripped_dark_oak_log",
+    "portcullis_sill": "minecraft:dark_oak_planks",
+    "railing": "minecraft:dark_oak_fence",
+    "secret_wall": "minecraft:spruce_planks",
+    "step": "minecraft:dark_oak_stairs",
+    "support": "minecraft:dark_oak_fence",
+    "table": "minecraft:dark_oak_fence",
+    "table_top": "minecraft:dark_oak_pressure_plate",
+    "throne": "minecraft:dark_oak_stairs",
+    "torch": "minecraft:wall_torch"
+  },
+  "layout": {
+    "shapes": {
+      "rect": 6,
+      "rounded": 0,
+      "circle": 0,
+      "octagon": 1,
+      "cross": 1,
+      "l": 2,
+      "cave": 0,
+      "hall": 2
+    },
+    "corridors": {
+      "straight": 9,
+      "angled": 1,
+      "winding": 0,
+      "curved": 0
+    },
+    "narrow_chance": 0.5
+  },
+  "dressing": {
+    "flavour": "sunken_halls",
+    "cobwebs": 0.5,
+    "shelves": 0.6,
+    "clutter": [
+      "candles",
+      "floor_lantern",
+      "pot",
+      "lectern",
+      "candles"
+    ],
+    "overgrowth": 0.05,
+    "niche_statues": 0.4,
+    "panels": 0.9
+  },
+  "mobs": [
+    {
+      "type": "minecraft:zombie",
+      "weight": 5
+    },
+    {
+      "type": "minecraft:zombie_villager",
+      "weight": 2
+    },
+    {
+      "type": "minecraft:spider",
+      "weight": 1
+    }
+  ],
+  "bosses": [
+    {
+      "type": "minecraft:zombie",
+      "name": "the Master of the House",
+      "weapon": "minecraft:iron_axe",
+      "bar": "red",
+      "scale": 1.4
+    },
+    {
+      "type": "minecraft:spider",
+      "name": "the Thing in the Attic",
+      "weapon": "minecraft:air",
+      "bar": "purple",
+      "scale": 2.2,
+      "health": 90,
+      "powers": [
+        "blink"
+      ]
+    }
+  ]
+}

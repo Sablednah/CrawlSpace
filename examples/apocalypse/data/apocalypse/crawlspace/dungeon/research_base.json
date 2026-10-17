@@ -1,0 +1,7 @@
+{
+  "name": "Research Base",
+  "weight": 10,
+  "entrance": "bunker",
+  "levels": ["Research Lab", "Research Lab", "Containment", "Containment", "Maintenance Tunnels"],
+  "max_levels": 6
+}

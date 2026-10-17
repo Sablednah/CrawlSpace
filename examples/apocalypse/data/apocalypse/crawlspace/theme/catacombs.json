@@ -1,0 +1,12 @@
+{
+  "base": "Crypt",
+  "mobs": [
+    { "type": "minecraft:zombie", "weight": 4 },
+    { "type": "minecraft:skeleton", "weight": 2 },
+    { "type": "minecraft:zombie_villager", "weight": 2 }
+  ],
+  "bosses": [
+    { "type": "minecraft:zombie", "name": "the Family Patriarch", "weapon": "minecraft:golden_sword", "bar": "yellow",
+      "scale": 1.6, "health": 140, "powers": ["summon"], "minion": "minecraft:zombie" }
+  ]
+}

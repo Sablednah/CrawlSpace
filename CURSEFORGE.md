@@ -71,7 +71,9 @@ CrawlSpace runs on the server. Players with an unmodded client can join and play
 ## Make it yours
 
 - **Config** (`config/crawlspace-server.toml`): how common dungeons are, how deep they go, whether players get hints, and the chance of disarming a trap.
-- **Datapacks**: change any theme's blocks, monsters and boss, restyle entrance buildings, or add new entrance styles for the biomes you choose. `/crawlspace export` writes the built-in themes out as a datapack to start from.
+- **New kinds of dungeon, from a datapack.** Add your own themes (blocks, room shapes, furnishing, monsters, bosses and loot) and your own dungeon types, each with its themes by depth and the biomes it appears in. One world can hold crypts, research labs and fallout bunkers side by side, or switch the fantasy dungeons off altogether. A dungeon keeps the layout it was born with, so editing a pack never moves a wall in one already found.
+- **Change the built-in ones too:** any theme's blocks, monsters, bosses and loot, and restyled or new entrance buildings for the biomes you choose. `/crawlspace export` writes everything in force out as a datapack to start from.
+- **A full guide for pack makers** is on GitHub (`docs/DATAPACKS.md`), with a worked zombie-apocalypse example pack.
 - **Loot tables** are ordinary datapack loot tables, so packs can change those too.
 - **Operators** can place a dungeon where they stand with `/crawlspace build`, see everything on every level with `/crawlspace info full`, and build `/crawlspace showcase` (one of everything) or `/crawlspace devshowcase` (every objective room in a row).
 

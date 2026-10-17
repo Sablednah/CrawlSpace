@@ -1,0 +1,138 @@
+{
+  "base": "Deep Halls",
+  "blocks": {
+    "wall": [
+      {
+        "block": "minecraft:white_concrete",
+        "weight": 6
+      },
+      {
+        "block": "minecraft:light_gray_concrete",
+        "weight": 2
+      }
+    ],
+    "floor": [
+      {
+        "block": "minecraft:smooth_quartz",
+        "weight": 4
+      },
+      {
+        "block": "minecraft:white_concrete",
+        "weight": 1
+      }
+    ],
+    "corridor_floor": "minecraft:light_gray_concrete",
+    "ceiling": "minecraft:smooth_stone",
+    "pillar": "minecraft:quartz_pillar",
+    "light": "minecraft:lantern",
+    "door": "minecraft:birch_door",
+    "carpet": "minecraft:light_gray_carpet",
+    "rug": "minecraft:white_carpet",
+    "table": "minecraft:birch_fence",
+    "panel": "minecraft:light_gray_concrete",
+    "candle": "minecraft:white_candle",
+    "accent": "minecraft:smooth_quartz",
+    "altar": "minecraft:chiseled_quartz_block",
+    "banner": "minecraft:light_gray_wall_banner",
+    "beam": "minecraft:stripped_birch_log",
+    "brazier": "minecraft:campfire",
+    "chair": "minecraft:birch_stairs",
+    "cove": "minecraft:smooth_quartz_stairs",
+    "dado": "minecraft:light_gray_concrete",
+    "floor_accent": "minecraft:light_gray_concrete",
+    "floor_inlay": "minecraft:cyan_concrete",
+    "landing": "minecraft:smooth_quartz",
+    "newel": "minecraft:quartz_pillar",
+    "pedestal": "minecraft:chiseled_quartz_block",
+    "pilaster": "minecraft:quartz_pillar",
+    "portcullis_sill": "minecraft:light_gray_concrete",
+    "railing": "minecraft:iron_bars",
+    "sarcophagus": "minecraft:white_concrete",
+    "secret_wall": "minecraft:white_terracotta",
+    "step": "minecraft:smooth_quartz_stairs",
+    "support": "minecraft:birch_fence",
+    "table_top": "minecraft:heavy_weighted_pressure_plate",
+    "throne": "minecraft:smooth_quartz_stairs",
+    "torch": "minecraft:wall_torch"
+  },
+  "layout": {
+    "shapes": {
+      "rect": 6,
+      "rounded": 0,
+      "circle": 0,
+      "octagon": 1,
+      "cross": 1,
+      "l": 2,
+      "cave": 0,
+      "hall": 3
+    },
+    "corridors": {
+      "straight": 8,
+      "angled": 1,
+      "winding": 0,
+      "curved": 0
+    },
+    "narrow_chance": 0.2,
+    "height_spread": 0,
+    "pool_chance": 0
+  },
+  "dressing": {
+    "flavour": "old_mines",
+    "built": true,
+    "finished": true,
+    "columns": false,
+    "cobwebs": 0.1,
+    "shelves": 0.3,
+    "clutter": [
+      "cauldron",
+      "lectern",
+      "barrel",
+      "floor_lantern",
+      "candles",
+      "cauldron"
+    ],
+    "overgrowth": 0.05,
+    "roots": false,
+    "niche_statues": 0,
+    "beams": false,
+    "timber": false,
+    "panels": 0.7
+  },
+  "mobs": [
+    {
+      "type": "minecraft:zombie",
+      "weight": 5
+    },
+    {
+      "type": "minecraft:zombie_villager",
+      "weight": 3
+    },
+    {
+      "type": "minecraft:husk",
+      "weight": 1
+    }
+  ],
+  "bosses": [
+    {
+      "type": "minecraft:zombie",
+      "name": "Subject Zero",
+      "weapon": "minecraft:air",
+      "bar": "red",
+      "scale": 2.0,
+      "health": 120,
+      "damage": 9,
+      "speed": 0.9
+    },
+    {
+      "type": "minecraft:zombie_villager",
+      "name": "the Head Researcher",
+      "weapon": "minecraft:iron_sword",
+      "bar": "white",
+      "scale": 1.3,
+      "powers": [
+        "summon"
+      ],
+      "minion": "minecraft:zombie_villager"
+    }
+  ]
+}

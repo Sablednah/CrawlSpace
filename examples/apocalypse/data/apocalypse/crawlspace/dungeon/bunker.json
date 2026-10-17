@@ -1,0 +1,8 @@
+{
+  "name": "Fallout Bunker",
+  "weight": 10,
+  "biomes": ["minecraft:plains", "minecraft:sunflower_plains", "#minecraft:is_savanna", "minecraft:desert"],
+  "entrance": "bunker",
+  "levels": ["Bunker", "Bunker", "Bunker Depths"],
+  "max_levels": 4
+}

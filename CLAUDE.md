@@ -1554,6 +1554,64 @@ badlands. On the rig both took effect after a `/reload`.
 - Loot was already data: the `crawlspace:chests/tier1..5` and `supplies`
   tables can be overridden like any loot table.
 
+## Dungeon types and data themes (2026-10-17, 1.1.0)
+
+Asked for by Sable for ZARP's zombie apocalypse: different "dungeons" (research
+bases, a Resident Evil mansion, bunkers) chosen per dungeon, "as much
+configurable as possible" so other mod makers can reuse the mod. The reference
+for pack makers is `docs/DATAPACKS.md`; `examples/apocalypse` is the worked pack.
+
+- **Every theme rule is data now.** `plan/Dressing` holds what `Dresser` used to
+  decide by theme name (about 25 `theme.equals("Old Mines")` checks), and
+  `Theme` carries one. The built-in values reproduce the old rules exactly,
+  including which dice are rolled: a knob at 0 skips its dice roll, as the old
+  name check did.
+- **`FingerprintTest` pins the built-in dungeons block for block**: 12 seeds, 9
+  levels, every block and trigger, as one number. It was taken before the
+  refactor and proven to notice a single 0.05 cobweb chance on Deep Halls.
+  **A change that is meant to alter existing dungeons bumps PLANNER_VERSION and
+  this number together.**
+- **`ThemeKnobsTest`**: every shape alone and every corridor style alone, at
+  both ends of the room scale and the most height spread, and every flavour
+  with all dressing on and all off, plans and stays sealed. The ranges a pack
+  may set (`Theme.MAX_SPREAD`, `MIN_SCALE`, `MAX_SCALE`) are what it proved,
+  and `ThemeJson` clamps to them.
+- **A dungeon saves a copy of its themes' layout and dressing** (`Site.themes`,
+  a JSON string from `ThemeJson.snapshot`), and is replanned from that copy,
+  never from the pack. This replaces the old rule that layout must never be
+  data: the rule existed because a pack edit would move walls in half-built
+  dungeons, and the copy removes that risk. Blocks, mobs, bosses and loot are
+  still looked up live by theme name. An unchanged built-in list saves nothing
+  (null), so older saves and the classic type are untouched; a built-in theme
+  in a custom list is stored by name only. `ThemeSnapshotTest` checks the round
+  trip, including that re-saving a restored copy writes the same string.
+- **Inheritance is flattened in `ThemeData`**: a theme's JSON is merged over
+  its base's (key by key for blocks, layout, dressing, loot and boss), down to
+  a built-in root, which `Palettes`, `Bestiary` and the layout defaults start
+  from. Cycles and unknown bases fall back to the Crypt with a warning.
+- **Types** (`DungeonTypes`): picked in `DungeonStructure.findGenerationPoint`
+  from `Dice.of(seed, 0, 0x7E1D)`, weighted, among types that fit the biome;
+  exclusive types claim theirs outright. **With only one eligible type there is
+  no roll**, so a world without packs plans exactly as before. Weight 0
+  everywhere means no dungeon.
+- Tests have no Minecraft on the classpath, so `ThemeJson` (snapshot, read,
+  write) touches only Gson and slf4j, which `build.gradle` adds for tests.
+- **Seen on the Vivo rig (1.21.11, 2026-10-17)** with `examples/apocalypse`:
+  the pack loaded with no warnings; `/crawlspace build` made a Research Base
+  (white concrete and quartz, lecterns, cauldrons), an Old Mansion (dark oak,
+  red banners, cobwebs; brick cellars) and a Fallout Bunker (concrete, green
+  banners, barrels); every custom boss summoned with its name, health, size and
+  powers; and a **worldgen** dungeon in a forest was an Old Mansion with a
+  woodland entrance, reported by `/crawlspace here` after a server restart, so
+  the saved copy was read back from the structure piece. Vivo was on mains with
+  no battery and other sessions' rigs running: planning took 43 s under load
+  once, and a teleport to fresh terrain stalled the server long enough to
+  time the client out. Build near terrain that already exists.
+- **A base's trim shows through.** A lab based on Deep Halls kept Deep Halls'
+  coving, newels, landings and banners until the pack set them, and looked
+  like Deep Halls at the stairs. The example themes set every trim role, and
+  the guide says to.
+
 ## Population
 
 - **Encounters, not endless spawns.** Each room may hold an `ENCOUNTER`

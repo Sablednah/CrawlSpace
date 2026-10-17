@@ -1,0 +1,23 @@
+{
+  "base": "Old Mines",
+  "blocks": {
+    "wall": [
+      { "block": "minecraft:smooth_stone", "weight": 3 },
+      { "block": "minecraft:andesite", "weight": 2 },
+      { "block": "minecraft:cobblestone", "weight": 1 }
+    ],
+    "ceiling": "minecraft:smooth_stone",
+    "pillar": "minecraft:iron_block",
+    "support": "minecraft:iron_bars",
+    "beam": "minecraft:stripped_spruce_log",
+    "light": "minecraft:lantern"
+  },
+  "mobs": [
+    { "type": "minecraft:zombie", "weight": 4 },
+    { "type": "minecraft:husk", "weight": 2 },
+    { "type": "minecraft:cave_spider", "weight": 2 }
+  ],
+  "bosses": [
+    { "type": "minecraft:zombie", "name": "the Janitor", "weapon": "minecraft:iron_shovel", "bar": "yellow", "scale": 1.4 }
+  ]
+}

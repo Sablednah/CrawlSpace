@@ -1,0 +1,7 @@
+{
+  "pack": {
+    "description": "CrawlSpace example: zombie-apocalypse dungeons (research bases, an old mansion, fallout bunkers) in place of the fantasy ones",
+    "min_format": 82,
+    "max_format": 999
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "base": "Bunker",
+  "blocks": {
+    "wall": [
+      {
+        "block": "minecraft:deepslate_tiles",
+        "weight": 3
+      },
+      {
+        "block": "minecraft:gray_concrete",
+        "weight": 2
+      }
+    ],
+    "light": "minecraft:soul_lantern",
+    "secret_wall": "minecraft:cracked_deepslate_tiles",
+    "cove": "minecraft:deepslate_tile_stairs",
+    "step": "minecraft:deepslate_tile_stairs",
+    "throne": "minecraft:deepslate_tile_stairs",
+    "landing": "minecraft:deepslate_tiles",
+    "newel": "minecraft:polished_deepslate"
+  },
+  "dressing": {
+    "cobwebs": 0.4
+  },
+  "bosses": [
+    {
+      "type": "minecraft:zombie",
+      "name": "the Last Commander",
+      "weapon": "minecraft:diamond_sword",
+      "bar": "red",
+      "scale": 1.5,
+      "health": 150,
+      "damage": 9,
+      "powers": [
+        "summon"
+      ],
+      "minion": "minecraft:husk"
+    }
+  ]
+}

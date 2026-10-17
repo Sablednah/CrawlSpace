@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0 — 2026-10-17
+
+**Dungeon types, and themes of your own, from datapacks.** Asked for by Sable for a zombie-apocalypse world: research bases, old mansions and bunkers instead of crypts. Dungeons with no pack installed are exactly as before, block for block.
+
+- **Dungeon types.** A datapack can add kinds of dungeon (`crawlspace/dungeon/<id>.json`), each with its themes by depth, a weight, the biomes it is found in (optionally the only kind found there), its entrance style and its depth. Each dungeon picks its type from its own seed. The fantasy dungeons are the `classic` type, and a pack can switch them off.
+- **New themes.** A theme file with a new name makes a new theme, starting from a `base` (any other theme). Besides its blocks, monsters and boss, a theme now sets its **layout** (room shapes, corridor styles, narrow corridors, floor heights, pools, room size), its **furnishing** (what fills a room, clutter, cobwebs, bookshelves, overgrowth, columns, beams, panelling, statues), **several bosses** with every stat (health, damage, speed, size, powers, minions, followers), and its **loot tables**.
+- **A dungeon keeps the layout it was born with.** It saves a copy of its themes' layout and furnishing, so editing or removing a pack later changes its blocks, monsters and loot, never its walls.
+- `/crawlspace types` lists the types in force, `/crawlspace build` and `showcase` take a type, `/crawlspace here` tells you which dungeon you are standing in, and `/crawlspace export` now writes types, layouts, furnishing, bosses and loot too.
+- `docs/DATAPACKS.md` is the full reference, and `examples/apocalypse` is a worked pack: Research Base, Old Mansion and Fallout Bunker, eight themes, with the classic dungeons off.
+- A datapack theme that no level can be planned with now leaves no dungeon there, rather than failing the chunk.
+
 ## 1.0.0 — 2026-10-15
 
 The first full release, and the first for **Forge 1.20.1** as well as NeoForge 1.21.11, 26.1.2, 26.2 and 26.3. On 1.20.1, which has no mob scaling, bosses, elites and their packs are normal size, and the gelatinous cube steps rather than glides.

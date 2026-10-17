@@ -37,9 +37,14 @@ caverns, deep halls.
 Configurable spacing, depth and hints are in `config/crawlspace-server.toml`.
 In a CityWorld world, cities keep clear of the entrance.
 
-**Datapacks** can reskin any theme, change its monsters and boss, and add
-entrance styles for chosen biomes. `/crawlspace export` writes the built-in
-ones as a datapack to start from, and `examples/datapack` shows the shape.
+**Datapacks** can change almost everything, and add to it: new themes (blocks,
+room shapes, furnishing, monsters, bosses and loot), new kinds of dungeon that
+pick their own themes by depth and the biomes they appear in, and new entrance
+styles. One world can hold crypts, research labs and bunkers side by side.
+`docs/DATAPACKS.md` is the reference. `/crawlspace export` writes everything in
+force as a datapack to start from, `examples/datapack` is a small one, and
+`examples/apocalypse` turns the dungeons into zombie-apocalypse research bases,
+mansions and bunkers.
 
 Works on its own. With **LegendQuest**, traps stay hidden until your
 character's Wisdom spots them, and disarming is a Dexterity roll (dwarves are

@@ -1,0 +1,72 @@
+{
+  "base": "Research Lab",
+  "blocks": {
+    "wall": [
+      {
+        "block": "minecraft:gray_concrete",
+        "weight": 5
+      },
+      {
+        "block": "minecraft:polished_andesite",
+        "weight": 2
+      }
+    ],
+    "floor": "minecraft:polished_andesite",
+    "ceiling": "minecraft:gray_concrete",
+    "pillar": "minecraft:iron_block",
+    "light": "minecraft:soul_lantern",
+    "cove": "minecraft:polished_andesite_stairs",
+    "dado": "minecraft:cyan_terracotta",
+    "floor_accent": "minecraft:andesite",
+    "landing": "minecraft:polished_andesite",
+    "newel": "minecraft:iron_block",
+    "pilaster": "minecraft:iron_block",
+    "secret_wall": "minecraft:gray_terracotta",
+    "step": "minecraft:polished_andesite_stairs",
+    "throne": "minecraft:polished_andesite_stairs",
+    "panel": "minecraft:cyan_terracotta",
+    "torch": "minecraft:soul_wall_torch"
+  },
+  "layout": {
+    "pool_chance": 0.4
+  },
+  "dressing": {
+    "cobwebs": 0.3,
+    "overgrowth": 0.3,
+    "roots": true
+  },
+  "mobs": [
+    {
+      "type": "minecraft:zombie",
+      "weight": 4
+    },
+    {
+      "type": "minecraft:husk",
+      "weight": 2
+    },
+    {
+      "type": "minecraft:drowned",
+      "weight": 2
+    },
+    {
+      "type": "minecraft:cave_spider",
+      "weight": 1
+    }
+  ],
+  "bosses": [
+    {
+      "type": "minecraft:zombie",
+      "name": "Specimen 7",
+      "weapon": "minecraft:air",
+      "bar": "green",
+      "scale": 2.5,
+      "health": 180,
+      "damage": 10,
+      "speed": 0.8,
+      "powers": [
+        "summon"
+      ],
+      "minion": "minecraft:zombie"
+    }
+  ]
+}

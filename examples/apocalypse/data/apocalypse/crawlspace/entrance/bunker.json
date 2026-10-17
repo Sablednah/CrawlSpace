@@ -1,0 +1,18 @@
+{
+  "blocks": {
+    "wall": [
+      { "block": "minecraft:gray_concrete", "weight": 3 },
+      { "block": "minecraft:light_gray_concrete", "weight": 2 },
+      { "block": "minecraft:cracked_stone_bricks", "weight": 1 }
+    ],
+    "floor": "minecraft:polished_andesite",
+    "top": "minecraft:smooth_stone",
+    "door": "minecraft:spruce_door",
+    "trim": "minecraft:smooth_stone",
+    "stair": "minecraft:andesite_stairs",
+    "window": "minecraft:iron_bars",
+    "pillar": "minecraft:polished_andesite",
+    "roof": "minecraft:smooth_stone"
+  },
+  "designs": { "keep": 3, "round": 1 }
+}

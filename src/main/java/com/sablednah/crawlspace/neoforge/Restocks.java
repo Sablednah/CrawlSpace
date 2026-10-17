@@ -180,10 +180,7 @@ public final class Restocks {
         if (code == 0) {
             return;
         }
-        String table = Site.tableFor(site.built(), code);
-        if (table != null && table.startsWith("chests/tier") && Heroic.has(level, pos, Tablets.Boon.LOOT)) {
-            table = "chests/tier" + Math.min(5, Integer.parseInt(table.substring("chests/tier".length())) + 1);
-        }
+        String table = Site.tableFor(site.built(), code, Heroic.has(level, pos, Tablets.Boon.LOOT) ? 1 : 0);
         if (table == null || !(level.getBlockState(pos).getBlock() instanceof ChestBlock || level.getBlockState(pos).is(net.minecraft.world.level.block.Blocks.BARREL))
                 || !(level.getBlockEntity(pos) instanceof RandomizableContainerBlockEntity chest)) {
             return; // not ours to refill: a Lootr chest, or a chest someone put there
@@ -198,6 +195,6 @@ public final class Restocks {
         state.put(key, Integer.toString(epoch));
         chest.clearContent();
         chest.setLootTable(net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.LOOT_TABLE,
-                net.minecraft.resources.Identifier.fromNamespaceAndPath(CrawlSpace.MODID, table)), level.getRandom().nextLong());
+                net.minecraft.resources.Identifier.parse(table)), level.getRandom().nextLong());
     }
 }
