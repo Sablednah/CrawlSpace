@@ -273,6 +273,11 @@ public final class Palettes {
         return STYLES.keySet();
     }
 
+    /** Every entrance style in force: the built-in ones and any a datapack added. */
+    static java.util.Set<String> towerStyles() {
+        return towers.keySet();
+    }
+
     private Palettes() {
     }
 
@@ -351,17 +356,23 @@ public final class Palettes {
      * block is skipped with a warning naming it, so a typo costs one role, not
      * the pack. A new entrance style starts from "stone".
      */
-    static void apply(Map<String, com.google.gson.JsonObject> themeData, Map<String, com.google.gson.JsonObject> entranceData) {
-        skins = overlay(DEFAULT_SKINS, themeData, "Crypt", "theme");
-        towers = overlay(DEFAULT_TOWERS, entranceData, "stone", "entrance");
+    static void apply(Map<String, com.google.gson.JsonObject> themeData, Map<String, String> roots,
+            Map<String, com.google.gson.JsonObject> entranceData) {
+        skins = overlay(DEFAULT_SKINS, themeData, n -> roots.getOrDefault(n, "Crypt"), "theme");
+        towers = overlay(DEFAULT_TOWERS, entranceData, n -> "stone", "entrance");
     }
 
+    /**
+     * A new name starts from its root's built-in blocks: a theme's own file has
+     * already been flattened over its bases (ThemeData), so this lays the whole
+     * chain's blocks over the built-in theme at the bottom of it.
+     */
     private static Map<String, Map<String, Mix>> overlay(Map<String, Map<String, Mix>> defaults,
-            Map<String, com.google.gson.JsonObject> data, String base, String what) {
+            Map<String, com.google.gson.JsonObject> data, java.util.function.UnaryOperator<String> base, String what) {
         Map<String, Map<String, Mix>> out = new HashMap<>();
         defaults.forEach((k, v) -> out.put(k, new java.util.TreeMap<>(v)));
         data.forEach((name, json) -> {
-            Map<String, Mix> m = out.computeIfAbsent(name, k -> new java.util.TreeMap<>(defaults.get(base)));
+            Map<String, Mix> m = out.computeIfAbsent(name, k -> new java.util.TreeMap<>(defaults.get(base.apply(k))));
             if (!json.has("blocks")) {
                 return;
             }

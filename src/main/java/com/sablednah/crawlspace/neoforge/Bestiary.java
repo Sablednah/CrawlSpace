@@ -109,10 +109,14 @@ public final class Bestiary {
      * changes only the fields it names. Anything unknown is skipped with a
      * warning naming it.
      */
-    static void apply(Map<String, com.google.gson.JsonObject> themes) {
+    static void apply(Map<String, com.google.gson.JsonObject> themes, Map<String, String> roots) {
         Map<String, List<Pick>> c = new HashMap<>(COMMON);
         Map<String, List<BossSpec>> b = new HashMap<>(BOSSES);
         themes.forEach((theme, json) -> {
+            // A new theme starts with its root's monsters and bosses (its own file is already flattened over its bases).
+            String root = roots.getOrDefault(theme, "Crypt");
+            c.putIfAbsent(theme, COMMON.getOrDefault(root, COMMON.get("Crypt")));
+            b.putIfAbsent(theme, BOSSES.getOrDefault(root, BOSSES.get("Crypt")));
             if (json.has("mobs")) {
                 List<Pick> picks = new java.util.ArrayList<>();
                 for (com.google.gson.JsonElement el : json.getAsJsonArray("mobs")) {
@@ -129,32 +133,78 @@ public final class Bestiary {
                     c.put(theme, List.copyOf(picks));
                 }
             }
-            if (json.has("boss")) {
-                com.google.gson.JsonObject o = json.getAsJsonObject("boss");
-                BossSpec old = b.getOrDefault(theme, BOSSES.get("Crypt")).get(0);
-                EntityType<?> type = o.has("type") ? entity(o.get("type").getAsString(), theme) : null;
-                Item weapon = old.weapon();
-                if (o.has("weapon")) {
-                    weapon = net.minecraft.core.registries.BuiltInRegistries.ITEM
-                            .getOptional(ResourceLocation.tryParse(o.get("weapon").getAsString())).orElse(weapon);
-                }
-                BossEvent.BossBarColor bar = old.colour();
-                if (o.has("bar")) {
-                    for (BossEvent.BossBarColor col : BossEvent.BossBarColor.values()) {
-                        if (col.getName().equals(o.get("bar").getAsString())) {
-                            bar = col;
-                        }
+            if (json.has("bosses")) {
+                // The whole list: a lair takes one of them, from the dungeon's own dice.
+                List<BossSpec> list = new java.util.ArrayList<>();
+                BossSpec template = b.get(theme).get(0);
+                for (com.google.gson.JsonElement el : json.getAsJsonArray("bosses")) {
+                    if (el.isJsonObject()) {
+                        list.add(boss(el.getAsJsonObject(), template, theme));
                     }
                 }
-                // A datapack's boss is that theme's only boss, the first built-in one changed where it says.
-                b.put(theme, List.of(new BossSpec(type != null ? type : old.type(),
-                        o.has("name") ? o.get("name").getAsString() : old.name(), weapon, bar,
-                        o.has("scale") ? o.get("scale").getAsDouble() : old.scale(), old.health(), old.damage(), old.speed(),
-                        old.powers(), old.minion(), old.follower(), old.followerScale(), old.followerHealth(), old.followerDamage())));
+                if (!list.isEmpty()) {
+                    b.put(theme, List.copyOf(list));
+                }
+            } else if (json.has("boss")) {
+                // A single "boss" is that theme's only boss: its first one, changed where the file says.
+                b.put(theme, List.of(boss(json.getAsJsonObject("boss"), b.get(theme).get(0), theme)));
             }
         });
         common = Map.copyOf(c);
         bosses = Map.copyOf(b);
+    }
+
+    /**
+     * A boss from JSON, every field optional over {@code old}: type, name,
+     * weapon, bar, scale, health and damage (its base figures, 8 health and
+     * half a point of damage more per level down; 0 keeps the mob's own),
+     * speed (times its own), powers ("blink", "summon"), minion (what "summon"
+     * calls), and a pack of followers (follower, follower_scale,
+     * follower_health, follower_damage).
+     */
+    private static BossSpec boss(com.google.gson.JsonObject o, BossSpec old, String theme) {
+        EntityType<?> type = o.has("type") ? entity(o.get("type").getAsString(), theme) : null;
+        Item weapon = old.weapon();
+        if (o.has("weapon")) {
+            weapon = net.minecraft.core.registries.BuiltInRegistries.ITEM
+                    .getOptional(ResourceLocation.tryParse(o.get("weapon").getAsString())).orElse(weapon);
+        }
+        BossEvent.BossBarColor bar = old.colour();
+        if (o.has("bar")) {
+            for (BossEvent.BossBarColor col : BossEvent.BossBarColor.values()) {
+                if (col.getName().equals(o.get("bar").getAsString())) {
+                    bar = col;
+                }
+            }
+        }
+        java.util.Set<String> powers = old.powers();
+        if (o.has("powers")) {
+            java.util.Set<String> p = new java.util.TreeSet<>();
+            for (com.google.gson.JsonElement e : o.getAsJsonArray("powers")) {
+                String power = e.getAsString();
+                if (POWERS.contains(power)) {
+                    p.add(power);
+                } else {
+                    ThemeData.LOG.warn("CrawlSpace theme '{}': no boss power called '{}'. Powers: {}", theme, power, POWERS);
+                }
+            }
+            powers = java.util.Set.copyOf(p);
+        }
+        EntityType<?> minion = o.has("minion") ? entity(o.get("minion").getAsString(), theme) : old.minion();
+        EntityType<?> follower = o.has("follower") ? entity(o.get("follower").getAsString(), theme) : old.follower();
+        return new BossSpec(type != null ? type : old.type(),
+                o.has("name") ? o.get("name").getAsString() : old.name(), weapon, bar,
+                num(o, "scale", old.scale()), num(o, "health", old.health()), num(o, "damage", old.damage()),
+                num(o, "speed", old.speed()), powers, minion, follower,
+                num(o, "follower_scale", old.followerScale()), num(o, "follower_health", old.followerHealth()),
+                num(o, "follower_damage", old.followerDamage()));
+    }
+
+    /** The powers a boss can be given by name. */
+    static final java.util.Set<String> POWERS = java.util.Set.of("blink", "summon");
+
+    private static double num(com.google.gson.JsonObject o, String key, double fallback) {
+        return o.has(key) ? o.get(key).getAsDouble() : fallback;
     }
 
     private static EntityType<?> entity(String id, String theme) {
@@ -176,16 +226,32 @@ public final class Bestiary {
             mobs.add(o);
         }
         into.add("mobs", mobs);
-        BossSpec spec = bosses.containsKey(theme) ? bosses.get(theme).get(0) : null;
-        if (spec != null) {
+        com.google.gson.JsonArray list = new com.google.gson.JsonArray();
+        for (BossSpec spec : bosses.getOrDefault(theme, List.of())) {
             com.google.gson.JsonObject o = new com.google.gson.JsonObject();
             o.addProperty("type", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(spec.type()).toString());
             o.addProperty("name", spec.name());
             o.addProperty("weapon", net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(spec.weapon()).toString());
             o.addProperty("bar", spec.colour().getName());
             o.addProperty("scale", spec.scale());
-            into.add("boss", o);
+            o.addProperty("health", spec.health());
+            o.addProperty("damage", spec.damage());
+            o.addProperty("speed", spec.speed());
+            com.google.gson.JsonArray powers = new com.google.gson.JsonArray();
+            spec.powers().stream().sorted().forEach(powers::add);
+            o.add("powers", powers);
+            if (spec.minion() != null) {
+                o.addProperty("minion", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(spec.minion()).toString());
+            }
+            if (spec.follower() != null) {
+                o.addProperty("follower", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(spec.follower()).toString());
+                o.addProperty("follower_scale", spec.followerScale());
+                o.addProperty("follower_health", spec.followerHealth());
+                o.addProperty("follower_damage", spec.followerDamage());
+            }
+            list.add(o);
         }
+        into.add("bosses", list);
     }
 
     /** The most of a strange boss's own pack that wake with it. */
@@ -372,7 +438,8 @@ public final class Bestiary {
             Powers.track(level, mob);
             return mob.getDisplayName().getString();
         }
-        List<BossSpec> choices = bosses.get(theme);
+        com.sablednah.crawlspace.plan.Theme named = DungeonTypes.theme(theme); // any spelling: "deep_halls" is Deep Halls
+        List<BossSpec> choices = bosses.get(named != null ? named.name() : theme);
         if (choices == null || index < 0 || index >= choices.size()) {
             return null;
         }

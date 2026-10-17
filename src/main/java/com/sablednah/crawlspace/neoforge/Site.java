@@ -28,8 +28,10 @@ import net.minecraft.world.level.block.state.BlockState;
  * @param top    blocks from the ground at the tower down to level 0's floor
  * @param style  how the entrance tower is dressed (see {@code Palettes})
  * @param origin the ground at the tower's centre
+ * @param type   its kind of dungeon (DungeonTypes); "classic" for one made before there were types
+ * @param themes the themes it was planned with, as DungeonTypes.snapshot wrote them; null for the built-in ones
  */
-public record Site(long seed, int levels, int top, String style, BlockPos origin, int planner) {
+public record Site(long seed, int levels, int top, String style, BlockPos origin, int planner, String type, String themes) {
 
     /** Bump whenever a planner or blueprint change would alter an existing seed's dungeon. */
     public static final int PLANNER_VERSION = 27; // 2: stairs with landings; 3: dressing, encounters, loot; 5: puzzle rooms;
@@ -95,13 +97,21 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
      */
     public static Site fit(long seed, int wanted, int minLevels, BlockPos origin, IntBinaryOperator surface,
             int worldMinY, String style) {
+        return fit(seed, wanted, minLevels, origin, surface, worldMinY, style, DungeonTypes.CLASSIC,
+                com.sablednah.crawlspace.plan.Theme.BY_DEPTH);
+    }
+
+    /** As above, for a dungeon of {@code type}, its levels themed from {@code byDepth}. */
+    public static Site fit(long seed, int wanted, int minLevels, BlockPos origin, IntBinaryOperator surface,
+            int worldMinY, String style, String type, java.util.List<com.sablednah.crawlspace.plan.Theme> byDepth) {
+        String themes = DungeonTypes.snapshot(byDepth);
         for (int n = wanted; n >= minLevels; n--) {
-            DungeonPlan plan = Planner.plan(seed, n);
+            DungeonPlan plan = Planner.plan(seed, n, byDepth);
             int top = Blueprinter.requiredTop(plan, surface);
             // The lowest block is level n-1's floor block, 3 under its lowest floor; keep it clear of the bedrock layers.
             int lowest = origin.getY() - top - (n - 1) * plan.levelSpacing() - Blueprinter.BELOW;
             if (lowest >= worldMinY + 6) {
-                Site site = new Site(seed, n, top, style, origin, PLANNER_VERSION);
+                Site site = new Site(seed, n, top, style, origin, PLANNER_VERSION, type, themes);
                 synchronized (CACHE) {
                     CACHE.putIfAbsent(site.key(), new Built(plan.withTop(top), Blueprinter.blueprint(plan.withTop(top), style).compact()));
                 }
@@ -112,14 +122,14 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
     }
 
     private String key() {
-        return seed + "/" + levels + "/" + top + "/" + style;
+        return seed + "/" + levels + "/" + top + "/" + style + "/" + (themes == null ? "" : themes.hashCode() + "/" + themes.length());
     }
 
     public Built built() {
         synchronized (CACHE) {
             Built b = CACHE.get(key());
             if (b == null) {
-                DungeonPlan plan = Planner.plan(seed, levels).withTop(top);
+                DungeonPlan plan = Planner.plan(seed, levels, DungeonTypes.restore(themes)).withTop(top);
                 b = new Built(plan, Blueprinter.blueprint(plan, style).compact());
                 CACHE.put(key(), b);
             }
@@ -165,7 +175,7 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
             chest.setItem(13, Keys.make(this, li, theme));
         } else if (table != null) {
             net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity.setLootTable(level, random, pos,
-                    new net.minecraft.resources.ResourceLocation("crawlspace", table));
+                    new net.minecraft.resources.ResourceLocation(table));
         } else if (part == Part.SPAWNER
                 && level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner) {
             String theme = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).theme.name();
@@ -175,14 +185,25 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
 
     /** The loot table a container of this code is filled from, or null. A dark level's loot is a tier better. */
     static String tableFor(Built built, int code) {
+        return tableFor(built, code, 0);
+    }
+
+    /**
+     * As above, as a full table id, with {@code boost} tiers more (a replay
+     * tablet's loot boon) for chests and hoards. The level's theme may name its
+     * own tables (ThemeLoot).
+     */
+    static String tableFor(Built built, int code, int boost) {
         Part part = Blueprint.part(code);
         int li = Math.max(0, Blueprint.level(code));
-        boolean dark = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1)).feeling == com.sablednah.crawlspace.plan.Feeling.DARK;
-        int tier = Math.min(5, 1 + li / 2 + (dark ? 1 : 0));
+        com.sablednah.crawlspace.plan.LevelPlan lp = built.plan().levels().get(Math.min(li, built.plan().levels().size() - 1));
+        boolean dark = lp.feeling == com.sablednah.crawlspace.plan.Feeling.DARK;
+        int tier = Math.min(5, 1 + li / 2 + (dark ? 1 : 0) + boost);
+        String theme = lp.theme.name();
         return switch (part) {
-            case CHEST -> "chests/tier" + tier;
-            case HOARD_CHEST -> "chests/tier" + Math.min(5, tier + 1);
-            case BARREL -> "chests/supplies";
+            case CHEST -> ThemeLoot.chest(theme, tier);
+            case HOARD_CHEST -> ThemeLoot.hoard(theme, tier);
+            case BARREL -> ThemeLoot.supplies(theme);
             default -> null;
         };
     }
@@ -209,12 +230,17 @@ public record Site(long seed, int levels, int top, String style, BlockPos origin
         t.putInt("y", origin.getY());
         t.putInt("z", origin.getZ());
         t.putInt("planner", planner);
+        t.putString("type", type);
+        if (themes != null) {
+            t.putString("themes", themes);
+        }
         return t;
     }
 
     public static Site load(CompoundTag t) {
         return new Site(t.getLong("seed"), (t.contains("levels") ? t.getInt("levels") : 1), (t.contains("top") ? t.getInt("top") : DungeonPlan.MIN_TOP),
                 (t.contains("style") ? t.getString("style") : "stone"),
-                new BlockPos(t.getInt("x"), t.getInt("y"), t.getInt("z")), t.getInt("planner"));
+                new BlockPos(t.getInt("x"), t.getInt("y"), t.getInt("z")), t.getInt("planner"),
+                (t.contains("type") ? t.getString("type") : DungeonTypes.CLASSIC), (t.contains("themes") ? t.getString("themes") : null));
     }
 }

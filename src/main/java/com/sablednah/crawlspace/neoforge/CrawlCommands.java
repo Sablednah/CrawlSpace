@@ -47,7 +47,11 @@ public final class CrawlCommands {
                                 .executes(ctx -> build(ctx, IntegerArgumentType.getInteger(ctx, "levels"), null))
                                 .then(Commands.argument("seed", LongArgumentType.longArg())
                                         .executes(ctx -> build(ctx, IntegerArgumentType.getInteger(ctx, "levels"),
-                                                LongArgumentType.getLong(ctx, "seed"))))))
+                                                LongArgumentType.getLong(ctx, "seed")))
+                                        .then(typeArg(ctx -> build(ctx, IntegerArgumentType.getInteger(ctx, "levels"),
+                                                LongArgumentType.getLong(ctx, "seed"), StringArgumentType.getString(ctx, "type")))))))
+                .then(Commands.literal("types").executes(CrawlCommands::types))
+                .then(Commands.literal("here").executes(CrawlCommands::here))
                 .then(Commands.literal("showcase")
                         // Every feature at once, to see them without hunting (Sable). Six levels: one of each feeling.
                         .executes(ctx -> build(ctx, 6, com.sablednah.crawlspace.plan.Showcase.seed(1)))
@@ -55,7 +59,10 @@ public final class CrawlCommands {
                                 .executes(ctx -> build(ctx, IntegerArgumentType.getInteger(ctx, "levels"), com.sablednah.crawlspace.plan.Showcase.seed(1)))
                                 .then(Commands.argument("seed", LongArgumentType.longArg(0, 0xFFFFFFFFL))
                                         .executes(ctx -> build(ctx, IntegerArgumentType.getInteger(ctx, "levels"),
-                                                com.sablednah.crawlspace.plan.Showcase.seed(LongArgumentType.getLong(ctx, "seed")))))))
+                                                com.sablednah.crawlspace.plan.Showcase.seed(LongArgumentType.getLong(ctx, "seed"))))
+                                        .then(typeArg(ctx -> build(ctx, IntegerArgumentType.getInteger(ctx, "levels"),
+                                                com.sablednah.crawlspace.plan.Showcase.seed(LongArgumentType.getLong(ctx, "seed")),
+                                                StringArgumentType.getString(ctx, "type")))))))
                 // Every objective room and job in a row off one hall, to test them without hunting (Sable, 2026-10-14).
                 .then(Commands.literal("devshowcase")
                         .executes(ctx -> build(ctx, 1, com.sablednah.crawlspace.plan.Gallery.seed(1))))
@@ -158,8 +165,8 @@ public final class CrawlCommands {
                                         .executes(ctx -> summon(ctx, null, 0, IntegerArgumentType.getInteger(ctx, "depth")))))
                         .then(Commands.literal("boss")
                                 .then(Commands.argument("theme", StringArgumentType.string())
-                                        .suggests((c, b) -> SharedSuggestionProvider.suggest(java.util.List.of("Crypt", "\"Sunken Halls\"",
-                                                "\"Old Mines\"", "Caverns", "\"Deep Halls\""), b))
+                                        .suggests((c, b) -> SharedSuggestionProvider.suggest(DungeonTypes.themes().stream()
+                                                .map(t -> t.name().contains(" ") ? "\"" + t.name() + "\"" : t.name()), b))
                                         .executes(ctx -> summon(ctx, StringArgumentType.getString(ctx, "theme"), 0, 3))
                                         .then(Commands.argument("which", IntegerArgumentType.integer(0, 9))
                                                 .executes(ctx -> summon(ctx, StringArgumentType.getString(ctx, "theme"),
@@ -184,11 +191,61 @@ public final class CrawlCommands {
                 + "/crawlspace info full  - everything on every level of the dungeon you are in, each a link to go there\n"
                 + "/crawlspace undo  - put back what your last build replaced\n"
                 + "/crawlspace cancel  - stop builds in progress\n"
-                + "/crawlspace export  - write the themes in force as a datapack to edit");
+                + "/crawlspace types  - the kinds of dungeon in force, and their themes\n"
+                + "/crawlspace here  - the dungeon you are standing in: its type, seed and themes\n"
+                + "/crawlspace export  - write the themes, entrances and dungeon types in force as a datapack to edit");
         return 1;
     }
 
+    /** A dungeon type, by id, suggested from those in force. */
+    private static com.mojang.brigadier.builder.RequiredArgumentBuilder<CommandSourceStack, String> typeArg(
+            com.mojang.brigadier.Command<CommandSourceStack> run) {
+        return Commands.argument("type", StringArgumentType.word())
+                .suggests((c, b) -> SharedSuggestionProvider.suggest(DungeonTypes.types().stream().map(DungeonTypes.Type::id), b))
+                .executes(run);
+    }
+
+    /** Every dungeon type in force: where it is found, how often, and its themes by depth. */
+    private static int types(CommandContext<CommandSourceStack> ctx) {
+        StringBuilder b = new StringBuilder("Dungeon types:");
+        for (DungeonTypes.Type t : DungeonTypes.types()) {
+            b.append("\n  ").append(t.id()).append(" (").append(t.name()).append("), weight ").append(t.weight())
+                    .append(t.anywhere() ? ", anywhere" : ", in " + (t.biomes().size() + t.tags().size()) + " biome(s)/tag(s)"
+                            + (t.exclusive() ? " only" : ""))
+                    .append(t.entrance() != null ? ", entrance " + t.entrance() : "")
+                    .append(t.maxLevels() > 0 ? ", at most " + t.maxLevels() + " levels" : "")
+                    .append(": ").append(String.join(", ", t.levels()));
+        }
+        say(ctx.getSource(), b.toString());
+        return DungeonTypes.types().size();
+    }
+
     private static int build(CommandContext<CommandSourceStack> ctx, int levels, Long seedArg) throws CommandSyntaxException {
+        return build(ctx, levels, seedArg, null);
+    }
+
+    /** The dungeon you are standing in, generated or built: its type, seed and themes by level. */
+    private static int here(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack src = ctx.getSource();
+        BlockPos pos = BlockPos.containing(src.getPosition());
+        java.util.Optional<Site> found = Dungeons.at(src.getLevel(), pos);
+        if (found.isEmpty()) {
+            fail(src, "Not inside a dungeon. /locate structure crawlspace:dungeon finds the nearest.");
+            return 0;
+        }
+        Site site = found.get();
+        DungeonTypes.Type type = DungeonTypes.type(site.type());
+        StringBuilder b = new StringBuilder((type != null ? type.name() + " (" + site.type() + ")" : site.type())
+                + " dungeon, seed " + site.seed() + ", tower at " + site.origin().toShortString() + ", a " + site.style()
+                + " entrance, planner " + site.planner() + (site.themes() == null ? ", built-in themes" : ", its own copy of its themes") + ".");
+        for (LevelPlan l : site.built().plan().levels()) {
+            b.append("\n  ").append(l.index + 1).append(": ").append(l.theme.name());
+        }
+        say(src, b.toString());
+        return 1;
+    }
+
+    private static int build(CommandContext<CommandSourceStack> ctx, int levels, Long seedArg, String typeArg) throws CommandSyntaxException {
         CommandSourceStack src = ctx.getSource();
         ServerPlayer player = src.getPlayerOrException();
         ServerLevel level = (ServerLevel) player.level();
@@ -201,13 +258,23 @@ public final class CrawlCommands {
         int wanted = levels == 0 ? Math.min(6, room) : levels;
         wanted = Math.min(wanted, room);
         long seed = seedArg != null ? seedArg : level.getRandom().nextLong();
+        // The type named, or the one worldgen would pick here; with no types, the classic dungeon.
+        DungeonTypes.Type type = typeArg != null ? DungeonTypes.type(typeArg) : DungeonTypes.pick(seed, level.getBiome(origin));
+        if (typeArg != null && type == null) {
+            fail(src, "No dungeon type called '" + typeArg + "'. /crawlspace types lists them.");
+            return 0;
+        }
+        if (type == null) {
+            type = DungeonTypes.type(DungeonTypes.CLASSIC);
+        }
+        String style = type.entrance() != null ? type.entrance() : EntranceStyle.of(level.getBiome(origin));
         long t0 = System.nanoTime();
         // Plan, then sink the levels until the land over every part of them is deep enough;
         // fewer levels if that would reach the bottom of the world.
         Site site;
         try {
             site = Site.fit(seed, wanted, 1, origin, (x, z) -> ground(level, origin.getX() + x, origin.getZ() + z) - origin.getY(),
-                    level.getMinBuildHeight(), EntranceStyle.of(level.getBiome(origin)));
+                    level.getMinBuildHeight(), style, type.id(), DungeonTypes.themesOf(type));
         } catch (IllegalStateException e) {
             fail(src, "Could not plan seed " + seed + ": " + e.getMessage());
             return 0;
@@ -222,7 +289,7 @@ public final class CrawlCommands {
         if (site.levels() < wanted) {
             say(src, "Only room for " + site.levels() + " of " + wanted + " level(s) above the bottom of the world here.");
         }
-        say(src, "Planned seed " + seed + ", " + site.levels() + " level(s), in " + ms + " ms. Building "
+        say(src, "Planned " + (type.name().matches("(?i)[aeiou].*") ? "an " : "a ") + type.name() + " dungeon, seed " + seed + ", " + site.levels() + " level(s), in " + ms + " ms. Building "
                 + bp.blockCount() + " blocks, the first level " + site.top() + " down, a " + site.style()
                 + " tower 6 blocks south of you.");
         DungeonPlan plan = built.plan();
@@ -542,7 +609,9 @@ public final class CrawlCommands {
             say(src, "No build yet this session.");
             return 0;
         }
-        StringBuilder b = new StringBuilder("Seed " + last.plan().seed() + ", tower at " + last.origin().toShortString() + ".");
+        DungeonTypes.Type type = DungeonTypes.type(last.site().type());
+        StringBuilder b = new StringBuilder((type != null ? type.name() : last.site().type()) + " dungeon, seed " + last.plan().seed()
+                + ", tower at " + last.origin().toShortString() + ".");
         for (LevelPlan l : last.plan().levels()) {
             b.append("\n  ").append(l.index + 1).append(": ").append(l.theme.name())
                     .append(l.feeling == com.sablednah.crawlspace.plan.Feeling.NONE ? "" : " (" + l.feeling.name().toLowerCase() + ")").append(", ")
