@@ -2440,7 +2440,11 @@ public final class Blueprinter {
                 }
             }
         }
-        // Walk the level from the gap, round the railing and the hole.
+        // Walk the room from the gap, round the railing and the hole: the room's own cells and its
+        // doorways, no further. Walking the whole level once reached a doorway from the corridor side,
+        // so a door railed off on its room side passed (seed 42, level 2).
+        int room = upper.region(s[0], s[1]);
+        Room r = upper.room(room);
         java.util.Set<Long> seen = new java.util.HashSet<>();
         java.util.ArrayDeque<int[]> queue = new java.util.ArrayDeque<>();
         for (int[] g : gap) {
@@ -2455,13 +2459,12 @@ public final class Blueprinter {
                 int x = c[0] + d[0];
                 int z = c[1] + d[1];
                 boolean hole = Math.abs(x - s[0]) <= 1 && Math.abs(z - s[1]) <= 1;
-                if (!hole && upper.cell(x, z).isWalkable() && !rail.contains(key(x, z)) && seen.add(key(x, z))) {
+                boolean mine = r.contains(x, z) || upper.cell(x, z).isDoor();
+                if (!hole && mine && upper.cell(x, z).isWalkable() && !rail.contains(key(x, z)) && seen.add(key(x, z))) {
                     queue.add(new int[] {x, z});
                 }
             }
         }
-        int room = upper.region(s[0], s[1]);
-        Room r = upper.room(room);
         for (int x = r.minX() - 1; x <= r.maxX() + 1; x++) {
             for (int z = r.minZ() - 1; z <= r.maxZ() + 1; z++) {
                 boolean hole = Math.abs(x - s[0]) <= 1 && Math.abs(z - s[1]) <= 1;
