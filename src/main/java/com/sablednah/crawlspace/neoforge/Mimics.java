@@ -187,4 +187,9 @@ public final class Mimics {
         level.playSound(null, pos, SoundEvents.ZOMBIE_ATTACK_WOODEN_DOOR, SoundSource.HOSTILE, 1.5f, 0.8f);
         Triggers.tell(player, "The chest bites! It was a Mimic. Kill it for what it held.");
     }
+
+    /** The server is stopping: warnings start again in the next world. */
+    public static void clear() {
+        WARNED.clear();
+    }
 }
