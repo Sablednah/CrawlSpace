@@ -76,4 +76,9 @@ public final class Arrivals {
     public static void forget(UUID player) {
         SEEN.remove(player);
     }
+
+    /** The server is stopping: in single player the next world's player has the same UUID. Level titles start again. */
+    public static void clear() {
+        SEEN.clear();
+    }
 }
