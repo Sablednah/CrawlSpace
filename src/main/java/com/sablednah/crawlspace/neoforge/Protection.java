@@ -388,4 +388,11 @@ public final class Protection {
         HOLD_UNTIL.remove(id);
         TOLD.remove(id);
     }
+
+    /** The server is stopping: in single player the next world's player has the same UUID. */
+    public static void clear() {
+        DIGS.clear();
+        HOLD_UNTIL.clear();
+        TOLD.clear();
+    }
 }

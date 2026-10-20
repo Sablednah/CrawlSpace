@@ -70,6 +70,10 @@ public final class CrawlSpace {
             com.sablednah.crawlspace.neoforge.Cubes.clear();
             com.sablednah.crawlspace.neoforge.Seals.clear();
             com.sablednah.crawlspace.neoforge.ObjectiveRooms.clear();
+            com.sablednah.crawlspace.neoforge.Arrivals.clear();
+            com.sablednah.crawlspace.neoforge.Protection.clear();
+            com.sablednah.crawlspace.neoforge.Triggers.clear();
+            com.sablednah.crawlspace.neoforge.Mimics.clear();
         });
         NeoForge.EVENT_BUS.addListener(Bosses::onJoin);
         NeoForge.EVENT_BUS.addListener(com.sablednah.crawlspace.neoforge.Powers::onJoin);
