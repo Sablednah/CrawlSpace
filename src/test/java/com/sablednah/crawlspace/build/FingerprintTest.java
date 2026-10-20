@@ -11,12 +11,22 @@ import com.sablednah.crawlspace.plan.Planner;
 /**
  * The built-in dungeons, block for block, as one number. Data-driven themes
  * (1.1.0) moved every hard-coded theme rule into data; this proves the
- * built-in themes still build exactly what they did. A change that is MEANT to
- * alter existing dungeons bumps Site.PLANNER_VERSION and this number together.
+ * built-in themes still build exactly what they did.
+ *
+ * <p>A change that is meant to alter dungeons updates this number, with the
+ * reason below. Site.PLANNER_VERSION moves too only if rooms, walls or triggers
+ * move: a dungeon of an older planner loses its protection, traps and clock, a
+ * far bigger price than a few blocks of dressing that differ.</p>
+ *
+ * <ul>
+ * <li>499445310656077114: 1.1.0, data themes (the refactor this test was taken for).</li>
+ * <li>218812467420928347: 4bf3c89, a stair well's railing no longer cuts off a
+ * doorway. Railing only; planner unchanged.</li>
+ * </ul>
  */
 class FingerprintTest {
 
-    static final long EXPECTED = 499445310656077114L;
+    static final long EXPECTED = 218812467420928347L;
 
     static long fingerprint() {
         long sum = 0;
