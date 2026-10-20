@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 — 2026-10-17
+## 1.1.0 — 2026-10-20
 
 **Dungeon types, and themes of your own, from datapacks.** Asked for by Sable for a zombie-apocalypse world: research bases, old mansions and bunkers instead of crypts. Dungeons with no pack installed are exactly as before, block for block.
 
@@ -10,6 +10,7 @@
 - `/crawlspace types` lists the types in force, `/crawlspace build` and `showcase` take a type, `/crawlspace here` tells you which dungeon you are standing in, and `/crawlspace export` now writes types, layouts, furnishing, bosses and loot too.
 - `docs/DATAPACKS.md` is the full reference, and `examples/apocalypse` is a worked pack: Research Base, Old Mansion and Fallout Bunker, eight themes, with the classic dungeons off.
 - A datapack theme that no level can be planned with now leaves no dungeon there, rather than failing the chunk.
+- **A second world in the same game starts clean.** In single player, quitting to the title and opening another world kept a little of the first: level titles already seen, a trap noticed, the safe spot a fall puts you back to, dig protection and mimic warnings. They are now forgotten when a world closes.
 
 ## 1.0.0 — 2026-10-15
 
