@@ -1038,4 +1038,12 @@ public final class Triggers {
     static void tell(ServerPlayer player, String text) {
         player.displayClientMessage(Component.literal(text).withStyle(ChatFormatting.GOLD), true);
     }
+
+    /** The server is stopping: in single player the next world's player has the same UUID. A last safe spot from another world must never be where a fall puts them. */
+    public static void clear() {
+        HERE.clear();
+        PREV.clear();
+        NOTICED.clear();
+        LAST_SAFE.clear();
+    }
 }
