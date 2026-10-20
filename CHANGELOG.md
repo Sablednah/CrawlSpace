@@ -2,7 +2,7 @@
 
 ## 1.1.0 — 2026-10-20
 
-**Dungeon types, and themes of your own, from datapacks.** Asked for by Sable for a zombie-apocalypse world: research bases, old mansions and bunkers instead of crypts. Dungeons with no pack installed are exactly as before, block for block.
+**Dungeon types, and themes of your own, from datapacks.** Asked for by Sable for a zombie-apocalypse world: research bases, old mansions and bunkers instead of crypts. Dungeons with no pack installed are as before, apart from the stair-well railing fix below.
 
 - **Dungeon types.** A datapack can add kinds of dungeon (`crawlspace/dungeon/<id>.json`), each with its themes by depth, a weight, the biomes it is found in (optionally the only kind found there), its entrance style and its depth. Each dungeon picks its type from its own seed. The fantasy dungeons are the `classic` type, and a pack can switch them off.
 - **New themes.** A theme file with a new name makes a new theme, starting from a `base` (any other theme). Besides its blocks, monsters and boss, a theme now sets its **layout** (room shapes, corridor styles, narrow corridors, floor heights, pools, room size), its **furnishing** (what fills a room, clutter, cobwebs, bookshelves, overgrowth, columns, beams, panelling, statues), **several bosses** with every stat (health, damage, speed, size, powers, minions, followers), and its **loot tables**.
