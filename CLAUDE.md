@@ -1569,8 +1569,11 @@ for pack makers is `docs/DATAPACKS.md`; `examples/apocalypse` is the worked pack
 - **`FingerprintTest` pins the built-in dungeons block for block**: 12 seeds, 9
   levels, every block and trigger, as one number. It was taken before the
   refactor and proven to notice a single 0.05 cobweb chance on Deep Halls.
-  **A change that is meant to alter existing dungeons bumps PLANNER_VERSION and
-  this number together.**
+  **A change that is meant to alter dungeons updates this number, with its
+  reason in the test's list. PLANNER_VERSION moves too only when rooms, walls or
+  triggers move**: an older-planner dungeon loses its protection, traps and
+  clock, which is far worse than a few dressing blocks that differ. The first
+  update was 4bf3c89 (a stair well's railing, found by the mobile port).
 - **`ThemeKnobsTest`**: every shape alone and every corridor style alone, at
   both ends of the room scale and the most height spread, and every flavour
   with all dressing on and all off, plans and stays sealed. The ranges a pack
