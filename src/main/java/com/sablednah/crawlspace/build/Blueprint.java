@@ -79,7 +79,7 @@ public final class Blueprint {
         return (code >> 10) - 1;
     }
 
-    private static long key(int x, int z) {
+    static long key(int x, int z) {
         return ((long) x << 32) ^ (z & 0xffffffffL);
     }
 

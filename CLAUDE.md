@@ -1554,6 +1554,24 @@ badlands. On the rig both took effect after a `/reload`.
 - Loot was already data: the `crawlspace:chests/tier1..5` and `supplies`
   tables can be overridden like any loot table.
 
+## Shelf skirting (2026-10-21)
+
+Sable's photo: shelves (the 1.21.9 block) standing on the floor as skirting
+along a wall and round a column's foot. `build/Shelves` lays them **last, on
+its own dice, on floor still empty**, so it moves no prop, trap or trigger,
+and `ShelvesTest` proves the only differences are shelves and corner columns.
+Each room rolls `pillar_shelves` and `wall_shelves` separately (both always
+rolled, so one never shifts the other). Wall runs need square walls 7 across
+and get a column in each corner; nothing goes within a cell of a doorway,
+stair, pit or pool, on a trigger or its targets, or in front of anything but
+plain wall. **A room whose shelves would cut off a doorway, stair, lever,
+winch or hoard is undone**: forcing shelves into every room cut off 83 rooms
+before that check, none after. Unpowered shelves do not chain (the block only
+joins when powered), so no neighbour pass is needed. Seen on the rig in the
+example Mansion: a wall run and a column wrap, facing into the room.
+Built-in chances are low (0 to 0.3) for variety; fingerprint updated, planner
+unchanged.
+
 ## Dungeon types and data themes (2026-10-17, 1.1.0)
 
 Asked for by Sable for ZARP's zombie apocalypse: different "dungeons" (research

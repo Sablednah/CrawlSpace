@@ -27,7 +27,8 @@
     "pilaster": "minecraft:bricks",
     "panel": "minecraft:spruce_planks",
     "throne": "minecraft:brick_stairs",
-    "railing": "minecraft:brick_wall"
+    "railing": "minecraft:brick_wall",
+    "shelf": "minecraft:spruce_shelf"
   },
   "dressing": {
     "flavour": "old_mines",
@@ -38,7 +39,9 @@
       "cauldron",
       "cobweb"
     ],
-    "shelves": 0
+    "shelves": 0,
+    "pillar_shelves": 0.3,
+    "wall_shelves": 0.35
   },
   "loot": {
     "supplies": "minecraft:chests/village/village_butcher"

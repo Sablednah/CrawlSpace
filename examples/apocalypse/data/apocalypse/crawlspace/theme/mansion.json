@@ -51,7 +51,8 @@
     "table": "minecraft:dark_oak_fence",
     "table_top": "minecraft:dark_oak_pressure_plate",
     "throne": "minecraft:dark_oak_stairs",
-    "torch": "minecraft:wall_torch"
+    "torch": "minecraft:wall_torch",
+    "shelf": "minecraft:dark_oak_shelf"
   },
   "layout": {
     "shapes": {
@@ -85,7 +86,9 @@
     ],
     "overgrowth": 0.05,
     "niche_statues": 0.4,
-    "panels": 0.9
+    "panels": 0.9,
+    "pillar_shelves": 0.5,
+    "wall_shelves": 0.3
   },
   "mobs": [
     {

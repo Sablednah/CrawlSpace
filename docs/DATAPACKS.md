@@ -102,7 +102,8 @@ The roles:
 - **Furniture:** `carpet`, `rug`, `banner` (a wall banner), `table` (a fence),
   `table_top` (a pressure plate), `chair` (stairs), `throne` (stairs),
   `altar`, `sarcophagus`, `pedestal`, `brazier` (a campfire), `candle`,
-  `torch` (a wall torch), `light` (a lantern, hung from the ceiling).
+  `torch` (a wall torch), `light` (a lantern, hung from the ceiling),
+  `shelf` (a shelf, for shelf skirting; 1.21.9's shelves, e.g. `minecraft:oak_shelf`).
 - **Traps and puzzles:** `secret_wall`, `trap_plate`, `trap_wire`,
   `portcullis`, `portcullis_sill`, `window_bars`, `pit_tile`, `ice_tile`,
   `puzzle_void`, `puzzle_restart`, `puzzle_hidden`, `puzzle_crumble`.
@@ -161,7 +162,8 @@ wall in a dungeon that already exists.
   "cobwebs": 0.4, "shelves": 0.25,
   "clutter": ["skull", "candles", "pot", "floor_lantern", "bones", "cobweb"],
   "overgrowth": 0.2, "roots": false,
-  "niche_statues": 0.5, "beams": true, "timber": false, "panels": 0.5
+  "niche_statues": 0.5, "beams": true, "timber": false, "panels": 0.5,
+  "pillar_shelves": 0.2, "wall_shelves": 0.06
 }
 ```
 
@@ -180,6 +182,12 @@ wall in a dungeon that already exists.
 | `beams` | Ceiling beams across bigger rooms |
 | `timber` | Mine-style: timber posts, no floor medallion, rails in wide corridors |
 | `panels` | Chance an ordinary room or hall is panelled |
+| `pillar_shelves` | Chance a room's columns stand in a skirt of shelves, round their foot |
+| `wall_shelves` | Chance a room's walls are skirted with shelves, with a column in each corner and gaps at doorways. Square-walled rooms 7 or more across only |
+
+Shelf skirting goes in last, on floor nothing else is using, so a run stops at a
+barrel or a chest. A room whose shelves would cut off a doorway, a stair or a
+lever gets none.
 
 Chances are 0 to 1.
 

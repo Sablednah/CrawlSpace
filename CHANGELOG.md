@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Shelf skirting.** Now and then a room's columns stand in a skirt of shelves round their foot, and more rarely its walls are lined with shelves along the floor, with a column in each corner and gaps at every doorway. Shelves only go on floor nothing else is using, and never where they would cut off a doorway, a stair or a lever. Packs set how often with `pillar_shelves` and `wall_shelves`, and the block with the `shelf` role; the apocalypse example's mansion, cellars, lab and bunker use them.
+
 ## 1.1.0 — 2026-10-20
 
 **Dungeon types, and themes of your own, from datapacks.** Asked for by Sable for a zombie-apocalypse world: research bases, old mansions and bunkers instead of crypts. Dungeons with no pack installed are as before, apart from the stair-well railing fix below.

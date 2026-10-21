@@ -44,7 +44,8 @@
     "table": "minecraft:spruce_fence",
     "table_top": "minecraft:spruce_pressure_plate",
     "throne": "minecraft:andesite_stairs",
-    "torch": "minecraft:wall_torch"
+    "torch": "minecraft:wall_torch",
+    "shelf": "minecraft:spruce_shelf"
   },
   "layout": {
     "shapes": {
@@ -86,7 +87,9 @@
     "niche_statues": 0,
     "beams": true,
     "timber": false,
-    "panels": 0.4
+    "panels": 0.4,
+    "pillar_shelves": 0.3,
+    "wall_shelves": 0.15
   },
   "mobs": [
     {

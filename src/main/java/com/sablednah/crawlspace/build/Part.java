@@ -252,7 +252,13 @@ public enum Part {
      * the tomb when its job breaks it, so the repair must not put it back over
      * the chest (Sable, 2026-10-15).
      */
-    OBJ_LID;
+    OBJ_LID,
+    /**
+     * A shelf standing on the floor (the 1.21.9 block, the theme's "shelf"):
+     * skirting along a wall or round a column's foot, facing out into the room.
+     * Dressing, not shell. Added last, so no older part's code moves.
+     */
+    SHELF_UNIT;
 
     /**
      * The dungeon's shell: what protection keeps whole (see {@code Protection}).

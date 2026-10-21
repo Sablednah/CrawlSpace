@@ -53,7 +53,8 @@
     "support": "minecraft:birch_fence",
     "table_top": "minecraft:heavy_weighted_pressure_plate",
     "throne": "minecraft:smooth_quartz_stairs",
-    "torch": "minecraft:wall_torch"
+    "torch": "minecraft:wall_torch",
+    "shelf": "minecraft:birch_shelf"
   },
   "layout": {
     "shapes": {
@@ -96,7 +97,9 @@
     "niche_statues": 0,
     "beams": false,
     "timber": false,
-    "panels": 0.7
+    "panels": 0.7,
+    "pillar_shelves": 0.25,
+    "wall_shelves": 0.1
   },
   "mobs": [
     {
