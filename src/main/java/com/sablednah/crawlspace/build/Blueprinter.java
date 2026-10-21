@@ -103,6 +103,10 @@ public final class Blueprinter {
                 shaft(bp, plan, i, p);
             }
         }
+        // Shelf skirting last, on its own dice and only on floor still empty: it moves nothing else.
+        for (int i = 0; i < levels; i++) {
+            Shelves.place(bp, plan, i);
+        }
         Towers.build(bp, Towers.choose(style, com.sablednah.crawlspace.plan.Dice.of(plan.seed(), 0x70E3L)),
                 com.sablednah.crawlspace.plan.Dice.of(plan.seed(), 0x70E4L));
         return bp;
