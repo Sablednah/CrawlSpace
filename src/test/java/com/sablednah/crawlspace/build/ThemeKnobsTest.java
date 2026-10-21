@@ -55,7 +55,7 @@ class ThemeKnobsTest {
             for (boolean on : new boolean[] {true, false}) {
                 double x = on ? 1 : 0;
                 com.sablednah.crawlspace.plan.Dressing d = new com.sablednah.crawlspace.plan.Dressing(flavour, on, on, on, x, x,
-                        on ? com.sablednah.crawlspace.plan.Dressing.CLUTTER : List.of(), x, on, x, on, on, x);
+                        on ? com.sablednah.crawlspace.plan.Dressing.CLUTTER : List.of(), x, on, x, on, on, x, x, x);
                 Theme base = Theme.DEEP_HALLS;
                 Theme t = new Theme("Test", base.shapeWeights(), base.styleWeights(), base.narrowChance(), Theme.MAX_SPREAD,
                         base.poolChance(), base.roomScale(), d);

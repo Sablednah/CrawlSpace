@@ -298,6 +298,14 @@ public final class Palettes {
             "Caverns", Blocks.POLISHED_BLACKSTONE_PRESSURE_PLATE,
             "Deep Halls", Blocks.POLISHED_BLACKSTONE_PRESSURE_PLATE);
 
+    /** What a theme's shelf skirting is made of (the 1.21.9 shelf). */
+    private static final Map<String, Block> SHELVES = Map.of(
+            "Crypt", Blocks.SPRUCE_SHELF,
+            "Sunken Halls", Blocks.SPRUCE_SHELF,
+            "Old Mines", Blocks.OAK_SHELF,
+            "Caverns", Blocks.SPRUCE_SHELF,
+            "Deep Halls", Blocks.DARK_OAK_SHELF);
+
     static {
         for (String theme : THEMES.keySet()) {
             Map<String, Mix> m = new java.util.TreeMap<>();
@@ -308,6 +316,7 @@ public final class Palettes {
             m.put("table_top", m.remove("plate"));
             m.put("trap_plate", Mix.of(PLATES.getOrDefault(theme, Blocks.STONE_PRESSURE_PLATE), 1));
             m.put("trap_wire", Mix.of(Blocks.TRIPWIRE, 1));
+            m.put("shelf", Mix.of(SHELVES.getOrDefault(theme, Blocks.SPRUCE_SHELF), 1));
             m.put("puzzle_void", Mix.of(Blocks.END_PORTAL, 1));
             m.put("puzzle_restart", Mix.of(Blocks.CRYING_OBSIDIAN, 1));
             m.put("puzzle_hidden", Mix.of(Blocks.BARRIER, 1));
@@ -497,6 +506,7 @@ public final class Palettes {
             case SUPPORT -> b.apply("support");
             case RAILING, STATUE -> b.apply("railing");
             case SHELF -> Blocks.BOOKSHELF.defaultBlockState();
+            case SHELF_UNIT -> with(b.apply("shelf"), net.minecraft.world.level.block.state.properties.BlockStateProperties.HORIZONTAL_FACING, dir);
             case WALL_ACCENT -> b.apply("accent");
             case THRONE -> with(b.apply("throne"), StairBlock.FACING, dir);
             case FLOOR_ACCENT -> b.apply("floor_accent");
