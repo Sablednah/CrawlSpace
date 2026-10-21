@@ -29,7 +29,8 @@ import com.sablednah.crawlspace.plan.Theme;
  *   "flavour": "crypt", "built": true, "finished": true, "columns": true,
  *   "cobwebs": 0.4, "shelves": 0.25, "clutter": ["skull", "candles"],
  *   "overgrowth": 0.2, "roots": false, "niche_statues": 0.5,
- *   "beams": true, "timber": false, "panels": 0.5
+ *   "beams": true, "timber": false, "panels": 0.5,
+ *   "pillar_shelves": 0.2, "wall_shelves": 0.06
  * }
  * </pre>
  */
@@ -84,7 +85,8 @@ final class ThemeJson {
                 unit(d, "cobwebs", b.cobwebs(), where), unit(d, "shelves", b.shelves(), where), clutter,
                 unit(d, "overgrowth", b.overgrowth(), where), bool(d, "roots", b.roots()),
                 unit(d, "niche_statues", b.nicheStatues(), where), bool(d, "beams", b.beams()),
-                bool(d, "timber", b.timber()), unit(d, "panels", b.panels(), where));
+                bool(d, "timber", b.timber()), unit(d, "panels", b.panels(), where),
+                unit(d, "pillar_shelves", b.pillarShelves(), where), unit(d, "wall_shelves", b.wallShelves(), where));
         return new Theme(name, shapes, corridors, narrow, spread, pool, scale, dressing);
     }
 
@@ -114,6 +116,8 @@ final class ThemeJson {
         d.addProperty("beams", dr.beams());
         d.addProperty("timber", dr.timber());
         d.addProperty("panels", dr.panels());
+        d.addProperty("pillar_shelves", dr.pillarShelves());
+        d.addProperty("wall_shelves", dr.wallShelves());
         JsonObject o = new JsonObject();
         o.add("layout", l);
         o.add("dressing", d);
