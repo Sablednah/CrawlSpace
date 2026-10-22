@@ -34,10 +34,13 @@ import net.minecraft.world.item.Items;
  */
 public final class Bestiary {
 
-    /** @param armour whether it wears armour by depth; only mobs that show armour should */
-    private record Pick(EntityType<?> type, int weight, boolean armour) {
+    /**
+     * @param armour whether it wears armour by depth; only mobs that show armour should
+     * @param genus  a ZombieMod genus to dress it as (Genera), or null
+     */
+    private record Pick(EntityType<?> type, int weight, boolean armour, Identifier genus) {
         Pick(EntityType<?> type, int weight) {
-            this(type, weight, HUMANOIDS.contains(type));
+            this(type, weight, HUMANOIDS.contains(type), null);
         }
     }
 
@@ -53,12 +56,21 @@ public final class Bestiary {
      * @param follower  what stands with it in its lair instead of the theme's monsters, or null
      * @param followerScale  ...how big they are
      * @param followerHealth ...and their health and damage outright, or 0 for their own
+     * @param genus, minionGenus, followerGenus ZombieMod genera for it, its minions and its pack (Genera), or null
      */
     private record BossSpec(EntityType<?> type, String name, Item weapon, BossEvent.BossBarColor colour, double scale,
             double health, double damage, double speed, java.util.Set<String> powers, EntityType<?> minion,
-            EntityType<?> follower, double followerScale, double followerHealth, double followerDamage) {
+            EntityType<?> follower, double followerScale, double followerHealth, double followerDamage,
+            Identifier genus, Identifier minionGenus, Identifier followerGenus) {
         BossSpec(EntityType<?> type, String name, Item weapon, BossEvent.BossBarColor colour, double scale) {
             this(type, name, weapon, colour, scale, 0, 0, 1, java.util.Set.of(), null, null, 1, 0, 0);
+        }
+
+        BossSpec(EntityType<?> type, String name, Item weapon, BossEvent.BossBarColor colour, double scale,
+                double health, double damage, double speed, java.util.Set<String> powers, EntityType<?> minion,
+                EntityType<?> follower, double followerScale, double followerHealth, double followerDamage) {
+            this(type, name, weapon, colour, scale, health, damage, speed, powers, minion, follower, followerScale,
+                    followerHealth, followerDamage, null, null, null);
         }
     }
 
@@ -127,7 +139,7 @@ public final class Bestiary {
                     if (type != null) {
                         int weight = o != null && o.has("weight") ? Math.max(1, o.get("weight").getAsInt()) : 1;
                         boolean armour = o != null && o.has("armour") ? o.get("armour").getAsBoolean() : HUMANOIDS.contains(type);
-                        picks.add(new Pick(type, weight, armour));
+                        picks.add(new Pick(type, weight, armour, Genera.parse(o, "genus", "theme '" + theme + "'")));
                     }
                 }
                 if (!picks.isEmpty()) {
@@ -193,12 +205,16 @@ public final class Bestiary {
         }
         EntityType<?> minion = o.has("minion") ? entity(o.get("minion").getAsString(), theme) : old.minion();
         EntityType<?> follower = o.has("follower") ? entity(o.get("follower").getAsString(), theme) : old.follower();
+        String where = "theme '" + theme + "'";
         return new BossSpec(type != null ? type : old.type(),
                 o.has("name") ? o.get("name").getAsString() : old.name(), weapon, bar,
                 num(o, "scale", old.scale()), num(o, "health", old.health()), num(o, "damage", old.damage()),
                 num(o, "speed", old.speed()), powers, minion, follower,
                 num(o, "follower_scale", old.followerScale()), num(o, "follower_health", old.followerHealth()),
-                num(o, "follower_damage", old.followerDamage()));
+                num(o, "follower_damage", old.followerDamage()),
+                o.has("genus") ? Genera.parse(o, "genus", where) : type != null ? null : old.genus(),
+                o.has("minion_genus") ? Genera.parse(o, "minion_genus", where) : o.has("minion") ? null : old.minionGenus(),
+                o.has("follower_genus") ? Genera.parse(o, "follower_genus", where) : o.has("follower") ? null : old.followerGenus());
     }
 
     /** The powers a boss can be given by name. */
@@ -224,6 +240,9 @@ public final class Bestiary {
             o.addProperty("type", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(p.type()).toString());
             o.addProperty("weight", p.weight());
             o.addProperty("armour", p.armour());
+            if (p.genus() != null) {
+                o.addProperty("genus", p.genus().toString());
+            }
             mobs.add(o);
         }
         into.add("mobs", mobs);
@@ -241,6 +260,15 @@ public final class Bestiary {
             com.google.gson.JsonArray powers = new com.google.gson.JsonArray();
             spec.powers().stream().sorted().forEach(powers::add);
             o.add("powers", powers);
+            if (spec.genus() != null) {
+                o.addProperty("genus", spec.genus().toString());
+            }
+            if (spec.minionGenus() != null) {
+                o.addProperty("minion_genus", spec.minionGenus().toString());
+            }
+            if (spec.followerGenus() != null) {
+                o.addProperty("follower_genus", spec.followerGenus().toString());
+            }
             if (spec.minion() != null) {
                 o.addProperty("minion", net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(spec.minion()).toString());
             }
@@ -285,16 +313,35 @@ public final class Bestiary {
     }
 
     static EntityType<?> common(String theme, RandomSource random) {
+        return pick(theme, random).type();
+    }
+
+    private static Pick pick(String theme, RandomSource random) {
         List<Pick> picks = common.getOrDefault(theme, common.get("Crypt"));
         int total = picks.stream().mapToInt(Pick::weight).sum();
         int r = random.nextInt(total);
         for (Pick p : picks) {
             r -= p.weight();
             if (r < 0) {
-                return p.type();
+                return p;
             }
         }
-        return picks.get(0).type();
+        return picks.get(0);
+    }
+
+    /** One of a theme's monsters, made and, if its entry names one, dressed as its ZombieMod genus. Not added. */
+    static Entity make(ServerLevel level, String theme, RandomSource random, EntitySpawnReason reason) {
+        Pick p = pick(theme, random);
+        return make(level, p.type(), p.genus(), reason, "theme '" + theme + "'");
+    }
+
+    /** {@code type}, made and dressed as {@code genus} if there is one: before finalizeSpawn, as ZombieMod asks. */
+    static Entity make(ServerLevel level, EntityType<?> type, Identifier genus, EntitySpawnReason reason, String where) {
+        Entity e = type.create(level, reason);
+        if (genus != null && e instanceof Mob mob) {
+            Genera.apply(mob, genus, where);
+        }
+        return e;
     }
 
     /**
@@ -332,8 +379,9 @@ public final class Bestiary {
             if (follower && k > MAX_PACK) {
                 continue; // a strange boss's own pack stays small: three Wardlings are a fight, six are a wipe
             }
-            EntityType<?> type = boss ? spec.type() : follower ? spec.follower() : common(theme, random);
-            Entity e = type.create(level, EntitySpawnReason.STRUCTURE);
+            Entity e = boss ? make(level, spec.type(), spec.genus(), EntitySpawnReason.STRUCTURE, "theme '" + theme + "' boss")
+                    : follower ? make(level, spec.follower(), spec.followerGenus(), EntitySpawnReason.STRUCTURE, "theme '" + theme + "' boss")
+                    : make(level, theme, random, EntitySpawnReason.STRUCTURE);
             if (!(e instanceof Mob mob)) {
                 continue;
             }
@@ -446,7 +494,8 @@ public final class Bestiary {
         }
         BossSpec spec = choices.get(index);
         for (int k = 0; k < (spec.follower() != null ? 4 : 1); k++) {
-            Entity e = (k == 0 ? spec.type() : spec.follower()).create(level, EntitySpawnReason.COMMAND);
+            Entity e = k == 0 ? make(level, spec.type(), spec.genus(), EntitySpawnReason.COMMAND, "theme '" + theme + "' boss")
+                    : make(level, spec.follower(), spec.followerGenus(), EntitySpawnReason.COMMAND, "theme '" + theme + "' boss");
             if (!(e instanceof Mob mob)) {
                 continue;
             }
@@ -522,7 +571,7 @@ public final class Bestiary {
         if (pos == null) {
             return;
         }
-        Entity e = common(theme, random).create(level, EntitySpawnReason.EVENT);
+        Entity e = make(level, theme, random, EntitySpawnReason.EVENT);
         if (!(e instanceof Mob mob)) {
             return;
         }
@@ -568,7 +617,7 @@ public final class Bestiary {
             if (!level.getBlockState(p).isAir() || !level.getBlockState(p.above()).isAir() || level.getBlockState(p.below()).isAir()) {
                 continue;
             }
-            Entity e = common(theme, random).create(level, EntitySpawnReason.EVENT);
+            Entity e = make(level, theme, random, EntitySpawnReason.EVENT);
             if (!(e instanceof Mob mob)) {
                 continue;
             }
@@ -603,7 +652,7 @@ public final class Bestiary {
             if (!level.getBlockState(p).isAir() || !level.getBlockState(p.above()).isAir() || level.getBlockState(p.below()).isAir()) {
                 p = at;
             }
-            Entity e = common(theme, random).create(level, EntitySpawnReason.EVENT);
+            Entity e = make(level, theme, random, EntitySpawnReason.EVENT);
             if (!(e instanceof Mob mob)) {
                 continue;
             }
@@ -765,6 +814,9 @@ public final class Bestiary {
         }
         if (spec.minion() != null) {
             mob.addTag(Powers.MINION + net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(spec.minion()));
+        }
+        if (spec.minionGenus() != null) {
+            mob.addTag(Powers.MINION_GENUS + spec.minionGenus());
         }
         mob.setHealth(mob.getMaxHealth());
         mob.setCustomName(Component.literal(capitalise(spec.name())).withStyle(ChatFormatting.GOLD));

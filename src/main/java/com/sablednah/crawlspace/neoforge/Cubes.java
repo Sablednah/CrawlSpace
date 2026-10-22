@@ -166,7 +166,7 @@ public final class Cubes {
         String theme = site.built().plan().levels().get(t.level()).theme.name();
         int monsters = 1 + level.getRandom().nextInt(2);
         for (int k = 0; k < monsters; k++) {
-            Entity e = Bestiary.common(theme, level.getRandom()).create(level, EntitySpawnReason.EVENT);
+            Entity e = Bestiary.make(level, theme, level.getRandom(), EntitySpawnReason.EVENT);
             if (!(e instanceof Mob m)) {
                 continue;
             }
