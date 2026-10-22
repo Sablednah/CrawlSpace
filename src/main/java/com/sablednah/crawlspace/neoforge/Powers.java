@@ -80,6 +80,8 @@ public final class Powers {
     static final String POWER = "crawlspace_power_";
     /** What a summoner calls up: "crawlspace_minion_minecraft:silverfish". */
     static final String MINION = "crawlspace_minion_";
+    /** A boss's minions' ZombieMod genus: "crawlspace_mgenus_zombiemod:breaker". Not under MINION, which names a type. */
+    static final String MINION_GENUS = "crawlspace_mgenus_";
     static final String ENRAGED = "crawlspace_enraged";
     /**
      * Left alone by mods that roll their own variant on to a mob as it spawns:
@@ -326,7 +328,7 @@ public final class Powers {
             return;
         }
         for (int k = 0; k < count && s.minions.size() < 8; k++) {
-            Entity e = type.create(level, EntitySpawnReason.MOB_SUMMONED);
+            Entity e = Bestiary.make(level, type, minionGenus(mob), EntitySpawnReason.MOB_SUMMONED, "boss " + mob.getName().getString());
             if (!(e instanceof Mob minion)) {
                 return;
             }
@@ -345,6 +347,15 @@ public final class Powers {
             level.sendParticles(ParticleTypes.POOF, minion.getX(), minion.getY() + 0.3, minion.getZ(), 6, 0.2, 0.2, 0.2, 0.02);
         }
         level.playSound(null, mob.blockPosition(), SoundEvents.SILVERFISH_AMBIENT, SoundSource.HOSTILE, 1.2f, 0.5f);
+    }
+
+    private static Identifier minionGenus(Mob mob) {
+        for (String t : mob.getTags()) {
+            if (t.startsWith(MINION_GENUS)) {
+                return Identifier.tryParse(t.substring(MINION_GENUS.length()));
+            }
+        }
+        return null;
     }
 
     private static EntityType<?> minionOf(Mob mob) {

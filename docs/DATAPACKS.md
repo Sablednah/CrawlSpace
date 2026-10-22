@@ -201,6 +201,18 @@ The list replaces the theme's own. Any entity id works, including modded
 ones. `armour` decides whether they are given armour by depth; it defaults to
 on for humanoids that show it.
 
+**ZombieMod genera.** Add `"genus": "zombiemod:harvester"` to an entry and,
+with ZombieMod installed, that monster is dressed as that genus (its look,
+abilities and name) rather than whatever ZombieMod would roll. The genus's
+base mob must be the entry's `type` (a Harvester is a zombie). Without
+ZombieMod, or for an unknown genus or the wrong type, the plain `type` spawns
+and the server log says so once. Mob spawner blocks cannot carry a genus, so a
+guard room's spawner spawns the plain type.
+
+```json
+"mobs": [ { "type": "minecraft:zombie", "genus": "zombiemod:patient", "weight": 4 } ]
+```
+
 ### `bosses`: who holds the lair
 
 ```json
@@ -229,6 +241,7 @@ the dungeon's own dice. Every field is optional:
 | `minion` | What `summon` calls up |
 | `follower` | A pack of these stands with it, instead of the theme's monsters |
 | `follower_scale`, `follower_health`, `follower_damage` | ...and how big and strong they are |
+| `genus`, `minion_genus`, `follower_genus` | ZombieMod genera for the boss, its minions and its pack (as for `mobs`). The genus gives the look and abilities; the boss's name, size, health, damage and bar go on top |
 
 A single `"boss": {...}` (the older form) changes only the theme's first boss,
 field by field, and makes it the only one.
