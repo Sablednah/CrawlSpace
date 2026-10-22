@@ -202,7 +202,7 @@ ones. `armour` decides whether they are given armour by depth; it defaults to
 on for humanoids that show it.
 
 **ZombieMod genera.** Add `"genus": "zombiemod:harvester"` to an entry and,
-with ZombieMod installed, that monster is dressed as that genus (its look,
+with ZombieMod 3.9.0 or later installed, that monster is dressed as that genus (its look,
 abilities and name) rather than whatever ZombieMod would roll. The genus's
 base mob must be the entry's `type` (a Harvester is a zombie). Without
 ZombieMod, or for an unknown genus or the wrong type, the plain `type` spawns
