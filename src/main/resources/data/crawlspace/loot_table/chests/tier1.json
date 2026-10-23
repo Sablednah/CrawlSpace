@@ -216,6 +216,7 @@
         "min": 1,
         "max": 1
       },
+      "bonus_rolls": 0.5,
       "entries": [
         {
           "type": "minecraft:item",
@@ -228,7 +229,8 @@
                 "minecraft:mending"
               ]
             }
-          ]
+          ],
+          "quality": 1
         },
         {
           "type": "minecraft:item",
@@ -383,7 +385,8 @@
         },
         {
           "type": "minecraft:empty",
-          "weight": 30
+          "weight": 30,
+          "quality": -4
         }
       ]
     }

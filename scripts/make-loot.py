@@ -10,7 +10,8 @@ templates (rarer patterns deeper), the netherite upgrade from tier 4, and trimme
 armour. Its empty entry sets how often a roll pays at all; the script prints the odds per tier
 when it runs (about half the chests at tier 1, every chest from tier 5).
 """
-import json, os, sys
+import json
+import re, os, sys
 
 # `make-loot.py 1.20.1` writes the Forge 1.20.1 branch's tables: its folder is loot_tables, books take
 # "enchantments", trims are NBT, and the flow and bolt trims do not exist yet.
@@ -87,8 +88,20 @@ def rare_pool(tier):
         entries.append(trimmed(metal + "_" + piece, 2, pattern, rng.choice(MATERIALS), levels))
     # How often the rare pool pays at all: rarely on the first levels, every chest at the bottom.
     entries.append(empty({1: 30, 2: 18, 3: 8, 4: 3, 5: 0}[tier]))
+    # Luck (the player's luck attribute: the Luck potion, or a LegendQuest race or class boon; Sable,
+    # 2026-10-23) tilts the pool: each point takes 4 from the blank and adds 1 to mending, the rarest
+    # trims and the netherite upgrade, and every 2 points is a bonus roll. At luck 0 nothing changes.
+    for e in entries:
+        if e["type"] == "minecraft:empty":
+            e["quality"] = -4
+        elif e is entries[0] or LUCKY.search(json.dumps(e)):
+            e["quality"] = 1
     rolls = {1: (1, 1), 2: (1, 1), 3: (1, 2), 4: (1, 2), 5: (2, 3)}[tier]
-    return {"rolls": {"type": "minecraft:uniform", "min": rolls[0], "max": rolls[1]}, "entries": [e for e in entries if e.get("weight", 1) > 0]}
+    return {"rolls": {"type": "minecraft:uniform", "min": rolls[0], "max": rolls[1]}, "bonus_rolls": 0.5,
+            "entries": [e for e in entries if e.get("weight", 1) > 0]}
+
+# The prizes luck favours, besides mending (the pool's first entry).
+LUCKY = re.compile(r"(ward|vex|eye|silence)_armor_trim|netherite_upgrade")
 
 TIERS = {
     "tier1": table((3, 6), [
@@ -139,4 +152,9 @@ for n in range(1, 6):
     blank = sum(e["weight"] for e in pool["entries"] if e["type"] == "minecraft:empty")
     print("tier%d: a rare roll pays %.0f%% of the time, mending %.1f%%" % (
         n, 100.0 * (total - blank) / total, 100.0 * pool["entries"][0]["weight"] / total))
+    for luck in (1, 3):
+        w = [max(0, e["weight"] + e.get("quality", 0) * luck) for e in pool["entries"]]
+        b = sum(x for x, e in zip(w, pool["entries"]) if e["type"] == "minecraft:empty")
+        print("   at luck %d: pays %.0f%%, mending %.1f%%, %d bonus roll(s)" % (
+            luck, 100.0 * (sum(w) - b) / sum(w), 100.0 * w[0] / sum(w), int(0.5 * luck)))
 print("wrote", len(TIERS), "tables")
