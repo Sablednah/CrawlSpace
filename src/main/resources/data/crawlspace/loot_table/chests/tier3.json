@@ -221,6 +221,7 @@
         "min": 1,
         "max": 2
       },
+      "bonus_rolls": 0.5,
       "entries": [
         {
           "type": "minecraft:item",
@@ -233,7 +234,8 @@
                 "minecraft:mending"
               ]
             }
-          ]
+          ],
+          "quality": 1
         },
         {
           "type": "minecraft:item",
@@ -338,17 +340,20 @@
         {
           "type": "minecraft:item",
           "name": "minecraft:ward_armor_trim_smithing_template",
-          "weight": 1
+          "weight": 1,
+          "quality": 1
         },
         {
           "type": "minecraft:item",
           "name": "minecraft:vex_armor_trim_smithing_template",
-          "weight": 1
+          "weight": 1,
+          "quality": 1
         },
         {
           "type": "minecraft:item",
           "name": "minecraft:eye_armor_trim_smithing_template",
-          "weight": 1
+          "weight": 1,
+          "quality": 1
         },
         {
           "type": "minecraft:item",
@@ -448,7 +453,8 @@
         },
         {
           "type": "minecraft:empty",
-          "weight": 8
+          "weight": 8,
+          "quality": -4
         }
       ]
     }
