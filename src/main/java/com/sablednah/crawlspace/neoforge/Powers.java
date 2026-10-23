@@ -209,7 +209,7 @@ public final class Powers {
     /** Named only by its ZombieMod genus: not an elite, a sentry or anything else of ours yet. */
     static boolean genusOnly(Mob mob) {
         return mob.getPersistentData().getString(GENUS_KEY).isPresent() && mob.getCustomName() != null
-                && !mob.getTags().contains(ELITE) && !mob.getTags().contains(Sentries.TAG);
+                && !mob.entityTags().contains(ELITE) && !mob.entityTags().contains(Sentries.TAG);
     }
 
     /** Starts tracking a mob that has something to run: a blinker, a summoner, any boss (for its enrage). */
@@ -381,7 +381,7 @@ public final class Powers {
     }
 
     private static Identifier minionGenus(Mob mob) {
-        for (String t : mob.getTags()) {
+        for (String t : mob.entityTags()) {
             if (t.startsWith(MINION_GENUS)) {
                 return Identifier.tryParse(t.substring(MINION_GENUS.length()));
             }
