@@ -3,6 +3,7 @@
 ## Unreleased
 
 - **Luck finds rarer loot.** The player's luck attribute (the Luck potion, or a LegendQuest race, class or feat boon) now tilts every chest's rare pool: fewer empty rolls, more Mending, rare trims and netherite upgrades, and a bonus roll for every 2 luck. Without luck the odds are as before.
+- **Genera can be elites and sentries.** A ZombieMod genus monster can still roll elite affixes, which go on top of the genus with their prefixes on its name ("Frenzied Harvester"), and can stand watch as a guard room's sentry ("Sentry Harvester"). A genus already big or fast never rolls Hulking or Frenzied. Asked for by ZARP.
 - **ZombieMod genera in themes.** A theme's monsters and bosses can name a genus (`"genus": "zombiemod:harvester"`), and with ZombieMod installed they are dressed as it, so a lab can hold Patients and Harvesters. Bosses keep their name, size, health and bar on top. Needs ZombieMod 3.9.0 or later; without it the plain mob spawns. Asked for by ZARP.
 - **Shelf skirting.** Now and then a room's columns stand in a skirt of shelves round their foot, and more rarely its walls are lined with shelves along the floor, with a column in each corner and gaps at every doorway. Shelves only go on floor nothing else is using, and never where they would cut off a doorway, a stair or a lever. Packs set how often with `pillar_shelves` and `wall_shelves`, and the block with the `shelf` role; the apocalypse example's mansion, cellars, lab and bunker use them.
 

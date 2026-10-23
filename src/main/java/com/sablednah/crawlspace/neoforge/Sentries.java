@@ -72,7 +72,10 @@ public final class Sentries {
     /** Makes {@code mob} the room's sentry. */
     static void post(ServerLevel level, Mob mob, Site site, int li) {
         mob.addTag(TAG);
-        mob.setCustomName(Component.literal("Sentry").withStyle(ChatFormatting.GOLD));
+        // A ZombieMod genus keeps its name after the title: "Sentry Harvester".
+        mob.setCustomName(Powers.genusOnly(mob)
+                ? Component.literal("Sentry ").withStyle(ChatFormatting.GOLD).append(mob.getCustomName().copy())
+                : Component.literal("Sentry").withStyle(ChatFormatting.GOLD));
         mob.setCustomNameVisible(true);
         mob.setItemInHand(InteractionHand.OFF_HAND, new ItemStack(Items.GOAT_HORN));
         mob.setDropChance(net.minecraft.world.entity.EquipmentSlot.OFFHAND, 0f);
