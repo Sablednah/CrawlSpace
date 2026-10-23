@@ -74,6 +74,8 @@ public final class Powers {
     }
 
     static final String AFFIX = "crawlspace_affix_";
+    /** ZombieMod's genus key in a mob's persistent data (its ZombieModApi.genusOf reads the same). */
+    static final String GENUS_KEY = "zombiemod:genus";
     static final String ELITE = "crawlspace_elite";
     /** Its dungeon depth, for its loot: "crawlspace_depth_3". */
     static final String DEPTH = "crawlspace_depth_";
@@ -136,7 +138,9 @@ public final class Powers {
     /**
      * Makes {@code mob} an elite with one affix, or two from the fourth level
      * down: attributes now, name and tags for what runs later. A mob some other
-     * mod already named (a ZombieMod genus) is left as it is.
+     * mod named is left as it is, except a ZombieMod genus: its affixes go on top
+     * of the genus and their prefixes on its name ("Frenzied Harvester"), asked
+     * for by ZARP so a dungeon of genera still has elites.
      */
     static boolean elite(Mob mob, int depth, RandomSource random) {
         return elite(mob, depth, random, depth >= 3 && random.nextDouble() < 0.35 ? 2 : 1);
@@ -144,10 +148,21 @@ public final class Powers {
 
     /** ...with exactly {@code count} affixes: a hunted level's hunter has two. */
     static boolean elite(Mob mob, int depth, RandomSource random, int count) {
-        if (mob.hasCustomName()) {
+        boolean genus = mob.getPersistentData().getString(GENUS_KEY).isPresent();
+        if (mob.hasCustomName() && !genus) {
             return false;
         }
         List<Affix> pool = new ArrayList<>(List.of(Affix.values()));
+        if (genus) {
+            // A genus already big or fast is not made bigger or faster: a Hulking colossus fills a corridor,
+            // and a Frenzied Charger outruns a horse.
+            if (mob.getAttributeValue(Attributes.SCALE) >= 1.3) {
+                pool.remove(Affix.HULKING);
+            }
+            if (mob.getAttributeValue(Attributes.MOVEMENT_SPEED) >= 0.3) {
+                pool.remove(Affix.FRENZIED);
+            }
+        }
         List<Affix> got = new ArrayList<>();
         for (int k = 0; k < count && !pool.isEmpty(); k++) {
             got.add(pool.remove(random.nextInt(pool.size())));
@@ -174,12 +189,27 @@ public final class Powers {
         }
         modify(mob, Attributes.MAX_HEALTH, "elite_toughness", 0.25, AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
         mob.setHealth(mob.getMaxHealth());
-        name.append(mob.getType().getDescription().getString());
-        mob.setCustomName(Component.literal(name.toString()).withStyle(got.size() > 1 ? ChatFormatting.LIGHT_PURPLE : got.get(0).colour));
+        if (genus && mob.getCustomName() != null) {
+            // Each prefix in its affix's colour, then the genus's own name as ZombieMod styled it.
+            net.minecraft.network.chat.MutableComponent named = Component.empty();
+            for (Affix a : got) {
+                named.append(Component.literal(a.prefix + " ").withStyle(a.colour));
+            }
+            mob.setCustomName(named.append(mob.getCustomName().copy()));
+        } else {
+            name.append(mob.getType().getDescription().getString());
+            mob.setCustomName(Component.literal(name.toString()).withStyle(got.size() > 1 ? ChatFormatting.LIGHT_PURPLE : got.get(0).colour));
+        }
         mob.setCustomNameVisible(true);
         mob.addTag(ELITE);
         mob.addTag(DEPTH + depth);
         return true;
+    }
+
+    /** Named only by its ZombieMod genus: not an elite, a sentry or anything else of ours yet. */
+    static boolean genusOnly(Mob mob) {
+        return mob.getPersistentData().getString(GENUS_KEY).isPresent() && mob.getCustomName() != null
+                && !mob.getTags().contains(ELITE) && !mob.getTags().contains(Sentries.TAG);
     }
 
     /** Starts tracking a mob that has something to run: a blinker, a summoner, any boss (for its enrage). */

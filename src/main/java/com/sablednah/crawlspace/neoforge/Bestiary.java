@@ -412,8 +412,9 @@ public final class Bestiary {
             if (t.kind() == Trigger.Kind.ORDERED && !boss && !follower) {
                 Powers.number(mob, o.offset(t.x(), t.y(), t.z()), k + 1, t.targets().length, t.level() >= STRICT_FROM);
             }
-            if (sentry && !mob.hasCustomName()) {
-                // The first without a name of its own (an elite has one) stands watch; one sentry a room.
+            if (sentry && (!mob.hasCustomName() || Powers.genusOnly(mob))) {
+                // The first without a name of its own (an elite has one; a genus's own does not count) stands watch;
+                // one sentry a room.
                 Sentries.post(level, mob, site, t.level());
                 sentry = false;
             }
