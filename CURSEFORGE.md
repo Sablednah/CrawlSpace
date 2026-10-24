@@ -20,7 +20,7 @@ A building on the surface marks the way in. Depending on the biome it is a castl
 
 ![The round tower](https://raw.githubusercontent.com/Sablednah/CrawlSpace/main/docs/images/tower-round.jpg)
 
-- **Crypt**: sarcophagi, skulls and candlelit niches
+- **Crypt**: sarcophagi, skulls and candlelit niches, and now and then a room skirted with shelves
 - **Sunken Halls**: prismarine pillars, pools and moss
 - **Old Mines**: timber frames, rails and barrels
 - **Caverns**: stalagmites, roots and overgrowth
@@ -42,7 +42,7 @@ Every level is planned fresh. Rooms of every shape loop round and cross each oth
 - **Traps** under pressure plates and tripwires: darts, gas, alarms, webs, falling stalactites, frost, fire and ambushes, and pit traps that crumble under you. Some plates are decoys; tells give the real ones away. Portcullises drop behind you and one-way doors close.
 - **Puzzle rooms on nearly every level**: mazes of narrow paths over the void, ice boards to cross in one go round the pillars, and teleport mazes. A solved puzzle blesses you.
 - **Vaults** where you may take only one treasure, token vaults whose guards carry the key, secret walls and locked doors with their keys, and the thing you should not touch.
-- **Loot improves with depth**: Mending books, rare enchantments, armour trim templates, the netherite upgrade, and trimmed, enchanted armour.
+- **Loot improves with depth**: Mending books, rare enchantments, armour trim templates, the netherite upgrade, and trimmed, enchanted armour. **Luck counts**: the Luck potion, or a lucky race or class in LegendQuest, finds rare loot more often.
 
 ## Objective rooms
 
@@ -51,7 +51,7 @@ Big set pieces from the old dungeon card games, each with a job to do: the Fight
 ## The bottom, and coming back
 
 - **The finale**: the deepest lair's boss sleeps in a sunken arena until you set the seals you have won from each level's lair or puzzle on its altar, and offer gold. Beat it, and the altar can call it back, stronger each time.
-- **Restocking**: every 12 real hours a dungeon fills again, rooms, traps and chests, and broken chests and doors are mended. Never while someone else is inside.
+- **Restocking**: every 12 real hours a dungeon fills again, rooms, traps and chests, broken chests and doors are mended, and burned-out spawners are lit again. Never while someone else is inside.
 - **Replay tablets** from objective rooms wake a dungeon again, harder, with a boon and a bane for everyone in it: more XP but tougher monsters, richer loot but more of them. Collect them, trade them, look for a good combination.
 
 ![A cavern pool with its spawner](https://raw.githubusercontent.com/Sablednah/CrawlSpace/main/docs/images/cavern-pool.jpg)
@@ -81,6 +81,7 @@ CrawlSpace runs on the server. Players with an unmodded client can join and play
 
 - **LegendQuest**: perception and disarm rolls, as above.
 - **CityWorld**: dungeons generate in CityWorld worlds, and cities keep clear of the entrance.
+- **ZombieMod** (3.9.0 or newer): a theme can fill its rooms with chosen ZombieMod genera, and make them elites ("Frenzied Harvester") and sentries, keeping their faces.
 - **Other RPG mods** can supply their own checks through `CrawlSpaceApi`.
 
 Minecraft 1.21.11, 26.1.2, 26.2 and 26.3 on NeoForge, and 1.20.1 on Forge 47.4 or newer. On 26.3, NeoForge 26.3.0.58-beta or newer. On 1.20.1, which predates mob scaling, bosses and their packs are normal size. MIT licensed.

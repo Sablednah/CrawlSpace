@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.2.0 — 2026-10-25
 
 - **A restock relights the spawners.** A dungeon spawner burned out (left as mossy cobblestone) or broken is put back when the dungeon restocks, and one still burning starts its count of monsters again. Spawners still burn out between restocks, so a dungeon is never a farm.
 - **Luck finds rarer loot.** The player's luck attribute (the Luck potion, or a LegendQuest race, class or feat boon) now tilts every chest's rare pool: fewer empty rolls, more Mending, rare trims and netherite upgrades, and a bonus roll for every 2 luck. Without luck the odds are as before.
