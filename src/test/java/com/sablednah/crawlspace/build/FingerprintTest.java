@@ -22,11 +22,13 @@ import com.sablednah.crawlspace.plan.Planner;
  * <li>499445310656077114: 1.1.0, data themes (the refactor this test was taken for).</li>
  * <li>218812467420928347: 4bf3c89, a stair well's railing no longer cuts off a
  * doorway. Railing only; planner unchanged.</li>
+ * <li>-8731301701268069117: shelf skirting (Shelves), laid last on empty floor with its own dice.
+ * ShelvesTest proves it adds shelves and corner columns and nothing else; planner unchanged.</li>
  * </ul>
  */
 class FingerprintTest {
 
-    static final long EXPECTED = 218812467420928347L;
+    static final long EXPECTED = -8731301701268069117L;
 
     static long fingerprint() {
         long sum = 0;

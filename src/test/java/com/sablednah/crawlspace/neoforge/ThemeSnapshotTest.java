@@ -48,7 +48,7 @@ class ThemeSnapshotTest {
         assertSame(Theme.CAVERNS, back.get(2)); // an untouched built-in theme is stored by name only
         assertEquals(ThemeJson.write(lab).toString(), ThemeJson.write(back.get(0)).toString());
         assertEquals(snap, ThemeJson.snapshot(back)); // and saving it again writes the same thing
-        assertEquals(new Dressing("old_mines", true, true, true, 0.05, 0, List.of("barrel", "lectern"), 0.1, false, 0, false, false, 0.5),
+        assertEquals(new Dressing("old_mines", true, true, true, 0.05, 0, List.of("barrel", "lectern"), 0.1, false, 0, false, false, 0.5, 0.2, 0.06),
                 back.get(0).dressing());
     }
 

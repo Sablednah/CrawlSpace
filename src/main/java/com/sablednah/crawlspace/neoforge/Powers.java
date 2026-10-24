@@ -73,6 +73,10 @@ public final class Powers {
     }
 
     static final String AFFIX = "crawlspace_affix_";
+    /** How many monsters a dungeon spawner has made, in its block entity's persistent data; a restock clears it. */
+    static final String SPAWNS_KEY = "crawlspace_spawns";
+    /** ZombieMod's genus key in a mob's persistent data (its ZombieModApi.genusOf reads the same). */
+    static final String GENUS_KEY = "zombiemod:genus";
     static final String ELITE = "crawlspace_elite";
     /** Its dungeon depth, for its loot: "crawlspace_depth_3". */
     static final String DEPTH = "crawlspace_depth_";
@@ -80,6 +84,8 @@ public final class Powers {
     static final String POWER = "crawlspace_power_";
     /** What a summoner calls up: "crawlspace_minion_minecraft:silverfish". */
     static final String MINION = "crawlspace_minion_";
+    /** A boss's minions' ZombieMod genus: "crawlspace_mgenus_zombiemod:breaker". Not under MINION, which names a type. */
+    static final String MINION_GENUS = "crawlspace_mgenus_";
     static final String ENRAGED = "crawlspace_enraged";
     /**
      * Left alone by mods that roll their own variant on to a mob as it spawns:
@@ -133,7 +139,9 @@ public final class Powers {
     /**
      * Makes {@code mob} an elite with one affix, or two from the fourth level
      * down: attributes now, name and tags for what runs later. A mob some other
-     * mod already named (a ZombieMod genus) is left as it is.
+     * mod named is left as it is, except a ZombieMod genus: its affixes go on top
+     * of the genus and their prefixes on its name ("Frenzied Harvester"), asked
+     * for by ZARP so a dungeon of genera still has elites.
      */
     static boolean elite(Mob mob, int depth, RandomSource random) {
         return elite(mob, depth, random, depth >= 3 && random.nextDouble() < 0.35 ? 2 : 1);
@@ -141,10 +149,19 @@ public final class Powers {
 
     /** ...with exactly {@code count} affixes: a hunted level's hunter has two. */
     static boolean elite(Mob mob, int depth, RandomSource random, int count) {
-        if (mob.hasCustomName()) {
+        boolean genus = mob.getPersistentData().contains(GENUS_KEY);
+        if (mob.hasCustomName() && !genus) {
             return false;
         }
         List<Affix> pool = new ArrayList<>(List.of(Affix.values()));
+        if (genus) {
+            // A genus already big or fast is not made bigger or faster: a Hulking colossus fills a corridor,
+            // and a Frenzied Charger outruns a horse.
+            // 1.20.1 has no scale attribute, so no genus is already big here.
+            if (mob.getAttributeValue(Attributes.MOVEMENT_SPEED) >= 0.3) {
+                pool.remove(Affix.FRENZIED);
+            }
+        }
         List<Affix> got = new ArrayList<>();
         for (int k = 0; k < count && !pool.isEmpty(); k++) {
             got.add(pool.remove(random.nextInt(pool.size())));
@@ -171,12 +188,27 @@ public final class Powers {
         }
         modify(mob, Attributes.MAX_HEALTH, "elite_toughness", 0.25, AttributeModifier.Operation.MULTIPLY_BASE);
         mob.setHealth(mob.getMaxHealth());
-        name.append(mob.getType().getDescription().getString());
-        mob.setCustomName(Component.literal(name.toString()).withStyle(got.size() > 1 ? ChatFormatting.LIGHT_PURPLE : got.get(0).colour));
+        if (genus && mob.getCustomName() != null) {
+            // Each prefix in its affix's colour, then the genus's own name as ZombieMod styled it.
+            net.minecraft.network.chat.MutableComponent named = Component.empty();
+            for (Affix a : got) {
+                named.append(Component.literal(a.prefix + " ").withStyle(a.colour));
+            }
+            mob.setCustomName(named.append(mob.getCustomName().copy()));
+        } else {
+            name.append(mob.getType().getDescription().getString());
+            mob.setCustomName(Component.literal(name.toString()).withStyle(got.size() > 1 ? ChatFormatting.LIGHT_PURPLE : got.get(0).colour));
+        }
         mob.setCustomNameVisible(true);
         mob.addTag(ELITE);
         mob.addTag(DEPTH + depth);
         return true;
+    }
+
+    /** Named only by its ZombieMod genus: not an elite, a sentry or anything else of ours yet. */
+    static boolean genusOnly(Mob mob) {
+        return mob.getPersistentData().contains(GENUS_KEY) && mob.getCustomName() != null
+                && !mob.getTags().contains(ELITE) && !mob.getTags().contains(Sentries.TAG);
     }
 
     /** Starts tracking a mob that has something to run: a blinker, a summoner, any boss (for its enrage). */
@@ -326,7 +358,7 @@ public final class Powers {
             return;
         }
         for (int k = 0; k < count && s.minions.size() < 8; k++) {
-            Entity e = type.create(level);
+            Entity e = Bestiary.make(level, type, minionGenus(mob), MobSpawnType.MOB_SUMMONED, "boss " + mob.getName().getString());
             if (!(e instanceof Mob minion)) {
                 return;
             }
@@ -345,6 +377,15 @@ public final class Powers {
             level.sendParticles(ParticleTypes.POOF, minion.getX(), minion.getY() + 0.3, minion.getZ(), 6, 0.2, 0.2, 0.2, 0.02);
         }
         level.playSound(null, mob.blockPosition(), SoundEvents.SILVERFISH_AMBIENT, SoundSource.HOSTILE, 1.2f, 0.5f);
+    }
+
+    private static ResourceLocation minionGenus(Mob mob) {
+        for (String t : mob.getTags()) {
+            if (t.startsWith(MINION_GENUS)) {
+                return ResourceLocation.tryParse(t.substring(MINION_GENUS.length()));
+            }
+        }
+        return null;
     }
 
     private static EntityType<?> minionOf(Mob mob) {
@@ -552,8 +593,8 @@ public final class Powers {
             return;
         }
         net.minecraft.nbt.CompoundTag data = spawner.getPersistentData();
-        int made = data.getInt("crawlspace_spawns") + 1;
-        data.putInt("crawlspace_spawns", made);
+        int made = data.getInt(SPAWNS_KEY) + 1;
+        data.putInt(SPAWNS_KEY, made);
         spawner.setChanged();
         if (made >= cap) {
             Crumbles.later(level, 1, () -> {
