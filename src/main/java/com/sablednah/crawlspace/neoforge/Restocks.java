@@ -24,8 +24,10 @@ import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
  * trapped chests are armed again; and each chest refills the next time it is
  * opened, from the same table it was first filled from. A Lootr chest is
  * Lootr's to refill. What is done once stays done: vaults, puzzles, seals,
- * the tomb, and the altar's count. Broken chests and barrels come back, and
- * doors are shut again, as a player comes near ({@link #mend}).</p>
+ * the tomb, and the altar's count. Broken chests and barrels come back,
+ * doors are shut again, and spawners burned out or broken are lit again with
+ * their count of monsters started afresh, as a player comes near
+ * ({@link #mend}).</p>
  */
 public final class Restocks {
 
@@ -115,7 +117,8 @@ public final class Restocks {
                         continue;
                     }
                     Part part = Blueprint.part(code);
-                    if (part == Part.CHEST || part == Part.HOARD_CHEST || part == Part.BARREL || part == Part.DOOR_LOWER) {
+                    if (part == Part.CHEST || part == Part.HOARD_CHEST || part == Part.BARREL || part == Part.DOOR_LOWER
+                            || part == Part.SPAWNER) {
                         out.add(new int[] {col.x(), col.y0() + k, col.z(), code});
                     }
                 }
@@ -162,6 +165,20 @@ public final class Restocks {
                     if (upper != 0) {
                         level.setBlock(p.above(), site.state(site.built(), upper, p.above()), 2);
                     }
+                }
+            } else if (Blueprint.part(code) == Part.SPAWNER) {
+                // A spawner still burning starts its count again; one burned out (left as mossy cobblestone,
+                // see Powers.onSpawnerSpawn) or broken is lit again, its monster set as when it was built.
+                if (now.is(net.minecraft.world.level.block.Blocks.SPAWNER)) {
+                    if (level.getBlockEntity(p) instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity spawner) {
+                        spawner.getPersistentData().remove(Powers.SPAWNS_KEY);
+                        spawner.setChanged();
+                    }
+                } else if (now.isAir() || now.is(net.minecraft.world.level.block.Blocks.MOSSY_COBBLESTONE)) {
+                    level.setBlock(p, site.state(site.built(), code, p), 3);
+                    site.afterPlace(site.built(), level, p, code, level.getRandom());
+                    level.sendParticles(net.minecraft.core.particles.ParticleTypes.FLAME, p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5,
+                            12, 0.3, 0.3, 0.3, 0.01);
                 }
             } else if (now.isAir()) {
                 level.setBlock(p, site.state(site.built(), code, p), 3);

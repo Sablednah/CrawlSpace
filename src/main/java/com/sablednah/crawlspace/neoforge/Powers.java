@@ -73,6 +73,8 @@ public final class Powers {
     }
 
     static final String AFFIX = "crawlspace_affix_";
+    /** How many monsters a dungeon spawner has made, in its block entity's persistent data; a restock clears it. */
+    static final String SPAWNS_KEY = "crawlspace_spawns";
     /** ZombieMod's genus key in a mob's persistent data (its ZombieModApi.genusOf reads the same). */
     static final String GENUS_KEY = "zombiemod:genus";
     static final String ELITE = "crawlspace_elite";
@@ -587,8 +589,8 @@ public final class Powers {
             return;
         }
         net.minecraft.nbt.CompoundTag data = spawner.getPersistentData();
-        int made = data.getIntOr("crawlspace_spawns", 0) + 1;
-        data.putInt("crawlspace_spawns", made);
+        int made = data.getIntOr(SPAWNS_KEY, 0) + 1;
+        data.putInt(SPAWNS_KEY, made);
         spawner.setChanged();
         if (made >= cap) {
             Crumbles.later(level, 1, () -> {
