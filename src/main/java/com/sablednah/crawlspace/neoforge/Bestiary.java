@@ -769,16 +769,20 @@ public final class Bestiary {
         // A datapack's "armour" for this mob, where it gave one; otherwise whether it shows armour at all.
         boolean humanoid = common.values().stream().flatMap(List::stream).filter(p -> p.type() == t)
                 .map(Pick::armour).findFirst().orElse(HUMANOIDS.contains(t));
+        // A ZombieMod genus is dressed already, most often its face as a player head: depth armour fills only
+        // what it left empty, so a Harvester keeps its head and may still get a chestplate (Sable, 2026-10-24).
+        boolean genus = mob.getPersistentData().getString(Powers.GENUS_KEY).isPresent();
         if (humanoid) {
             double chance = Math.min(0.9, 0.1 + 0.1 * depth);
             Item[] set = ARMOUR.get(Math.min(ARMOUR.size() - 1, depth / 2));
             for (int k = 0; k < 4; k++) {
-                if (random.nextDouble() < chance) {
+                if (random.nextDouble() < chance && !(genus && !mob.getItemBySlot(SLOTS[k]).isEmpty())) {
                     mob.setItemSlot(SLOTS[k], new ItemStack(set[k]));
                     mob.setDropChance(SLOTS[k], 0.05f);
                 }
             }
-            if ((t == EntityTypes.ZOMBIE || t == EntityTypes.HUSK) && random.nextDouble() < 0.2 + 0.08 * depth) {
+            if ((t == EntityTypes.ZOMBIE || t == EntityTypes.HUSK) && random.nextDouble() < 0.2 + 0.08 * depth
+                    && !(genus && !mob.getMainHandItem().isEmpty())) {
                 mob.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(depth >= 5 ? Items.DIAMOND_SWORD : Items.IRON_SWORD));
                 mob.setDropChance(EquipmentSlot.MAINHAND, 0.05f);
             }
